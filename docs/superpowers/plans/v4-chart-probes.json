@@ -1,0 +1,585 @@
+{
+  "scope": "Reproducible synthetic development probes; no personal images or downloads.\n\nCompares the unchanged ten-scene prompts with the expanded prompt set. This\ntiny generated set is not an independent accuracy benchmark or a calibration.\n",
+  "baseline_method": "Same real CLIP image and prompt embeddings, filtered to the unchanged ten legacy prompts. Cosine scores are independent of additional labels (no softmax). Frozen v2 fusion uses these ten scores.",
+  "probes": [
+    {
+      "probe": "scatter_plot",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Simple Scatter\n100-\n80\n60\nCount\n40\n20\n20\n30\n10\n40\n50\n0\nSample/Value",
+      "visual_top3": [
+        {
+          "label": "line_chart",
+          "score": 0.3089
+        },
+        {
+          "label": "scatter_plot",
+          "score": 0.3068
+        },
+        {
+          "label": "bar_chart",
+          "score": 0.3017
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 5781,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 611.5
+      }
+    },
+    {
+      "probe": "line_chart",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Sample Line Chart\n100-\n80\n60\nCount\n40\n20\n0\n30\n10\n20\n40\n50\n0\nSample/Value",
+      "visual_top3": [
+        {
+          "label": "line_chart",
+          "score": 0.317
+        },
+        {
+          "label": "bar_chart",
+          "score": 0.3139
+        },
+        {
+          "label": "scatter_plot",
+          "score": 0.3069
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4906,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 609.9
+      }
+    },
+    {
+      "probe": "bar_chart",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Category Comparison\n100-\n80\n60\nCount\n40\n20\n20\n30\n10\n40\n50\nSample/Value",
+      "visual_top3": [
+        {
+          "label": "bar_chart",
+          "score": 0.2907
+        },
+        {
+          "label": "histogram",
+          "score": 0.2902
+        },
+        {
+          "label": "line_chart",
+          "score": 0.2896
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4750,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 610.4
+      }
+    },
+    {
+      "probe": "histogram",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Histogram\n100\n80\n60\nCount\n40\n20\n10\n20\n30\n40\n50\nSample/Value",
+      "visual_top3": [
+        {
+          "label": "histogram",
+          "score": 0.2979
+        },
+        {
+          "label": "bar_chart",
+          "score": 0.2974
+        },
+        {
+          "label": "line_chart",
+          "score": 0.2928
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4656,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 610.1
+      }
+    },
+    {
+      "probe": "pie_chart",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Distribution\n20%\n10%\n30%\n40%",
+      "visual_top3": [
+        {
+          "label": "pie_chart",
+          "score": 0.2988
+        },
+        {
+          "label": "scatter_plot",
+          "score": 0.2768
+        },
+        {
+          "label": "line_chart",
+          "score": 0.2758
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4312,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 611.0
+      }
+    },
+    {
+      "probe": "heatmap",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "Correlation Matrix\nV1\n1.0\n0.5\n0.5\n0.0\n0.0\n0.5\nV2\n1.0\n0.3\n0.3\n0.8\n0.3\n0.8\nV3\n0.1\n0.6\n1.0\n0.6\n0.1\n0.1\nV4\n0.9\n0.4\n0.9\n1.0\n0.9\n0.4\nV5\n0.7\n0.7\n0.7\n1.0\n0.2\n0.2\nV6\n0.0\n0.5\n0.0\n0.5\n1.0\n0.5\nV1\nV2\nV3\nV4\nV5\nV6",
+      "visual_top3": [
+        {
+          "label": "heatmap",
+          "score": 0.299
+        },
+        {
+          "label": "scatter_plot",
+          "score": 0.2968
+        },
+        {
+          "label": "pie_chart",
+          "score": 0.289
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 5750,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 610.6
+      }
+    },
+    {
+      "probe": "box_plot",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "data_chart",
+      "ocr": "BoxPlot\n100-\n80\n60\nCount\n40\n20\n0\n30\n10\n20\n40\n50\n0\nSample/Value",
+      "visual_top3": [
+        {
+          "label": "box_plot",
+          "score": 0.3108
+        },
+        {
+          "label": "bar_chart",
+          "score": 0.3028
+        },
+        {
+          "label": "scatter_plot",
+          "score": 0.2864
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "data_chart"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4891,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 610.9
+      }
+    },
+    {
+      "probe": "flowchart",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": "diagram",
+      "ocr": "Process Flow\nStart\nValidate input\nProcess\nEnd",
+      "visual_top3": [
+        {
+          "label": "flowchart",
+          "score": 0.2913
+        },
+        {
+          "label": "diagram",
+          "score": 0.2858
+        },
+        {
+          "label": "histogram",
+          "score": 0.2664
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "social",
+        "subcategory": "diagram",
+        "content_form": "diagram",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "tags": [
+          "diagram"
+        ]
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4313,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 611.7
+      }
+    },
+    {
+      "probe": "screenshot",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": null,
+      "ocr": "screenshot\nFiles\nDocument A.pdf\nSearch\nNotes.txt\nSettings\nSchedule.md\nHelp",
+      "visual_top3": [
+        {
+          "label": "screenshot",
+          "score": 0.2874
+        },
+        {
+          "label": "histogram",
+          "score": 0.2659
+        },
+        {
+          "label": "flowchart",
+          "score": 0.2654
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "tags": []
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4546,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 610.9
+      }
+    },
+    {
+      "probe": "illustration",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": null,
+      "ocr": "illustration",
+      "visual_top3": [
+        {
+          "label": "line_chart",
+          "score": 0.2774
+        },
+        {
+          "label": "histogram",
+          "score": 0.2769
+        },
+        {
+          "label": "landscape",
+          "score": 0.2687
+        }
+      ],
+      "baseline": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "document_image",
+        "review_required": false
+      },
+      "v4": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "document_image",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "tags": []
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 4109,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 611.6
+      }
+    },
+    {
+      "probe": "document",
+      "source": "deterministic Pillow-generated fixture",
+      "expected_form": null,
+      "ocr": "document\nProject report\nWork progress and next steps\nThis document describes the current project.\nTheteamcompletedplanningandvalidation.\nTasksandownerswerereviewedthisweek.\nNext steps include documentation and review.",
+      "visual_top3": [
+        {
+          "label": "flowchart",
+          "score": 0.2646
+        },
+        {
+          "label": "document",
+          "score": 0.2634
+        },
+        {
+          "label": "screenshot",
+          "score": 0.2599
+        }
+      ],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "review_required": true
+      },
+      "v4": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "tags": []
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 5454,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 611.2
+      }
+    },
+    {
+      "probe": "public_cat_photo",
+      "source": "huggingface/documentation-images/coco_sample.png (existing public v2 cache)",
+      "expected_form": "natural_photo",
+      "ocr": "",
+      "visual_top3": [
+        {
+          "label": "pet",
+          "score": 0.2609
+        },
+        {
+          "label": "box_plot",
+          "score": 0.2382
+        },
+        {
+          "label": "people",
+          "score": 0.2328
+        }
+      ],
+      "baseline": {
+        "category": "photos",
+        "subcategory": "pet",
+        "content_form": "natural_photo",
+        "review_required": false
+      },
+      "v4": {
+        "category": "photos",
+        "subcategory": "pet",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "tags": []
+      },
+      "warnings": [],
+      "runtime": {
+        "network_disabled": true,
+        "elapsed_ms": 3906,
+        "memory_budget_mib": 1536,
+        "peak_working_set_mib": 602.3
+      }
+    }
+  ],
+  "engine_sha256": {
+    "classifier.py": "098f570f3c333b30efe8baabf56dc6ece114bb6b6f8e37fca8e3c5786b45b2a6",
+    "offline.py": "11ea2a31a2cd4777ec1d3ce1981799e9f56440302f060c265c1ac32f16322413",
+    "analysis.py": "7483a11af0e89ade2b5d3f99a5f6031ce3aef431625530fd5f7389bdc70e3aad",
+    "classification_profiles.json": "4729ecda1291687695d3fa99a874391fd1bedf06ad9155e83ba0609d5a70b337"
+  },
+  "clip_manifest": {
+    "repository": "Xenova/clip-vit-base-patch32",
+    "revision": "6b7c523703ae26e39be4b03774966f8571c7f523",
+    "license": "MIT (see README.md)",
+    "source": "https://hf-mirror.com",
+    "files": {
+      "onnx/vision_model_quantized.onnx": "583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299",
+      "onnx/text_model_quantized.onnx": "73baab855d406190da9faa498cfedf65f15cf309f4cc7385b7b032e6d08e5c3a",
+      "tokenizer.json": "f7f3b7af117d467b58374797691a6438d3e6b9e9cef800dfd5dced7f697a90cd",
+      "preprocessor_config.json": "6f638fb9401a6d6296feff533ee7efe657b787c49f954f82f5906b36ef2a1b1f",
+      "config.json": "493ef57ff783e42d1530c91b53469b7fdf8db8a9c1408e86998fcb7899a4f495",
+      "README.md": "ae287015b60eb7ca1d40e726c550af1988977c24f0005f123274d52490c20d8d"
+    }
+  },
+  "analysis_note": "Probe inference/fusion was run before the independent local parser-capacity retry change; image inference and fusion are unchanged. Final backend suite verifies the retry."
+}

@@ -1,0 +1,65 @@
+import { useCallback, useEffect, useState } from 'react'
+import { CheckCircle2, CircleAlert, Settings2, ChevronRight, X } from 'lucide-react'
+import { useWorkspace } from './useWorkspace'
+import { Sidebar } from './components/Sidebar'
+import { Workbench } from './components/Workbench'
+import { HistoryPage } from './components/HistoryPage'
+import { HelpPage } from './components/HelpPage'
+import { SettingsDialog } from './components/SettingsDialog'
+import { FirstRunTour } from './components/FirstRunTour'
+import { TutorialPractice } from './components/TutorialPractice'
+import { loadPreferences, savePreferences } from './preferences'
+import type { Page } from './types'
+
+export default function App() {
+  const state = useWorkspace()
+  const [page, setPage] = useState<Page>('workbench')
+  const [settings, setSettings] = useState(false)
+  const [preferences, setPreferences] = useState(loadPreferences)
+  const [tour, setTour] = useState(() => !loadPreferences().tutorial.tourCompleted)
+  const [practice, setPractice] = useState(false)
+  useEffect(() => {
+    const refresh = () => setPreferences(loadPreferences())
+    window.addEventListener('neatdrop:preferences', refresh)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.removeEventListener('neatdrop:preferences', refresh)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [])
+  const closeTour = useCallback(() => {
+    setTour(false)
+    setPreferences(current => {
+      const next = { ...current, tutorial: { ...current.tutorial, tourCompleted: true } }
+      savePreferences(next)
+      return next
+    })
+  }, [])
+  const openPractice = useCallback(() => { setTour(false); setPractice(true) }, [])
+  const closePractice = useCallback(() => setPractice(false), [])
+  const completePractice = useCallback(() => {
+    setPreferences(current => {
+      const next = { ...current, tutorial: { ...current.tutorial, exerciseCompleted: true } }
+      savePreferences(next)
+      return next
+    })
+  }, [])
+  const changePreferences = useCallback((next: ReturnType<typeof loadPreferences>) => {
+    setPreferences(next)
+    savePreferences(next)
+  }, [])
+  async function refreshModelConfig() {
+    await state.refreshConfig()
+  }
+  const titles = { workbench: '整理工作台', history: '操作记录', help: '使用说明' }
+  return <div className="app-shell" data-density={preferences.density}><Sidebar page={page} onPage={setPage} online={state.online} onTutorial={openPractice} exerciseCompleted={preferences.tutorial.exerciseCompleted} /><div className="main-shell"><header className="topbar"><div className="breadcrumb"><span>工作空间</span><ChevronRight size={13} /><strong>{titles[page]}</strong></div><button className="button settings-button" onClick={() => setSettings(true)}><Settings2 size={15} />模型设置<span className={`status-dot ${state.config?.model.configured ? 'online' : ''}`} /></button></header><main>
+    {state.error ? <div className="alert error" role="alert"><CircleAlert size={18} /><span>{state.error}</span><button className="icon-button" aria-label="关闭错误提示" onClick={() => state.setError('')}><X size={16} /></button></div> : null}
+    {state.message ? <div className="alert success" role="status"><CheckCircle2 size={18} /><span>{state.message}</span><button className="icon-button" aria-label="关闭状态提示" onClick={() => state.setMessage('')}><X size={16} /></button></div> : null}
+    <div hidden={page !== 'workbench'}><Workbench state={state} onTutorial={openPractice} onHistory={() => setPage('history')} offlineFirst={preferences.offlineFirst} /></div>
+    {page === 'history' ? <HistoryPage state={state} /> : page === 'help' ? <HelpPage onPractice={openPractice} onReplayTour={() => setTour(true)} exerciseCompleted={preferences.tutorial.exerciseCompleted} /> : null}
+    <div className="page-bottom"><span>NeatDrop 净匣</span><span>少一点杂乱，多一点从容。</span><span>LOCAL FIRST · MVP 0.1</span></div>
+  </main></div>{settings ? <SettingsDialog config={state.config} onClose={() => setSettings(false)} onSaved={refreshModelConfig} preferences={preferences} onPreferencesChange={changePreferences} /> : null}
+    {tour ? <FirstRunTour onClose={closeTour} onPractice={openPractice} /> : null}
+    {practice ? <TutorialPractice onClose={closePractice} completed={preferences.tutorial.exerciseCompleted} onComplete={completePractice} /> : null}
+  </div>
+}

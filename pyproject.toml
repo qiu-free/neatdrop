@@ -1,0 +1,26 @@
+[project]
+name = "neatdrop"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.162.0",
+  "uvicorn==0.54.0",
+  "httpx==0.28.1",
+  "pillow==13.0.0",
+  "pypdf==6.21.4",
+  "python-dotenv==1.2.4",
+  "rapidocr-onnxruntime==1.4.4",
+  "onnxruntime==1.31.1",
+  "tokenizers==0.23.3",
+  "numpy==2.5.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["backend/tests"]
+

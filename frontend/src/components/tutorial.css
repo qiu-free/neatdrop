@@ -1,0 +1,48 @@
+.modal:has(.learning-tour) { width: min(460px, 100%); padding: 0; overflow: hidden; }
+.modal:has(.learning-tour) .modal-header { margin: 0; padding: 20px 26px 0; }
+.learning-tour { padding: 0 26px 26px; }
+.learning-tour-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #78906e; font-size: 11px; letter-spacing: .5px; }
+.learning-tour-art { height: 100px; display: grid; place-items: center; position: relative; margin: 12px 0 7px; }
+.tour-paper { display: flex; flex-direction: column; justify-content: center; gap: 8px; width: 72px; height: 84px; padding: 16px; border: 1px solid #c9d8be; border-radius: 8px; background: #f7faf3; transform: rotate(-5deg); box-shadow: 0 7px 20px #355b3e15; }
+.tour-paper i { display: block; height: 4px; border-radius: 4px; background: #cad8c0; }.tour-paper i:last-child { width: 27px; }
+.tour-check { position: absolute; display: grid; place-items: center; width: 31px; height: 31px; border: 4px solid #fff; border-radius: 50%; color: #fff; background: #557c55; font-size: 16px; top: 10px; right: calc(50% - 57px); }
+.learning-tour-progress { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 10px; color: #73846b; }
+.learning-tour-progress > div { display: flex; gap: 5px; }.learning-tour-progress i { display: block; width: 20px; height: 4px; border-radius: 4px; background: #e3e8de; }.learning-tour-progress i.active { background: #61835b; }
+.learning-tour h2 { margin: 14px 0 7px; font-family: var(--font-display); font-size: 22px; font-weight: 500; color: #2e4730; }
+.learning-tour > p { color: #77866d; font-size: 12px; line-height: 1.9; min-height: 48px; }
+.learning-tour-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #e6eadf; margin-top: 18px; padding-top: 15px; }
+.learning-tour-actions > span { display: flex; justify-content: flex-end; gap: 8px; }
+.learning-tour-actions .button { padding: 8px 11px; font-size: 11px; }
+
+.tutorial-exercise { border: 1px solid #dbe5d3; border-radius: 10px; background: #fbfcf8; padding: 23px; }
+.tutorial-exercise-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; }
+.tutorial-exercise-head .intro-label { margin-bottom: 3px; font-size: 9px; letter-spacing: 1.5px; }
+.tutorial-exercise-head h2 { margin: 0; font-family: var(--font-display); font-size: 21px; color: #304b32; }
+.exercise-mode-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 4px 9px; border: 1px solid #dce6d4; border-radius: 99px; color: #58744e; background: #f0f5ea; font-size: 9px; letter-spacing: .5px; }
+.tutorial-exercise-intro { margin-top: 8px; color: #74846b; font-size: 11px; }
+.practice-badge { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 4px 8px; border: 1px solid #cbdcbe; border-radius: 99px; color: #476e45; background: #eef5e9; font-size: 10px; }
+.exercise-progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 14px; color: #74836a; font-size: 10px; }
+.exercise-progress > div { display: flex; gap: 4px; }.exercise-progress i { display: block; width: 25px; height: 4px; border-radius: 5px; background: #e3e8de; }.exercise-progress i.done { background: #62845b; }
+.exercise-step { display: grid; grid-template-columns: 35px minmax(0,1fr) auto; align-items: center; gap: 12px; border-top: 1px solid #e5eadf; padding-top: 16px; }
+.exercise-number { display: grid; place-items: center; width: 31px; height: 31px; border-radius: 9px; color: #58774d; background: #edf3e7; font-family: Georgia, serif; font-size: 12px; }
+.exercise-step h3 { color: #3b5836; font-size: 12px; font-weight: 600; }.exercise-step p { color: #7e8e73; font-size: 10px; line-height: 1.75; margin-top: 3px; }
+.exercise-step > .button { justify-self: end; padding: 8px 11px; font-size: 10px; }
+.exercise-files, .exercise-review { grid-template-columns: 35px minmax(0,1fr); }
+.exercise-file-list, .exercise-state, .exercise-field, .exercise-check, .exercise-files > .button, .exercise-review > .button { grid-column: 2; }
+.exercise-file-list { display: grid; gap: 6px; margin-top: 2px; }
+.exercise-file { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 10px; border: 1px solid #e0e8d8; border-radius: 7px; background: white; padding: 8px 10px; }
+.exercise-file strong, .exercise-file small { display: block; overflow-wrap: anywhere; }.exercise-file strong { color: #425a3b; font-size: 10px; font-weight: 600; }.exercise-file small { color: #8b987f; font-size: 9px; margin-top: 3px; }.exercise-file .button { padding: 5px 8px; font-size: 9px; }.exercise-file label { display: flex; align-items: center; gap: 4px; white-space: nowrap; color: #6b7d61; font-size: 9px; }.exercise-file input { margin: 0; }
+.exercise-state { display: flex; justify-content: space-between; gap: 10px; color: #627957; font-size: 10px; }
+.exercise-field { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 9px; color: #607653; font-size: 10px; }.exercise-field select { border: 1px solid #d5e0cd; border-radius: 5px; padding: 7px 9px; color: #425b37; background: #fff; font-size: 11px; }
+.exercise-check { display: flex; align-items: flex-start; gap: 8px; color: #687c5b; font-size: 10px; }.exercise-check input { margin: 3px 0 0; }
+.exercise-review > .exercise-state { margin: -3px 0 0; }
+.exercise-result { grid-template-columns: 35px minmax(0,1fr) auto; }
+.exercise-done { display: flex; align-items: center; flex-wrap: wrap; gap: 9px 14px; border-top: 1px solid #e5eadf; padding-top: 16px; }.exercise-done p { flex: 1 1 100%; color: #718268; font-size: 11px; }.exercise-done .text-button { font-size: 10px; }
+.practice-nav-badge { display: inline-flex; align-items: center; margin-left: auto; padding: 1px 5px; border-radius: 99px; background: #e7f0df; color: #50734b; font-size: 8px; }
+.safety-note .sidebar-tutorial-button { display: flex; align-items: center; justify-content: space-between; gap: 7px; width: 100%; margin-top: 7px; padding: 6px 8px; border: 1px solid #d5e1cc; border-radius: 5px; background: #f6f9f2; color: #456640; font-size: 10px; }
+
+@media(max-width: 720px) {
+  .modal:has(.learning-tour) { padding: 0; }.modal:has(.learning-tour) .modal-header { padding: 18px 18px 0; }.learning-tour { padding: 0 18px 21px; }.learning-tour h2 { font-size: 20px; }.learning-tour-actions { align-items: flex-start; }.learning-tour-actions .button { padding: 8px 9px; }
+  .tutorial-exercise { padding: 17px 14px; }.tutorial-exercise-head h2 { font-size: 19px; }.exercise-step { grid-template-columns: 29px minmax(0,1fr); gap: 9px; }.exercise-number { width: 27px; height: 27px; }.exercise-step > .button { grid-column: 2; justify-self: stretch; }.exercise-file { grid-template-columns: minmax(0,1fr) auto; gap: 7px; }.exercise-file label { grid-column: 1 / -1; justify-self: start; padding-left: 2px; }.exercise-state { font-size: 9px; }.exercise-field { grid-template-columns: 1fr; gap: 5px; }.exercise-result { grid-template-columns: 29px minmax(0,1fr); }.exercise-result > .button, .exercise-result > .practice-badge { grid-column: 2; justify-self: start; }
+}
+@media(prefers-reduced-motion: reduce) { .learning-tour *, .tutorial-exercise * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

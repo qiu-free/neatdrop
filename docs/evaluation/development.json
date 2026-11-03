@@ -1,0 +1,669 @@
+{
+  "version": 1,
+  "description": "40 independent hand-authored development scenarios; not a frozen accuracy evaluation. No real personal documents. CC0-1.0.",
+  "records": [
+    {
+      "id": "paper-en",
+      "group": "paper-en",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "Efficient spectral methods for nonlinear systems\nAbstract\nWe propose a numerical method for nonlinear equations.\nKeywords: spectral methods; optimization\n1 Introduction\n2 Methods\nReferences",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "paper"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "unanchored"
+    },
+    {
+      "id": "notes-math",
+      "group": "notes-math",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "矩阵与线性变换\n定义：线性映射在一组基下可表示为矩阵。\n定理：相似矩阵具有相同特征值。\n证明与例题",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "notes"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "unanchored"
+    },
+    {
+      "id": "notes-explicit",
+      "group": "notes-explicit",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "# 线性代数课程笔记\n本节复习矩阵和特征值，附证明与公式。",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "notes"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "paper-zh",
+      "group": "paper-zh",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "研究论文：光谱估计的数值方法\n摘要：本文讨论估计方法。\n关键词：数值计算\n研究方法\n参考文献",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "paper"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "courseware",
+      "group": "courseware",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "教学大纲\n课程：离散数学\n第一章 集合与逻辑\n总学时 48\n习题安排",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "courseware"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "exam",
+      "group": "exam",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "模拟考试试卷\n选择题 满分20分\n填空题与解答题\n答案解析",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "exam"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "board",
+      "group": "board",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "课堂板书照片\n公式与定理\n矩阵方程的证明",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "board"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "invoice",
+      "group": "invoice",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "增值税电子普通发票\n发票号码：123456789\n购买方：样例甲\n销售方：样例乙\n税额：10元\n价税合计：110元",
+      "acceptable": [
+        {
+          "category": "finance",
+          "subcategory": "invoice"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "receipt",
+      "group": "receipt",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "购物小票\n收银员：007\n商品 单价 数量 小计\n实付28元 找零2元",
+      "acceptable": [
+        {
+          "category": "finance",
+          "subcategory": "receipt"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "payment",
+      "group": "payment",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "支付成功\n交易单号12345\n收款方：样例商店\n支付金额50元",
+      "acceptable": [
+        {
+          "category": "finance",
+          "subcategory": "payment"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "bill",
+      "group": "bill",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "信用卡账单\n账户 0001\n收入、支出和余额明细",
+      "acceptable": [
+        {
+          "category": "finance",
+          "subcategory": "bill"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "reimbursement",
+      "group": "reimbursement",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "报销材料提交说明\n申请人填写费用明细后提交审批，附件为发票。",
+      "acceptable": [
+        {
+          "category": "finance",
+          "subcategory": "reimbursement"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "confusing"
+    },
+    {
+      "id": "invoice-tutorial",
+      "group": "invoice-tutorial",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "票据识别算法教程\n下面引用一个增值税电子普通发票示例。\n发票号码、购买方、销售方、价税合计均为示例字段。\n请勿作为真实票据使用。",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "notes"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "confusing"
+    },
+    {
+      "id": "contract",
+      "group": "contract",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "劳动合同\n甲方：样例单位\n乙方：样例员工\n期限三年，双方签字盖章。\n违约条款",
+      "acceptable": [
+        {
+          "category": "office",
+          "subcategory": "contract"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "resume",
+      "group": "resume",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "个人简历\n教育背景：示例大学\n工作经历：开发\n项目经验与技能\n求职意向：工程师",
+      "acceptable": [
+        {
+          "category": "office",
+          "subcategory": "resume"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "report",
+      "group": "report",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "项目报告\n部门工作进度总结\n项目计划与结论",
+      "acceptable": [
+        {
+          "category": "office",
+          "subcategory": "report"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "work-notes",
+      "group": "work-notes",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "工作记录\n项目负责人：示例员工\n本周进度与任务清单",
+      "acceptable": [
+        {
+          "category": "office",
+          "subcategory": "work_notes"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "notice",
+      "group": "notice",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "社团读书会活动通知\n活动时间周五，地点图书馆。\n报名截止周四。",
+      "acceptable": [
+        {
+          "category": "activity",
+          "subcategory": "notice"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "registration",
+      "group": "registration",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "参赛申请报名表\n姓名 联系人 电话\n提交报名材料",
+      "acceptable": [
+        {
+          "category": "activity",
+          "subcategory": "registration"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "meeting",
+      "group": "meeting",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "会议纪要\n参会人员与议题\n时间、地点与会议决议",
+      "acceptable": [
+        {
+          "category": "activity",
+          "subcategory": "meeting"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "delivery",
+      "group": "delivery",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "快递取件通知\n包裹已到示例驿站\n取件码12-3456 柜号A",
+      "acceptable": [
+        {
+          "category": "life",
+          "subcategory": "delivery"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "travel",
+      "group": "travel",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "登机牌\n航班X001\n出发A地 到达B地\n座位12A 登机时间18时",
+      "acceptable": [
+        {
+          "category": "life",
+          "subcategory": "travel"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "order",
+      "group": "order",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "订单详情\n订单编号1234\n商品：书籍\n收货地址：示例地点\n实付100元 配送中",
+      "acceptable": [
+        {
+          "category": "life",
+          "subcategory": "order"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "medical",
+      "group": "medical",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "门诊病历\n患者：示例\n临床诊断与检查结果\n医生处方用药记录",
+      "acceptable": [
+        {
+          "category": "life",
+          "subcategory": "medical"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "identity",
+      "group": "identity",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "居民身份证\n姓名：样例\n公民身份号码：仅为占位样例\n签发机关与有效期",
+      "acceptable": [
+        {
+          "category": "life",
+          "subcategory": "identity"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "sensitive-example"
+    },
+    {
+      "id": "queue",
+      "group": "queue",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "取餐码\n排队等候中\n号码18号 请等待叫号",
+      "acceptable": [
+        {
+          "category": "temporary",
+          "subcategory": "queue"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "code",
+      "group": "code",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "一次性验证码\n有效期5分钟，请勿转发。临时使用。",
+      "acceptable": [
+        {
+          "category": "temporary",
+          "subcategory": "code"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "poster",
+      "group": "poster",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "活动海报\n宣传设计作品\n海报主题：春季音乐节",
+      "acceptable": [
+        {
+          "category": "social",
+          "subcategory": "poster"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "illustration",
+      "group": "illustration",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "插画作品\n数字绘画与角色设计练习",
+      "acceptable": [
+        {
+          "category": "social",
+          "subcategory": "illustration"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "wallpaper",
+      "group": "wallpaper",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "桌面壁纸\n分辨率1920x1080的壁纸设计",
+      "acceptable": [
+        {
+          "category": "social",
+          "subcategory": "wallpaper"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "meme",
+      "group": "meme",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "表情包\n搞笑表情与卡通反应图片",
+      "acceptable": [
+        {
+          "category": "social",
+          "subcategory": "meme"
+        }
+      ],
+      "must_review": false,
+      "difficulty": "clear"
+    },
+    {
+      "id": "empty",
+      "group": "empty",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "",
+      "acceptable": [],
+      "must_review": true,
+      "difficulty": "out-of-scope"
+    },
+    {
+      "id": "random",
+      "group": "random",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "Some unrelated bytes and a shopping list of ideas. Blue river zero twenty.",
+      "acceptable": [],
+      "must_review": true,
+      "difficulty": "out-of-scope"
+    },
+    {
+      "id": "misleading-name",
+      "group": "misleading-name",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "发票_123.txt",
+      "text": "随手记录今天散步看见的云，没有票据信息。",
+      "acceptable": [],
+      "must_review": true,
+      "difficulty": "filename"
+    },
+    {
+      "id": "ambiguous",
+      "group": "ambiguous",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "劳动合同\n甲方乙方签字盖章\n个人简历\n教育经历 工作经历 求职意向",
+      "acceptable": [
+        {
+          "category": "office",
+          "subcategory": "contract"
+        },
+        {
+          "category": "office",
+          "subcategory": "resume"
+        },
+        {
+          "category": "office",
+          "subcategory": null
+        }
+      ],
+      "must_review": true,
+      "difficulty": "mixed"
+    },
+    {
+      "id": "references-help",
+      "group": "references-help",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "网站服务说明\n定义用户和服务的关系。\n参考文献格式见帮助中心。",
+      "acceptable": [],
+      "must_review": true,
+      "difficulty": "confusing"
+    },
+    {
+      "id": "negated-invoice",
+      "group": "negated-invoice",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "这不是增值税电子普通发票\n没有真实购买方、销售方、发票号码、税额信息，只是说明。",
+      "acceptable": [],
+      "must_review": true,
+      "difficulty": "confusing"
+    },
+    {
+      "id": "informal-study",
+      "group": "informal-study",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "今日复习高等数学\n极限存在时可以运用洛必达法则。整理了三道求导问题和计算步骤。",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "notes"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "unanchored"
+    },
+    {
+      "id": "research-narrative",
+      "group": "research-narrative",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "我们考察了一种新的信号降噪方法，比较实验表明误差降低。本文给出实验设置、结果讨论及相关文献。",
+      "acceptable": [
+        {
+          "category": "study",
+          "subcategory": "paper"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "unanchored"
+    },
+    {
+      "id": "meeting-informal",
+      "group": "meeting-informal",
+      "split": "development",
+      "source": "NeatDrop hand-authored synthetic fixture",
+      "authorization": "CC0-1.0",
+      "name": "sample.txt",
+      "text": "周二大家一起讨论下一版发布。王同学负责界面，李同学负责测试，约定下周复查进度并提交讨论结论。",
+      "acceptable": [
+        {
+          "category": "activity",
+          "subcategory": "meeting"
+        }
+      ],
+      "must_review": true,
+      "difficulty": "unanchored"
+    }
+  ]
+}

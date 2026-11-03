@@ -1,0 +1,28 @@
+:root {
+  --canvas: #f5f7f8;
+  --sidebar: #ffffff;
+  --surface: #ffffff;
+  --surface-soft: #f1f5f3;
+  --ink: #182620;
+  --muted: #52625a;
+  --green: #236448;
+  --green-hover: #194e37;
+  --green-soft: #e8f3ec;
+  --line: #dce4df;
+  --control-line: #a5b5ab;
+  --warning-ink: #805013;
+  --warning-surface: #fff6e8;
+  --error-ink: #a4362c;
+  --error-surface: #fff0ed;
+  --focus: #236448;
+  --font-ui: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  --font-display: var(--font-ui);
+  --text-body: 15px;
+  --text-control: 14px;
+  --text-caption: 13px;
+  --text-title: 28px;
+  --radius-control: 8px;
+  --radius-panel: 12px;
+  --motion-state: 160ms;
+  color-scheme: light;
+}

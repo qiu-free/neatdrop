@@ -1,0 +1,2288 @@
+{
+  "manifest_sha256": "76524ab434b3561010361575cbda1873abd96900e4ec90d43a29bc46ea461259",
+  "manifest_version": 1,
+  "python": "3.12.14",
+  "platform": "Windows",
+  "scope": "Development fixtures; not independent production accuracy evidence.",
+  "baseline_scope": "Frozen v2 classifier. Inline text uses v2 first-12000 sampling; explicit file paths share v3 extraction across stages. Path results compare classifiers only, not v2/v3 extraction.",
+  "sample_sha256": {
+    "paper-en": "a5dbee898919b0cb3c1d5090b4c0681064d73f8e1f36a62840d6e3d55222b70e",
+    "notes-math": "5869a9d1480117219b4a08826b709d6a7ad55b2501e07856ae2b38d5acc87f26",
+    "notes-explicit": "fcc02ecf05b8333ee3f11f771df136457b1fc1522e782f584189c19515759a68",
+    "paper-zh": "108ddaa430f01687961391b39d8fbc1d6f5f5940d7bc912df68b2c9159c54b10",
+    "courseware": "41f2970a7796f6be528b6548017fd1bb6d02e048d3d5e2042f40bd10d5975752",
+    "exam": "33134157a0636c7c7a6e58e677950321bd8c1fd9980b56e25e9f95128fa76a52",
+    "board": "6cdbc5d781bc96b0a23d15d0d4aaa79cff927e6a0df45eb051ddb541432c7465",
+    "invoice": "1db9ce95d9581cd805d2cc1eeeae8ecfe0c1044146909a2286796b52a6f8c6c6",
+    "receipt": "5c83cf30767c42352a88c0690a764c125f63f0266223be52a987a223bc8e2fc6",
+    "payment": "16364659959d1e9554726b6504ea4e06da11732d66f9dedae507a8c2951607d5",
+    "bill": "1994ffadf89a1a35d21887a66d892626b4015c5eeb95bbaa20db2b30a18acf4b",
+    "reimbursement": "38b4b4329779c62d9080cc4994fd1a79844185d6be3113748f53bb37d44e4696",
+    "invoice-tutorial": "ba928594782e6e0dfac0b852df1701fb2ad497cf6a3d47be7a5f7aab52d790cd",
+    "contract": "9ca898e4a003a3cf2bb69329c564e61e18ea72b66647b4920c34f56b9df203e6",
+    "resume": "5a12ff9aaa454585c8578a4d762c96c9e8649d8dbffeb8c80bcd1370f13ee0f8",
+    "report": "516bb37f0bd3b1f90a6c22ff86dbf82c45db6e44cdeefee3600b2b04130b82b5",
+    "work-notes": "be1f7135b51988db4368f43735418381dffc99f92b427b35b68fdd58ec031cb0",
+    "notice": "1707001dc57c4dced449cc2ed8cde4a36298c5b416b51a8ca8772a4e1ace2ecd",
+    "registration": "f2c6d5105b6e95ee737b2668b81a50a7e3fe6379a0ea3ad51fd23aa035d07567",
+    "meeting": "d3b45b93fc90cc188595fa0aa44c5fad1535ca7b95e2c48da970ae9cec80bed1",
+    "delivery": "ad74d8a61bbe30ae4c1c16dc3c74b005611590462de66f3c9e3cf2842b2d0db3",
+    "travel": "f545fda7554a6fd0b59c703d9a3d982a3c68c31dcd1701dfcb8995dd6eb9392a",
+    "order": "068e6b43e2a6000d0ed4e87be97a5623ed8ef5d909f060167e351632d739cc59",
+    "medical": "b85ce36757a37adfc0fbe347247070ed415ac411bd7024b04e14208f75343579",
+    "identity": "d66aa1557d3127d8ea71e19615fb90a70d54375ae72cd191a40bc3ef9bcb1d40",
+    "queue": "97e24f7abe3b36dc695b45cc8b4fe789777e956ac57cea55e37e8bdf1f3f7493",
+    "code": "05288f735ca713845894970e8e5a43440ee43f0521fbdbc219cedc12afd7631f",
+    "poster": "279cff504d50b0f535d8398b1b7473066e297c42f70c512da79f07f88b5be44e",
+    "illustration": "caca04c2af0ee070ce19893b1f52c336987f183265ec0ab83da1dbcd0bad6b29",
+    "wallpaper": "e200b49ed71f1db28761edcfcf761c41a4e6a41476ef986c8f96d4258bbb48aa",
+    "meme": "8b490050c22ac16c13c826ececb29daa0b456628fb0c1d694282a1583423bd46",
+    "empty": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "random": "414fc13e9baa7eb3b77905a92b102bd148d63b771d55568534ec324d3fa07040",
+    "misleading-name": "140affd13c78b2cf975e1ad6aac889fee65575ddec66fb6d5bd0f5faf7515bd1",
+    "ambiguous": "8072a665fce974fe2e30e3e16aad3c8b509c74f96c6098ba2f282bcca05697bf",
+    "references-help": "88088d4992f9f2d11973de7e70eb5f05f32e154ae2a8449ee14136da9be055db",
+    "negated-invoice": "8f7879ab7c20c4c26c1625aaf38a36c88f6296fc890691f44df57f107c70cf40",
+    "informal-study": "6a5ef7f08c5ce7ef0cd71265cbc0f60c1e56406e93af37b40e69554353ed3468",
+    "research-narrative": "8b6cc0a86b43327298083c315be89cc33b697234a4f99f2b52414f71ca1ae64b",
+    "meeting-informal": "bb57dfaf41a4bb11cb1ec5f79a84605ada406aef3d71d4a950ffab2c47a4d244"
+  },
+  "engine_fingerprints": {
+    "classifier.py": "daa337f0cee4ee511add42204be6ef8be8bd635206dd32d3c2c0295d25dec966",
+    "decision.py": "d754daaf5c731df5a59d729d61b54eac8ea05a36838cebb6f4262f9c42f09efd",
+    "extraction.py": "b4f450be21b1f5ff8ed2eb8b3ab972229486c083990098e7615098f9136b04eb",
+    "offline.py": "c8ed1ea1d468ef223d86263b662ddb283273a98971df30899d3dd516a13358dd",
+    "semantic.py": "2d2d3abe7949a895e475bfe7da5a3a88eab2d31eb9aadae0a7b60168a8245607",
+    "classification_profiles.json": "9fd0b7d745a07563ef6c5bc62effe404d98a268eee18e08d7566afa01300da5a"
+  },
+  "baseline_sha256": "023dc4380102aeddf119e758d2337a9f602ea8539a946c1a5bea61525d7ea0e6",
+  "dependencies": {
+    "onnxruntime": "1.31.1",
+    "tokenizers": "0.23.3",
+    "numpy": "2.5.4",
+    "rapidocr-onnxruntime": "1.4.4",
+    "pillow": "13.0.0",
+    "pypdf": "6.21.4"
+  },
+  "model_packages": {
+    "bge-small-zh-v1.5": {
+      "manifest_sha256": "ca7097e99cf669939babc46e107923979a4b17e3affff409f8f5248f80f9cffb",
+      "repository": "Xenova/bge-small-zh-v1.5",
+      "revision": "75c43b069aac4d136ba6bc1122f995fedcfd2781",
+      "version": "bge-small-zh-v1.5-int8-75c43b0/profiles-1"
+    },
+    "clip-vit-base-patch32": {
+      "manifest_sha256": "70b15be7e4f444d77dd1c3bcda6b06176e363a80b4d4289f39c7ad09b4ca560c",
+      "repository": "Xenova/clip-vit-base-patch32",
+      "revision": "6b7c523703ae26e39be4b03774966f8571c7f523",
+      "version": null
+    }
+  },
+  "stages": {
+    "baseline": {
+      "count": 40,
+      "processing_failures": 0,
+      "degraded_count": 0,
+      "ordinary_count": 28,
+      "ordinary_errors": 1,
+      "review_count": 12,
+      "abstain_count": 9,
+      "labeled_count": 35,
+      "top1_category_hits": 29,
+      "top1_subcategory_hits": 29,
+      "top3_hits": 29,
+      "top3_denominator": 35,
+      "processing_success_rate": 1.0,
+      "ordinary_coverage": 0.7,
+      "ordinary_error_rate": 0.03571428571428571,
+      "ordinary_error_wilson95": [
+        0.0063325198490377516,
+        0.1771219774335332
+      ],
+      "review_rate": 0.3,
+      "abstain_rate": 0.225,
+      "macro_f1": 0.930952380952381,
+      "per_class": {
+        "activity/meeting": {
+          "support": 2,
+          "tp": 1,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "activity/notice": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "activity/registration": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/bill": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/invoice": {
+          "support": 1,
+          "tp": 1,
+          "fp": 2,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        },
+        "finance/payment": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/receipt": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/reimbursement": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/delivery": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/identity": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/medical": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/order": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/travel": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/contract": {
+          "support": 2,
+          "tp": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/report": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/resume": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/work_notes": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "other/unclassified": {
+          "fp": 5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social/illustration": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/meme": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/poster": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/wallpaper": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/board": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/courseware": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/exam": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/notes": {
+          "support": 4,
+          "fn": 3,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 0.25,
+          "f1": 0.4
+        },
+        "study/paper": {
+          "support": 3,
+          "fn": 2,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 0.3333333333333333,
+          "f1": 0.5
+        },
+        "temporary/code": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "temporary/queue": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusion": {
+        "study/paper": {
+          "other/unclassified": 2,
+          "study/paper": 1
+        },
+        "study/notes": {
+          "other/unclassified": 2,
+          "study/notes": 1,
+          "finance/invoice": 1
+        },
+        "study/courseware": {
+          "study/courseware": 1
+        },
+        "study/exam": {
+          "study/exam": 1
+        },
+        "study/board": {
+          "study/board": 1
+        },
+        "finance/invoice": {
+          "finance/invoice": 1
+        },
+        "finance/receipt": {
+          "finance/receipt": 1
+        },
+        "finance/payment": {
+          "finance/payment": 1
+        },
+        "finance/bill": {
+          "finance/bill": 1
+        },
+        "finance/reimbursement": {
+          "finance/reimbursement": 1
+        },
+        "office/contract": {
+          "office/contract": 2
+        },
+        "office/resume": {
+          "office/resume": 1
+        },
+        "office/report": {
+          "office/report": 1
+        },
+        "office/work_notes": {
+          "office/work_notes": 1
+        },
+        "activity/notice": {
+          "activity/notice": 1
+        },
+        "activity/registration": {
+          "activity/registration": 1
+        },
+        "activity/meeting": {
+          "activity/meeting": 1,
+          "other/unclassified": 1
+        },
+        "life/delivery": {
+          "life/delivery": 1
+        },
+        "life/travel": {
+          "life/travel": 1
+        },
+        "life/order": {
+          "life/order": 1
+        },
+        "life/medical": {
+          "life/medical": 1
+        },
+        "life/identity": {
+          "life/identity": 1
+        },
+        "temporary/queue": {
+          "temporary/queue": 1
+        },
+        "temporary/code": {
+          "temporary/code": 1
+        },
+        "social/poster": {
+          "social/poster": 1
+        },
+        "social/illustration": {
+          "social/illustration": 1
+        },
+        "social/wallpaper": {
+          "social/wallpaper": 1
+        },
+        "social/meme": {
+          "social/meme": 1
+        },
+        "out_of_scope": {
+          "other/unclassified": 4,
+          "finance/invoice": 1
+        }
+      },
+      "engine_warning_counts": {},
+      "elapsed_seconds": {
+        "p50": 0.00021359999664127827,
+        "p95": 0.00032369999098591506,
+        "total": 0.024068699989584275
+      },
+      "failures": [],
+      "records": [
+        {
+          "id": "paper-en",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-math",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-explicit",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/notes",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "paper-zh",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "study/paper",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "courseware",
+          "split": "development",
+          "expected": [
+            "study/courseware"
+          ],
+          "predicted": "study/courseware",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "exam",
+          "split": "development",
+          "expected": [
+            "study/exam"
+          ],
+          "predicted": "study/exam",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "board",
+          "split": "development",
+          "expected": [
+            "study/board"
+          ],
+          "predicted": "study/board",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "invoice",
+          "split": "development",
+          "expected": [
+            "finance/invoice"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "receipt",
+          "split": "development",
+          "expected": [
+            "finance/receipt"
+          ],
+          "predicted": "finance/receipt",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "payment",
+          "split": "development",
+          "expected": [
+            "finance/payment"
+          ],
+          "predicted": "finance/payment",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "bill",
+          "split": "development",
+          "expected": [
+            "finance/bill"
+          ],
+          "predicted": "finance/bill",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "reimbursement",
+          "split": "development",
+          "expected": [
+            "finance/reimbursement"
+          ],
+          "predicted": "finance/reimbursement",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "invoice-tutorial",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "contract",
+          "split": "development",
+          "expected": [
+            "office/contract"
+          ],
+          "predicted": "office/contract",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "resume",
+          "split": "development",
+          "expected": [
+            "office/resume"
+          ],
+          "predicted": "office/resume",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "report",
+          "split": "development",
+          "expected": [
+            "office/report"
+          ],
+          "predicted": "office/report",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "work-notes",
+          "split": "development",
+          "expected": [
+            "office/work_notes"
+          ],
+          "predicted": "office/work_notes",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notice",
+          "split": "development",
+          "expected": [
+            "activity/notice"
+          ],
+          "predicted": "activity/notice",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "registration",
+          "split": "development",
+          "expected": [
+            "activity/registration"
+          ],
+          "predicted": "activity/registration",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "meeting",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "activity/meeting",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "delivery",
+          "split": "development",
+          "expected": [
+            "life/delivery"
+          ],
+          "predicted": "life/delivery",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "travel",
+          "split": "development",
+          "expected": [
+            "life/travel"
+          ],
+          "predicted": "life/travel",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "order",
+          "split": "development",
+          "expected": [
+            "life/order"
+          ],
+          "predicted": "life/order",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "medical",
+          "split": "development",
+          "expected": [
+            "life/medical"
+          ],
+          "predicted": "life/medical",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "identity",
+          "split": "development",
+          "expected": [
+            "life/identity"
+          ],
+          "predicted": "life/identity",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "queue",
+          "split": "development",
+          "expected": [
+            "temporary/queue"
+          ],
+          "predicted": "temporary/queue",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "code",
+          "split": "development",
+          "expected": [
+            "temporary/code"
+          ],
+          "predicted": "temporary/code",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "poster",
+          "split": "development",
+          "expected": [
+            "social/poster"
+          ],
+          "predicted": "social/poster",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "illustration",
+          "split": "development",
+          "expected": [
+            "social/illustration"
+          ],
+          "predicted": "social/illustration",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "wallpaper",
+          "split": "development",
+          "expected": [
+            "social/wallpaper"
+          ],
+          "predicted": "social/wallpaper",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "meme",
+          "split": "development",
+          "expected": [
+            "social/meme"
+          ],
+          "predicted": "social/meme",
+          "review_required": false,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "empty",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "random",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "misleading-name",
+          "split": "development",
+          "expected": [],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "ambiguous",
+          "split": "development",
+          "expected": [
+            "office/*",
+            "office/contract",
+            "office/resume"
+          ],
+          "predicted": "office/contract",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "references-help",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "negated-invoice",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "informal-study",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "research-narrative",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "meeting-informal",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "candidate"
+        }
+      ]
+    },
+    "rules": {
+      "count": 40,
+      "processing_failures": 0,
+      "degraded_count": 0,
+      "ordinary_count": 22,
+      "ordinary_errors": 0,
+      "review_count": 18,
+      "abstain_count": 7,
+      "labeled_count": 35,
+      "top1_category_hits": 31,
+      "top1_subcategory_hits": 31,
+      "top3_hits": 31,
+      "top3_denominator": 35,
+      "processing_success_rate": 1.0,
+      "ordinary_coverage": 0.55,
+      "ordinary_error_rate": 0.0,
+      "ordinary_error_wilson95": [
+        0.0,
+        0.14865487460862087
+      ],
+      "review_rate": 0.45,
+      "abstain_rate": 0.175,
+      "macro_f1": 0.9528735632183908,
+      "per_class": {
+        "activity/meeting": {
+          "support": 2,
+          "tp": 1,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "activity/notice": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "activity/registration": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/bill": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/invoice": {
+          "support": 1,
+          "tp": 1,
+          "fp": 2,
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1": 0.5
+        },
+        "finance/payment": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/receipt": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/reimbursement": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/delivery": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/identity": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/medical": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/order": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/travel": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/*": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/contract": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/report": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/resume": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/work_notes": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "other/unclassified": {
+          "fp": 3,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social/illustration": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/meme": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/poster": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/wallpaper": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/board": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/courseware": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/exam": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/notes": {
+          "support": 4,
+          "tp": 2,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "study/paper": {
+          "support": 3,
+          "tp": 2,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "temporary/code": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "temporary/queue": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusion": {
+        "study/paper": {
+          "study/paper": 2,
+          "other/unclassified": 1
+        },
+        "study/notes": {
+          "study/notes": 2,
+          "finance/invoice": 1,
+          "other/unclassified": 1
+        },
+        "study/courseware": {
+          "study/courseware": 1
+        },
+        "study/exam": {
+          "study/exam": 1
+        },
+        "study/board": {
+          "study/board": 1
+        },
+        "finance/invoice": {
+          "finance/invoice": 1
+        },
+        "finance/receipt": {
+          "finance/receipt": 1
+        },
+        "finance/payment": {
+          "finance/payment": 1
+        },
+        "finance/bill": {
+          "finance/bill": 1
+        },
+        "finance/reimbursement": {
+          "finance/reimbursement": 1
+        },
+        "office/contract": {
+          "office/contract": 1
+        },
+        "office/resume": {
+          "office/resume": 1
+        },
+        "office/report": {
+          "office/report": 1
+        },
+        "office/work_notes": {
+          "office/work_notes": 1
+        },
+        "activity/notice": {
+          "activity/notice": 1
+        },
+        "activity/registration": {
+          "activity/registration": 1
+        },
+        "activity/meeting": {
+          "activity/meeting": 1,
+          "other/unclassified": 1
+        },
+        "life/delivery": {
+          "life/delivery": 1
+        },
+        "life/travel": {
+          "life/travel": 1
+        },
+        "life/order": {
+          "life/order": 1
+        },
+        "life/medical": {
+          "life/medical": 1
+        },
+        "life/identity": {
+          "life/identity": 1
+        },
+        "temporary/queue": {
+          "temporary/queue": 1
+        },
+        "temporary/code": {
+          "temporary/code": 1
+        },
+        "social/poster": {
+          "social/poster": 1
+        },
+        "social/illustration": {
+          "social/illustration": 1
+        },
+        "social/wallpaper": {
+          "social/wallpaper": 1
+        },
+        "social/meme": {
+          "social/meme": 1
+        },
+        "out_of_scope": {
+          "other/unclassified": 4,
+          "finance/invoice": 1
+        },
+        "office/*": {
+          "office/*": 1
+        }
+      },
+      "engine_warning_counts": {},
+      "elapsed_seconds": {
+        "p50": 0.00029399999766610563,
+        "p95": 0.0006139000033726916,
+        "total": 0.014007499950821511
+      },
+      "failures": [],
+      "records": [
+        {
+          "id": "paper-en",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "study/paper",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-math",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/notes",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-explicit",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/notes",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "paper-zh",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "study/paper",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "courseware",
+          "split": "development",
+          "expected": [
+            "study/courseware"
+          ],
+          "predicted": "study/courseware",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "exam",
+          "split": "development",
+          "expected": [
+            "study/exam"
+          ],
+          "predicted": "study/exam",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "board",
+          "split": "development",
+          "expected": [
+            "study/board"
+          ],
+          "predicted": "study/board",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "invoice",
+          "split": "development",
+          "expected": [
+            "finance/invoice"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "receipt",
+          "split": "development",
+          "expected": [
+            "finance/receipt"
+          ],
+          "predicted": "finance/receipt",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "payment",
+          "split": "development",
+          "expected": [
+            "finance/payment"
+          ],
+          "predicted": "finance/payment",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "bill",
+          "split": "development",
+          "expected": [
+            "finance/bill"
+          ],
+          "predicted": "finance/bill",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "reimbursement",
+          "split": "development",
+          "expected": [
+            "finance/reimbursement"
+          ],
+          "predicted": "finance/reimbursement",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "invoice-tutorial",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "contract",
+          "split": "development",
+          "expected": [
+            "office/contract"
+          ],
+          "predicted": "office/contract",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "resume",
+          "split": "development",
+          "expected": [
+            "office/resume"
+          ],
+          "predicted": "office/resume",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "report",
+          "split": "development",
+          "expected": [
+            "office/report"
+          ],
+          "predicted": "office/report",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "work-notes",
+          "split": "development",
+          "expected": [
+            "office/work_notes"
+          ],
+          "predicted": "office/work_notes",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notice",
+          "split": "development",
+          "expected": [
+            "activity/notice"
+          ],
+          "predicted": "activity/notice",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "registration",
+          "split": "development",
+          "expected": [
+            "activity/registration"
+          ],
+          "predicted": "activity/registration",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "meeting",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "activity/meeting",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "delivery",
+          "split": "development",
+          "expected": [
+            "life/delivery"
+          ],
+          "predicted": "life/delivery",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "travel",
+          "split": "development",
+          "expected": [
+            "life/travel"
+          ],
+          "predicted": "life/travel",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "order",
+          "split": "development",
+          "expected": [
+            "life/order"
+          ],
+          "predicted": "life/order",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "medical",
+          "split": "development",
+          "expected": [
+            "life/medical"
+          ],
+          "predicted": "life/medical",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "identity",
+          "split": "development",
+          "expected": [
+            "life/identity"
+          ],
+          "predicted": "life/identity",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "queue",
+          "split": "development",
+          "expected": [
+            "temporary/queue"
+          ],
+          "predicted": "temporary/queue",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "code",
+          "split": "development",
+          "expected": [
+            "temporary/code"
+          ],
+          "predicted": "temporary/code",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "poster",
+          "split": "development",
+          "expected": [
+            "social/poster"
+          ],
+          "predicted": "social/poster",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "illustration",
+          "split": "development",
+          "expected": [
+            "social/illustration"
+          ],
+          "predicted": "social/illustration",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "wallpaper",
+          "split": "development",
+          "expected": [
+            "social/wallpaper"
+          ],
+          "predicted": "social/wallpaper",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "meme",
+          "split": "development",
+          "expected": [
+            "social/meme"
+          ],
+          "predicted": "social/meme",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "empty",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "random",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "misleading-name",
+          "split": "development",
+          "expected": [],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "ambiguous",
+          "split": "development",
+          "expected": [
+            "office/*",
+            "office/contract",
+            "office/resume"
+          ],
+          "predicted": "office/*",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "references-help",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "negated-invoice",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "informal-study",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "research-narrative",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "meeting-informal",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        }
+      ]
+    },
+    "semantic": {
+      "count": 40,
+      "processing_failures": 0,
+      "degraded_count": 0,
+      "ordinary_count": 22,
+      "ordinary_errors": 0,
+      "review_count": 18,
+      "abstain_count": 3,
+      "labeled_count": 35,
+      "top1_category_hits": 32,
+      "top1_subcategory_hits": 31,
+      "top3_hits": 31,
+      "top3_denominator": 35,
+      "processing_success_rate": 1.0,
+      "ordinary_coverage": 0.55,
+      "ordinary_error_rate": 0.0,
+      "ordinary_error_wilson95": [
+        0.0,
+        0.14865487460862087
+      ],
+      "review_rate": 0.45,
+      "abstain_rate": 0.075,
+      "macro_f1": 0.9218390804597701,
+      "per_class": {
+        "activity/meeting": {
+          "support": 2,
+          "tp": 1,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "activity/notice": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "activity/registration": {
+          "support": 1,
+          "tp": 1,
+          "fp": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        },
+        "finance/bill": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/invoice": {
+          "support": 1,
+          "tp": 1,
+          "fp": 3,
+          "precision": 0.25,
+          "recall": 1.0,
+          "f1": 0.4
+        },
+        "finance/payment": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/receipt": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "finance/reimbursement": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/delivery": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/identity": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/medical": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/order": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "life/travel": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/*": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/contract": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/report": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/resume": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "office/work_notes": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "other/unclassified": {
+          "fp": 1,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social/illustration": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/meme": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/poster": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "social/wallpaper": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/board": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/courseware": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "study/exam": {
+          "support": 1,
+          "tp": 1,
+          "fp": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        },
+        "study/notes": {
+          "support": 4,
+          "tp": 2,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666
+        },
+        "study/paper": {
+          "support": 3,
+          "tp": 2,
+          "fn": 1,
+          "fp": 1,
+          "precision": 0.6666666666666666,
+          "recall": 0.6666666666666666,
+          "f1": 0.6666666666666666
+        },
+        "temporary/code": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "temporary/queue": {
+          "support": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusion": {
+        "study/paper": {
+          "study/paper": 2,
+          "other/unclassified": 1
+        },
+        "study/notes": {
+          "study/notes": 2,
+          "finance/invoice": 1,
+          "study/exam": 1
+        },
+        "study/courseware": {
+          "study/courseware": 1
+        },
+        "study/exam": {
+          "study/exam": 1
+        },
+        "study/board": {
+          "study/board": 1
+        },
+        "finance/invoice": {
+          "finance/invoice": 1
+        },
+        "finance/receipt": {
+          "finance/receipt": 1
+        },
+        "finance/payment": {
+          "finance/payment": 1
+        },
+        "finance/bill": {
+          "finance/bill": 1
+        },
+        "finance/reimbursement": {
+          "finance/reimbursement": 1
+        },
+        "office/contract": {
+          "office/contract": 1
+        },
+        "office/resume": {
+          "office/resume": 1
+        },
+        "office/report": {
+          "office/report": 1
+        },
+        "office/work_notes": {
+          "office/work_notes": 1
+        },
+        "activity/notice": {
+          "activity/notice": 1
+        },
+        "activity/registration": {
+          "activity/registration": 1
+        },
+        "activity/meeting": {
+          "activity/meeting": 1,
+          "study/paper": 1
+        },
+        "life/delivery": {
+          "life/delivery": 1
+        },
+        "life/travel": {
+          "life/travel": 1
+        },
+        "life/order": {
+          "life/order": 1
+        },
+        "life/medical": {
+          "life/medical": 1
+        },
+        "life/identity": {
+          "life/identity": 1
+        },
+        "temporary/queue": {
+          "temporary/queue": 1
+        },
+        "temporary/code": {
+          "temporary/code": 1
+        },
+        "social/poster": {
+          "social/poster": 1
+        },
+        "social/illustration": {
+          "social/illustration": 1
+        },
+        "social/wallpaper": {
+          "social/wallpaper": 1
+        },
+        "social/meme": {
+          "social/meme": 1
+        },
+        "out_of_scope": {
+          "other/unclassified": 2,
+          "finance/invoice": 2,
+          "activity/registration": 1
+        },
+        "office/*": {
+          "office/*": 1
+        }
+      },
+      "engine_warning_counts": {},
+      "elapsed_seconds": {
+        "p50": 1.1078333000041312,
+        "p95": 1.1350355000031414,
+        "total": 44.32246099997428
+      },
+      "failures": [],
+      "records": [
+        {
+          "id": "paper-en",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "study/paper",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-math",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/notes",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notes-explicit",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/notes",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "paper-zh",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "study/paper",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "courseware",
+          "split": "development",
+          "expected": [
+            "study/courseware"
+          ],
+          "predicted": "study/courseware",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "exam",
+          "split": "development",
+          "expected": [
+            "study/exam"
+          ],
+          "predicted": "study/exam",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "board",
+          "split": "development",
+          "expected": [
+            "study/board"
+          ],
+          "predicted": "study/board",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "invoice",
+          "split": "development",
+          "expected": [
+            "finance/invoice"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "receipt",
+          "split": "development",
+          "expected": [
+            "finance/receipt"
+          ],
+          "predicted": "finance/receipt",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "payment",
+          "split": "development",
+          "expected": [
+            "finance/payment"
+          ],
+          "predicted": "finance/payment",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "bill",
+          "split": "development",
+          "expected": [
+            "finance/bill"
+          ],
+          "predicted": "finance/bill",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "reimbursement",
+          "split": "development",
+          "expected": [
+            "finance/reimbursement"
+          ],
+          "predicted": "finance/reimbursement",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "invoice-tutorial",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "contract",
+          "split": "development",
+          "expected": [
+            "office/contract"
+          ],
+          "predicted": "office/contract",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "resume",
+          "split": "development",
+          "expected": [
+            "office/resume"
+          ],
+          "predicted": "office/resume",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "report",
+          "split": "development",
+          "expected": [
+            "office/report"
+          ],
+          "predicted": "office/report",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "work-notes",
+          "split": "development",
+          "expected": [
+            "office/work_notes"
+          ],
+          "predicted": "office/work_notes",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "notice",
+          "split": "development",
+          "expected": [
+            "activity/notice"
+          ],
+          "predicted": "activity/notice",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "registration",
+          "split": "development",
+          "expected": [
+            "activity/registration"
+          ],
+          "predicted": "activity/registration",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "meeting",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "activity/meeting",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "delivery",
+          "split": "development",
+          "expected": [
+            "life/delivery"
+          ],
+          "predicted": "life/delivery",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "travel",
+          "split": "development",
+          "expected": [
+            "life/travel"
+          ],
+          "predicted": "life/travel",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "order",
+          "split": "development",
+          "expected": [
+            "life/order"
+          ],
+          "predicted": "life/order",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "medical",
+          "split": "development",
+          "expected": [
+            "life/medical"
+          ],
+          "predicted": "life/medical",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "identity",
+          "split": "development",
+          "expected": [
+            "life/identity"
+          ],
+          "predicted": "life/identity",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "queue",
+          "split": "development",
+          "expected": [
+            "temporary/queue"
+          ],
+          "predicted": "temporary/queue",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "code",
+          "split": "development",
+          "expected": [
+            "temporary/code"
+          ],
+          "predicted": "temporary/code",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "poster",
+          "split": "development",
+          "expected": [
+            "social/poster"
+          ],
+          "predicted": "social/poster",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "illustration",
+          "split": "development",
+          "expected": [
+            "social/illustration"
+          ],
+          "predicted": "social/illustration",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "wallpaper",
+          "split": "development",
+          "expected": [
+            "social/wallpaper"
+          ],
+          "predicted": "social/wallpaper",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "meme",
+          "split": "development",
+          "expected": [
+            "social/meme"
+          ],
+          "predicted": "social/meme",
+          "review_required": false,
+          "decision_level": "ordinary"
+        },
+        {
+          "id": "empty",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "random",
+          "split": "development",
+          "expected": [],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "misleading-name",
+          "split": "development",
+          "expected": [],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "ambiguous",
+          "split": "development",
+          "expected": [
+            "office/*",
+            "office/contract",
+            "office/resume"
+          ],
+          "predicted": "office/*",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "references-help",
+          "split": "development",
+          "expected": [],
+          "predicted": "activity/registration",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "negated-invoice",
+          "split": "development",
+          "expected": [],
+          "predicted": "finance/invoice",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "informal-study",
+          "split": "development",
+          "expected": [
+            "study/notes"
+          ],
+          "predicted": "study/exam",
+          "review_required": true,
+          "decision_level": "candidate"
+        },
+        {
+          "id": "research-narrative",
+          "split": "development",
+          "expected": [
+            "study/paper"
+          ],
+          "predicted": "other/unclassified",
+          "review_required": true,
+          "decision_level": "abstain"
+        },
+        {
+          "id": "meeting-informal",
+          "split": "development",
+          "expected": [
+            "activity/meeting"
+          ],
+          "predicted": "study/paper",
+          "review_required": true,
+          "decision_level": "candidate"
+        }
+      ]
+    }
+  }
+}

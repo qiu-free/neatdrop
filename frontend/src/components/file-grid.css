@@ -1,0 +1,35 @@
+.file-grid-region { min-width: 0; max-width: 100%; container-type: inline-size; }
+.file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(180px, 100%), 1fr)); gap: 14px; list-style: none; padding: 16px; margin: 0; min-width: 0; }
+.file-grid-card { min-width: 0; overflow: hidden; border: 1px solid var(--line, #e1e6d9); border-radius: 9px; background: #fdfefb; transition: border-color 150ms, background-color 150ms; }
+.file-grid-card.is-selected { border-color: #92ae96; background: #f4f8f1; }
+.file-grid-card.is-active { border-color: var(--green, #355b3e); }
+.file-grid-card:focus-within { outline: 2px solid #74977b; outline-offset: 2px; }
+.file-grid-view { display: flex; flex-direction: column; align-items: stretch; width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; border-radius: 8px 8px 0 0; color: var(--ink, #2d3a2e); }
+.file-grid-view:hover { background: #f3f6ee; }
+.file-grid-view, .file-grid-select { transition: background-color 150ms, color 150ms; }
+.file-grid-view:focus-visible { outline: 2px solid var(--green, #355b3e); outline-offset: -3px; }
+.file-grid-preview { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; background: #edf1e9; border-bottom: 1px solid var(--line, #e1e6d9); flex-shrink: 0; }
+.file-grid-preview img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+.file-grid-placeholder, .file-grid-document { display: flex; align-items: center; justify-content: center; gap: 10px; flex-direction: column; color: #5e705b; font-size: 12px; }
+.file-grid-preview .file-icon { width: 44px; height: 48px; }
+.file-grid-preview .file-icon svg { width: 25px; height: 25px; }
+.file-grid-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 13px 12px 0; }
+.file-grid-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.file-grid-category { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; font-size: 12px; line-height: 1.5; color: #536b50; }
+.file-grid-view-label { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 12px; color: #5a7158; font-size: 12px; }
+.is-active .file-grid-view-label { color: #254f30; font-weight: 600; }
+.file-grid-footer { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 0 12px 0 5px; gap: 4px; border-top: 1px solid var(--line, #e1e6d9); }
+.file-grid-select { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 75px; min-height: 44px; padding: 0 7px; border-radius: 5px; cursor: pointer; color: #355b3e; font-size: 12px; }
+.file-grid-select:hover { background: #e9f0e4; }
+.file-grid-select.is-disabled { cursor: not-allowed; color: #6c7568; }
+.file-grid-select.is-disabled:hover { background: transparent; }
+.file-grid-select input[type=checkbox] { width: 17px; height: 17px; margin: 0; accent-color: var(--green, #355b3e); }
+.file-grid-select input:disabled { cursor: not-allowed; }
+.file-grid-status { display: inline-flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; color: #62705d; font-size: 12px; line-height: 1.5; }
+.file-grid-status.warning { color: #875222; }
+.file-grid-status.confirmed { color: #355b3e; }
+.file-grid-status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.file-grid-empty { padding: 30px 16px; margin: 0; text-align: center; color: #5e705b; font-size: 14px; }
+@container (max-width: 440px) { .file-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }.file-grid-footer { padding-right: 7px; }.file-grid-select { min-width: 66px; padding: 0 4px; gap: 5px; }.file-grid-status { font-size: 11px; } }
+@container (max-width: 330px) { .file-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .file-grid-card, .file-grid-view, .file-grid-select { transition: none; } }

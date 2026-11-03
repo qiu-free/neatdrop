@@ -225,6 +225,17 @@ body { font-size: var(--text-body); line-height: 1.65; }
 .app-shell .empty-landing h2, .app-shell .empty-history h2 { font-size: 24px; }
 .app-shell .empty-landing p, .app-shell .empty-history p, .app-shell .inspector-empty p { font-size: 15px; color: var(--muted); line-height: 1.8; }
 .app-shell .empty-kbd { font-size: 13px; color: var(--muted); }
+.app-shell .content-quality { margin: 14px 0; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #f6f8f7; color: var(--muted); }
+.app-shell .content-quality header { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.app-shell .content-quality header strong { font-size: 14px; color: var(--ink); }
+.app-shell .content-quality header span { margin-left: auto; font-size: 12px; }
+.app-shell .content-quality p, .app-shell .content-quality li { font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+.app-shell .content-quality > p { margin-top: 7px; }
+.app-shell .content-quality .quality-next-step { font-weight: 500; }
+.app-shell .content-quality.limited, .app-shell .content-quality.unavailable { border-color: #e5d0aa; background: var(--warning-surface); color: var(--warning-ink); }
+.app-shell .content-quality summary { cursor: pointer; min-height: 40px; padding-top: 9px; font-size: 13px; font-weight: 600; }
+.app-shell .content-quality ul { padding-left: 18px; margin: 2px 0 8px; }
+.app-shell .content-quality small { font-size: 12px; display: block; line-height: 1.7; }
 
 @media (min-width: 1200px) {
   .app-shell .work-area { grid-template-columns: minmax(0, 1fr) 380px; }

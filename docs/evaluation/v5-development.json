@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "engine_version": "offline-quality-v5",
+  "split": "development",
+  "source": "NeatDrop hand-authored deterministic synthetic fixtures, 2026-11-04",
+  "authorization": "CC0-1.0; no user files, private records, downloads or model inference",
+  "scope": "Regression checklist only. Generated variants share eight purpose groups; they are not independent samples, calibration data or production accuracy evidence.",
+  "purpose_groups": [
+    {"id": "experiment", "category": "study", "subcategory": "experiment_material", "anchor": "实验记录", "fields": ["实验目的：测量溶液浓度", "实验器材：量筒和烧杯", "实验步骤：分组测量", "实验结果：三组数值"], "expected_level": "candidate"},
+    {"id": "technical", "category": "study", "subcategory": "technical_document", "anchor": "API接口文档", "fields": ["接口地址：/items", "请求参数：item_id", "返回值：status", "错误码：404"], "expected_level": "candidate"},
+    {"id": "reading", "category": "study", "subcategory": "reading_excerpt", "anchor": "读书摘录", "fields": ["书名：山海拾遗", "作者：陈一", "摘录原文：此处记载山海故事", "页码：42"], "expected_level": "candidate"},
+    {"id": "project", "category": "office", "subcategory": "project_plan", "anchor": "项目实施方案", "fields": ["项目目标：升级检索系统", "实施范围：索引服务", "里程碑：五月完成", "负责人：工程组"], "expected_level": "candidate"},
+    {"id": "requirements", "category": "office", "subcategory": "requirements", "anchor": "产品需求设计", "fields": ["用户角色：编辑", "功能需求：批量筛选", "验收标准：结果可复现", "交互流程：选择后确认"], "expected_level": "candidate"},
+    {"id": "email", "category": "office", "subcategory": "email", "anchor": "邮件存档", "fields": ["发件人：alice@example.invalid", "收件人：bob@example.invalid", "主题：周五安排", "发送时间：2026年5月1日"], "expected_level": "candidate"},
+    {"id": "warranty", "category": "life", "subcategory": "warranty", "anchor": "产品保修说明", "fields": ["产品型号：A100", "保修期限：两年", "保修范围：制造缺陷", "售后电话：000-123456"], "expected_level": "candidate"},
+    {"id": "insurance", "category": "life", "subcategory": "insurance", "anchor": "保险保单", "fields": ["保单号码：P100", "被保险人：甲", "保险期间：2026至2027", "保险责任：意外保障"], "expected_level": "candidate"}
+  ],
+  "variants": {
+    "positive": "Content anchor plus all four nonempty field groups: expected matching reviewed candidate.",
+    "filename_only": "Only filename contains anchor: do not select the new purpose.",
+    "title_only": "Isolated anchor: do not select the new purpose.",
+    "one_group": "Anchor plus one nonempty group: do not select the new purpose.",
+    "negated_anchor": "Negated content anchor: do not select the new purpose.",
+    "negated_fields": "All supporting fields negated: do not select the new purpose.",
+    "empty_fields": "Field labels have no values: do not select the new purpose.",
+    "tutorial": "Anchor/fields in tutorial: review and disclose example context.",
+    "template": "Anchor/fields in template: review and disclose example context.",
+    "legacy_conflict": "A real legacy contract plus the purpose: review and disclose conflict.",
+    "ocr": "Simulated retained OCR payload plus generic object visual: preserve purpose candidate; scores are fixture inputs, not measured OCR or classification accuracy."
+  },
+  "quality_cases": [
+    {"id": "garbled-notes", "text": "课程笔记\n矩阵与特征值\n��������������������������������", "expect": {"state": "limited", "issue": "text_garbled", "level": "candidate", "keep_name": true}},
+    {"id": "low-ocr-invoice", "text": "增值税电子普通发票\n发票号码12345\n购买方甲\n销售方乙\n价税合计38.50元", "image": true, "ocr_score": 0.69, "expect": {"state": "limited", "issue": "ocr_low_confidence", "level": "candidate", "keep_name": true}},
+    {"id": "photo-no-text", "text": "", "image": true, "visual": [{"label": "landscape", "score": 0.4}, {"label": "object", "score": 0.2}], "expect": {"state": "acceptable", "level": "ordinary", "keep_name": true}},
+    {"id": "chart-no-text", "text": "", "image": true, "visual": [{"label": "bar_chart", "score": 0.4}, {"label": "screenshot", "score": 0.3}], "expect": {"state": "acceptable", "level": "candidate", "keep_name": true}},
+    {"id": "blank-image", "text": "", "image": true, "warnings": ["image_low_information"], "expect": {"state": "unavailable", "issue": "low_information_image", "level": "abstain", "keep_name": true}},
+    {"id": "partial-notes", "text": "课程笔记\n矩阵与特征值", "sampling": {"kind": "text", "truncated": true, "budget_exhausted": true, "segments": []}, "expect": {"state": "limited", "issue": "partial_read", "level": "candidate", "keep_name": true}},
+    {"id": "empty-text", "text": "", "expect": {"state": "unavailable", "issue": "no_readable_text", "level": "abstain", "keep_name": true}},
+    {"id": "short-text", "text": "课程笔记", "expect": {"state": "limited", "issue": "no_readable_text", "level": "candidate", "keep_name": true}},
+    {"id": "photo-incidental-short-text", "text": "禁止吸烟", "image": true, "visual": [{"label": "landscape", "score": 0.4}, {"label": "object", "score": 0.2}], "expect": {"state": "limited", "issue": "no_readable_text", "level": "candidate", "keep_name": true}}
+  ]
+}

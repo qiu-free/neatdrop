@@ -19,6 +19,9 @@ export const reviewReasons: Record<string, string> = {
   visual_type_uncalibrated: '图表或结构类型尚未校准，请核对',
   visual_purpose_uncalibrated: '内容类型已有线索，归档用途需要你确认',
   visual_type_ambiguous: '多个图表类型相近，请确认具体类型',
+  content_quality_limited: '提取内容质量受限，请结合原文件核对',
+  ocr_quality_limited: '部分图片文字识别不够可靠',
+  purpose_uncalibrated: '此用途为新增识别候选，需要人工确认',
 }
 export type Page = 'workbench' | 'history' | 'help'
 export type Filter = 'all' | 'unreviewed' | 'review' | 'failed' | 'selected'
@@ -41,6 +44,12 @@ export interface Sampling {
   kind: string; truncated: boolean; budget_exhausted: boolean
   segments: (EvidenceLocation & Record<string, unknown>)[]; summary: string
 }
+export interface ContentQualityReport {
+  state: 'acceptable' | 'limited' | 'unavailable'
+  issues: string[]
+  summary: string
+  metrics: { text_chars?: number; readable_chars?: number; replacement_chars?: number; ocr_lines?: number; ocr_mean_confidence?: number }
+}
 export interface Suggestion {
   file_id: string; name: string; category: Category; evidence: string
   review_required: boolean; provider: string; sample: string
@@ -48,6 +57,7 @@ export interface Suggestion {
   evidence_items?: EvidenceItem[]; engine_warnings?: string[]
   decision_level?: DecisionLevel; candidates?: ClassificationCandidate[]; sampling?: Sampling
   engine_versions?: Record<string, string | number | null>
+  quality?: ContentQualityReport
 }
 export interface Edit { file_id: string; name: string; category: Category; subcategory?: string | null }
 export interface PlanItem {

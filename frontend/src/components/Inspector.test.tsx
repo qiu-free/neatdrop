@@ -23,6 +23,19 @@ it('previews the actual copy directory and keeps image zoom scoped to the active
 
 beforeEach(() => { vi.mocked(api).mockReset() })
 
+it('shows reading limitations before technical evidence and does not auto approve', async () => {
+  vi.mocked(api).mockResolvedValue({ text: 'Quality preview', sample: 'text' })
+  const onApprove = vi.fn()
+  render(<Inspector workspaceId="w" file={file} suggestion={{ file_id: 'a', name: 'first.md', category: 'study', subcategory: 'notes',
+    evidence: '课程笔记', review_required: true, provider: 'local_rules', sample: 'text', quality: {
+      state: 'limited', issues: ['text_garbled'], summary: '存在不可读文字，请人工核对。', metrics: { text_chars: 100 },
+    } }} onEdit={() => undefined} onApprove={onApprove} />)
+  expect(screen.getByRole('region', { name: '内容读取质量' })).toHaveTextContent('存在不可读文字，请人工核对。')
+  expect(screen.getByRole('button', { name: '逐项确认此项' })).toBeEnabled()
+  expect(onApprove).not.toHaveBeenCalled()
+  await screen.findByText('Quality preview')
+})
+
 it('describes a chart type separately from the archive purpose with one clear review task', async () => {
   vi.mocked(api).mockResolvedValue({ image: 'data:image/png;base64,AAAA', sample: 'image' })
   render(<Inspector workspaceId="w" file={{ ...file, name: 'chart.png', extension: '.png' }} suggestion={{

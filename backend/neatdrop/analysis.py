@@ -21,6 +21,7 @@ from .configuration import ModelConfigSnapshot, get_model_snapshot
 from .safe_io import locked_reader, protect_workspace
 from .classifier import classify_text, fuse_image
 from .decision import decide
+from .content_quality import assess_content, apply_content_quality
 
 PREPROCESS_SLOTS = BoundedSemaphore(2)
 
@@ -95,11 +96,13 @@ def local_semantic(text, cancelled=None):
 def analyze_local(record, payload, cancelled=None):
     text = payload.get("text", "")
     image_input = payload.get('local_image') or 'image' in payload
+    quality = assess_content(payload, bool(image_input))
     if image_input:
         classification = fuse_image(record['name'], text, payload.get('visual', []), payload.get('warnings', []))
     else:
         classification = classify_text(record['name'], text)
     semantics = local_semantic(text, cancelled=cancelled) if cancelled else local_semantic(text)
+    classification = apply_content_quality(classification, quality)
     classification = decide(classification, semantics, payload.get('sampling'))
     for item in classification.get('evidence_items', []):
         if item.get('source') == 'ocr':
@@ -124,7 +127,11 @@ def analyze_local(record, payload, cancelled=None):
     first = next((line.strip().lstrip("# ") for line in text.splitlines() if line.strip()), "")
     title = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", first)[:70].strip(" .")
     review = classification['review_required']
-    use_title = title and classification['decision_level'] != 'abstain' and classification.get('content_form') != 'natural_photo'
+    # Separators, frontmatter delimiters and empty Markdown headings do not
+    # provide a name. Keep this independent of overall body reading quality.
+    readable_title = any(char.isalnum() for char in title)
+    use_title = (readable_title and quality['state'] == 'acceptable' and classification['decision_level'] != 'abstain'
+                 and classification.get('content_form') != 'natural_photo')
     if classification.get('content_form') in {'data_chart', 'table_image', 'diagram'}:
         # A visual type does not validate sparse OCR as a title (e.g. Logs or
         # an isolated axis label). Retain the original name unless independent
@@ -144,7 +151,7 @@ def analyze_local(record, payload, cancelled=None):
     return {**classification, "file_id": record["id"], "name": name, 'evidence': evidence,
             "review_required": review, "provider": 'offline_models' if image_input else 'offline_semantic' if any(
                 item.get('source') == 'semantic' for item in classification.get('evidence_items', [])) else "local_rules",
-            "sample": payload["sample"], "rule_version": "3"}
+            "sample": payload["sample"], "rule_version": "5"}
 
 
 class AnalysisJobs:

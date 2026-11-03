@@ -34,17 +34,79 @@ RULES = [
     ('social', 'meme', r'表情包|搞笑表情|meme', [r'表情|搞笑']),
 ]
 
+# These eight purposes have no calibration data. An explicit content anchor
+# and at least two different field groups are mandatory; filenames never count.
+# Alternatives inside a regex are synonyms of one group, not extra evidence.
+PURPOSE_RULES = [
+    ('study', 'experiment_material', r'实验记录|实验报告|实验资料|实验指导', [
+        r'实验目的[：:]', r'(?:实验器材|实验设备|实验材料)[：:]',
+        r'(?:实验步骤|实验方法)[：:]', r'(?:实验结果|实验数据)[：:]']),
+    ('study', 'technical_document', r'技术文档|接口文档|api\s*(?:接口)?文档|部署文档|开发文档', [
+        r'(?:接口地址|请求路径|endpoint)[：:]', r'(?:请求参数|输入参数|配置参数)[：:]',
+        r'(?:返回值|响应结果|返回字段)[：:]', r'(?:错误码|部署步骤|依赖版本)[：:]']),
+    ('study', 'reading_excerpt', r'读书摘录|阅读摘录|读书摘抄|书籍摘录', [
+        r'(?:书名|书籍名称)[：:]', r'作者[：:]',
+        r'(?:摘录原文|摘录内容|原文摘抄)[：:]', r'(?:页码|章节)[：:]']),
+    ('office', 'project_plan', r'项目(?:实施|建设|执行)?方案|项目计划书', [
+        r'(?:项目目标|建设目标)[：:]', r'(?:实施范围|项目范围)[：:]',
+        r'(?:里程碑|实施进度|项目进度)[：:]', r'(?:负责人|资源预算|项目预算)[：:]']),
+    ('office', 'requirements', r'需求设计|需求规格(?:说明书)?|产品需求(?:文档)?|软件需求(?:文档)?', [
+        r'(?:用户角色|用户场景|使用场景)[：:]', r'(?:功能需求|功能描述)[：:]',
+        r'(?:验收标准|验收条件)[：:]', r'(?:交互流程|业务流程|非功能需求)[：:]']),
+    ('office', 'email', r'邮件存档|电子邮件|邮件归档|e-?mail\s+archive', [
+        r'(?:发件人|from)[：:]', r'(?:收件人|to)[：:]',
+        r'(?:主题|subject)[：:]', r'(?:发送时间|发送日期|date)[：:]']),
+    ('life', 'warranty', r'保修说明|保修凭证|保修卡|质保说明', [
+        r'(?:产品型号|设备型号|型号)[：:]', r'(?:保修期限|质保期限|保修期)[：:]',
+        r'(?:保修范围|质保范围)[：:]', r'(?:售后电话|售后服务|维修网点)[：:]']),
+    ('life', 'insurance', r'保险保单|保险合同|保险凭证|保险资料|保险单', [
+        r'(?:保单号码|保单编号|保单号)[：:]', r'(?:被保险人|投保人)[：:]',
+        r'(?:保险期间|保险期限|保障期限)[：:]', r'(?:保险责任|保障范围|保险金额)[：:]']),
+]
+PURPOSE_LABELS = {(category, subtype) for category, subtype, *_ in PURPOSE_RULES}
+
 
 def normalized(text):
     return unicodedata.normalize('NFKC', text or '').casefold()
 
 
-def positive_match(pattern, text):
+def positive_match(pattern, text, purpose=False):
     for match in re.finditer(pattern, text):
-        prefix = text[max(0, text.rfind('\n', 0, match.start()) + 1):match.start()]
-        if not re.search(r'不是|并非|不属于|勿作为|非真实|没有真实|not an?\s*$', prefix):
+        if not negated_at(text, match.start(), purpose):
             return match
     return None
+
+
+def negated_at(text, start, purpose=False):
+    prefix = text[text.rfind('\n', 0, start) + 1:start]
+    negation = r'不是|并非|不属于|勿作为|非真实|没有真实|not an?\s*$'
+    if purpose:
+        negation += r'|没有|不(?:含|包含|提供)|未提供|(?:无|非)\s*$'
+    return bool(re.search(negation, prefix))
+
+
+def purpose_fields(groups, body):
+    """Count groups with a readable value on the same line, once per group.
+
+    Stop before another field label so an empty value cannot consume its next
+    field. Letters/numbers are required; punctuation placeholders do not count.
+    """
+    all_fields = '|'.join(f'(?:{pattern})' for pattern in groups)
+    hits = []
+    for pattern in groups:
+        for label in re.finditer(pattern, body):
+            if negated_at(body, label.start(), purpose=True):
+                continue
+            tail = body[label.end():].split('\n', 1)[0]
+            next_field = re.search(all_fields, tail)
+            value = tail[:next_field.start()] if next_field else tail
+            value = re.split(r'[;；]', value, maxsplit=1)[0].strip()
+            if re.match(r'^(?:无|没有|不存在|暂无|未提供|不适用|未知|待填|占位|n/?a\b|none\b|unknown\b)', value):
+                continue
+            if any(unicodedata.category(char)[0] in {'L', 'N'} for char in value):
+                hits.append({'source': 'body', 'text': (label.group() + value)[:160]})
+                break
+    return hits
 
 
 def classify_text(name, text):
@@ -77,6 +139,22 @@ def classify_text(name, text):
             continue
         if score:
             candidates.append({'category': category, 'subcategory': subtype, 'score': score, 'evidence': hits})
+    purpose_candidates = []
+    for category, subtype, anchor, groups in PURPOSE_RULES:
+        match = positive_match(anchor, body, purpose=True)
+        if match is None:
+            continue
+        supports = purpose_fields(groups, body)
+        if len(supports) < 2:
+            continue
+        title_match = positive_match(anchor, title, purpose=True)
+        hits = [{'source': 'title' if title_match else 'body', 'text': (title_match or match).group()}]
+        hits.extend(supports)
+        purpose_candidates.append({'category': category, 'subcategory': subtype,
+                                   'score': (6 if title_match else 3) + 1.5 * len(supports), 'evidence': hits})
+    purpose_conflict = bool(purpose_candidates and (len(purpose_candidates) > 1 or
+                            any(candidate['score'] >= 6 for candidate in candidates)))
+    candidates.extend(purpose_candidates)
     # These structures improve recall without claiming the status of a calibrated
     # rule. Multiple sections are required; isolated vocabulary is insufficient.
     structures = [
@@ -100,6 +178,13 @@ def classify_text(name, text):
         reasons.append('insufficient_evidence')
     else:
         best = candidates[0]
+        if (best['category'], best['subcategory']) in PURPOSE_LABELS:
+            reasons.append('purpose_uncalibrated')
+        if purpose_conflict:
+            reasons.append('competing_categories')
+        if purpose_candidates and re.search(r'教程|示例|样例|占位|范本|模板|how\s+to|'
+                                           r'(?<![\w@.])(?:tutorial|example|sample|specimen|template)(?![\w@.])', body):
+            reasons.append('example_context')
         if best['score'] < 6:
             reasons.append('weak_evidence')
         if any(hit['source'] == 'structure' for hit in best['evidence']):
@@ -122,7 +207,7 @@ def classify_text(name, text):
             reasons.append('example_context')
     return {'category': best['category'], 'subcategory': best['subcategory'], 'content_form': 'text_document',
             'tags': [c['subcategory'] for c in candidates[1:3] if c['score'] >= 6],
-            'evidence_items': best['evidence'], 'review_required': bool(reasons), 'review_reasons': reasons,
+            'evidence_items': best['evidence'], 'review_required': bool(reasons), 'review_reasons': list(dict.fromkeys(reasons)),
             'candidates': [{k: c[k] for k in ('category', 'subcategory', 'score')} for c in candidates[:3]]}
 
 
@@ -150,7 +235,8 @@ STRUCTURED_CANDIDATE_FLOOR = .285
 def fuse_image(name, ocr_text, visual, warnings):
     result = classify_text(name, ocr_text)
     strong_text = result['category'] != 'other' and not result['review_required'] and len(ocr_text.strip()) >= 12
-    text_conflict = any(reason in result['review_reasons'] for reason in ['competing_categories', 'example_context'])
+    text_conflict = any(reason in result['review_reasons'] for reason in ['competing_categories', 'example_context',
+                                                                       'purpose_uncalibrated'])
     structural = any(item['source'] == 'structure' for item in result['evidence_items'])
     structured = next((row for row in visual if row['label'] in STRUCTURED_VISUAL_MAPPING
                        and row['score'] >= STRUCTURED_CANDIDATE_FLOOR

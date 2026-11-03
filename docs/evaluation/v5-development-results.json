@@ -1,0 +1,6115 @@
+{
+  "version": 1,
+  "engine_version": "offline-quality-v5",
+  "split": "development",
+  "source": "NeatDrop hand-authored deterministic synthetic fixtures, 2026-11-04",
+  "authorization": "CC0-1.0; no user files, private records, downloads or model inference",
+  "scope": "Explicit synthetic v5 development regression, no downloads or model calls.\n\nRuns the real analyze_local path with default-disabled experimental semantics.\nFrozen classifier/decision/analysis come from local baseline commit 3336fe5;\nunchanged extraction/safety dependencies are shared. The legacy 40-scenario\nmanifest is reported separately from the new eight purpose groups/variants.\nSaved v4 image probe payloads can be replayed, without rerunning inference or\ninventing absent OCR confidences/coverage. Counts are regression diagnostics,\nnot independent accuracy estimates.\n",
+  "baseline_commit": "3336fe5",
+  "semantics": "disabled; no model inference",
+  "v5_manifest_sha256": "3a8d1e83878a5cf433d111def237fbf10f885d8a90800983a7362a425ae0f531",
+  "legacy_manifest_sha256": "76524ab434b3561010361575cbda1873abd96900e4ec90d43a29bc46ea461259",
+  "saved_image_probes_sha256": "a58eb82365b20b1d42a5baf97b9fe8eef3021b4d995482082215843ec89b2240",
+  "baseline_engine_sha256": {
+    "classifier.py": "098f570f3c333b30efe8baabf56dc6ece114bb6b6f8e37fca8e3c5786b45b2a6",
+    "decision.py": "d754daaf5c731df5a59d729d61b54eac8ea05a36838cebb6f4262f9c42f09efd",
+    "analysis.py": "7483a11af0e89ade2b5d3f99a5f6031ce3aef431625530fd5f7389bdc70e3aad"
+  },
+  "v5_engine_sha256": {
+    "content_quality.py": "f82f41bbe67a527c38407d797a9af4ec11c41055c2757537dd6ef91544317f8b",
+    "analysis.py": "190a487509b4ea19dc5b71bb1681d4b750f8b1e371e7ed43c5d050bddf1f940c",
+    "classifier.py": "3cf12fc25758d11a1269e1b3636bdd4abb1af64e32914e0b5b2c9524af663c57",
+    "decision.py": "a361f365e54e9940b385902856bd475a39a4cea8b5783e8dbfaf14d72b387700"
+  },
+  "summary": {
+    "purpose_groups": 8,
+    "purpose_variants": 88,
+    "purpose_checks_passed": 88,
+    "positive_and_ocr_matching_candidates": 16,
+    "new_purpose_ordinary_count": 0,
+    "quality_cases": 9,
+    "quality_checks_passed": 9,
+    "legacy_cases": 40,
+    "legacy_label_changes": 0,
+    "legacy_decision_changes": 0,
+    "legacy_name_changes": 0,
+    "saved_image_payload_replays": 12,
+    "saved_image_label_changes": 0,
+    "quality_state_counts_saved_images": {
+      "acceptable": 12
+    },
+    "failures": []
+  },
+  "purpose_records": [
+    {
+      "id": "experiment-positive",
+      "group": "experiment",
+      "variant": "positive",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "experiment_material",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 47,
+            "readable_chars": 39,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-filename_only",
+      "group": "experiment",
+      "variant": "filename_only",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-title_only",
+      "group": "experiment",
+      "variant": "title_only",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-one_group",
+      "group": "experiment",
+      "variant": "one_group",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 16,
+            "readable_chars": 14,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-negated_anchor",
+      "group": "experiment",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 50,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-negated_fields",
+      "group": "experiment",
+      "variant": "negated_fields",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 63,
+            "readable_chars": 55,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-empty_fields",
+      "group": "experiment",
+      "variant": "empty_fields",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 28,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-tutorial",
+      "group": "experiment",
+      "variant": "tutorial",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "experiment_material",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 51,
+            "readable_chars": 43,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-template",
+      "group": "experiment",
+      "variant": "template",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "experiment_material",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 53,
+            "readable_chars": 45,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-legacy_conflict",
+      "group": "experiment",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 71,
+            "readable_chars": 59,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "experiment-ocr",
+      "group": "experiment",
+      "variant": "ocr",
+      "expected_label": [
+        "study",
+        "experiment_material"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "experiment_material",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 47,
+            "readable_chars": 39,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-positive",
+      "group": "technical",
+      "variant": "positive",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "technical_document",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 51,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-filename_only",
+      "group": "technical",
+      "variant": "filename_only",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-title_only",
+      "group": "technical",
+      "variant": "title_only",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 7,
+            "readable_chars": 7,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-one_group",
+      "group": "technical",
+      "variant": "one_group",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 19,
+            "readable_chars": 16,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-negated_anchor",
+      "group": "technical",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 54,
+            "readable_chars": 44,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-negated_fields",
+      "group": "technical",
+      "variant": "negated_fields",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 67,
+            "readable_chars": 57,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-empty_fields",
+      "group": "technical",
+      "variant": "empty_fields",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 29,
+            "readable_chars": 21,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-tutorial",
+      "group": "technical",
+      "variant": "tutorial",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "technical_document",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 55,
+            "readable_chars": 45,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-template",
+      "group": "technical",
+      "variant": "template",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "technical_document",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 57,
+            "readable_chars": 47,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-legacy_conflict",
+      "group": "technical",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 75,
+            "readable_chars": 61,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "technical-ocr",
+      "group": "technical",
+      "variant": "ocr",
+      "expected_label": [
+        "study",
+        "technical_document"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "technical_document",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 51,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-positive",
+      "group": "reading",
+      "variant": "positive",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "reading_excerpt",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 38,
+            "readable_chars": 30,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-filename_only",
+      "group": "reading",
+      "variant": "filename_only",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-title_only",
+      "group": "reading",
+      "variant": "title_only",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-one_group",
+      "group": "reading",
+      "variant": "one_group",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-negated_anchor",
+      "group": "reading",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 41,
+            "readable_chars": 33,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-negated_fields",
+      "group": "reading",
+      "variant": "negated_fields",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 54,
+            "readable_chars": 46,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-empty_fields",
+      "group": "reading",
+      "variant": "empty_fields",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 22,
+            "readable_chars": 14,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-tutorial",
+      "group": "reading",
+      "variant": "tutorial",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "reading_excerpt",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 42,
+            "readable_chars": 34,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-template",
+      "group": "reading",
+      "variant": "template",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "reading_excerpt",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 44,
+            "readable_chars": 36,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-legacy_conflict",
+      "group": "reading",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 62,
+            "readable_chars": 50,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reading-ocr",
+      "group": "reading",
+      "variant": "ocr",
+      "expected_label": [
+        "study",
+        "reading_excerpt"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "reading_excerpt",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 38,
+            "readable_chars": 30,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "project-positive",
+      "group": "project",
+      "variant": "positive",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "project_plan",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 45,
+            "readable_chars": 37,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-filename_only",
+      "group": "project",
+      "variant": "filename_only",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-title_only",
+      "group": "project",
+      "variant": "title_only",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 6,
+            "readable_chars": 6,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-one_group",
+      "group": "project",
+      "variant": "one_group",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 18,
+            "readable_chars": 16,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-negated_anchor",
+      "group": "project",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 48,
+            "readable_chars": 40,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-negated_fields",
+      "group": "project",
+      "variant": "negated_fields",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 61,
+            "readable_chars": 53,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-empty_fields",
+      "group": "project",
+      "variant": "empty_fields",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 28,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-tutorial",
+      "group": "project",
+      "variant": "tutorial",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "project_plan",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 49,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-template",
+      "group": "project",
+      "variant": "template",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "project_plan",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 51,
+            "readable_chars": 43,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-legacy_conflict",
+      "group": "project",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": null,
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories",
+          "subtype_ambiguous"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 69,
+            "readable_chars": 57,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "project-ocr",
+      "group": "project",
+      "variant": "ocr",
+      "expected_label": [
+        "office",
+        "project_plan"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "project_plan",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 45,
+            "readable_chars": 37,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-positive",
+      "group": "requirements",
+      "variant": "positive",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "requirements",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 38,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-filename_only",
+      "group": "requirements",
+      "variant": "filename_only",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-title_only",
+      "group": "requirements",
+      "variant": "title_only",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 6,
+            "readable_chars": 6,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-one_group",
+      "group": "requirements",
+      "variant": "one_group",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 14,
+            "readable_chars": 12,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-negated_anchor",
+      "group": "requirements",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 49,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-negated_fields",
+      "group": "requirements",
+      "variant": "negated_fields",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 62,
+            "readable_chars": 54,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-empty_fields",
+      "group": "requirements",
+      "variant": "empty_fields",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 30,
+            "readable_chars": 22,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-tutorial",
+      "group": "requirements",
+      "variant": "tutorial",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "requirements",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 50,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-template",
+      "group": "requirements",
+      "variant": "template",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "requirements",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 52,
+            "readable_chars": 44,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-legacy_conflict",
+      "group": "requirements",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": null,
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories",
+          "subtype_ambiguous"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 70,
+            "readable_chars": 58,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "requirements-ocr",
+      "group": "requirements",
+      "variant": "ocr",
+      "expected_label": [
+        "office",
+        "requirements"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "requirements",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 38,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "email-positive",
+      "group": "email",
+      "variant": "positive",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "email",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 77,
+            "readable_chars": 65,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-filename_only",
+      "group": "email",
+      "variant": "filename_only",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-title_only",
+      "group": "email",
+      "variant": "title_only",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-one_group",
+      "group": "email",
+      "variant": "one_group",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 30,
+            "readable_chars": 26,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-negated_anchor",
+      "group": "email",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 80,
+            "readable_chars": 68,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-negated_fields",
+      "group": "email",
+      "variant": "negated_fields",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 93,
+            "readable_chars": 81,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-empty_fields",
+      "group": "email",
+      "variant": "empty_fields",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 24,
+            "readable_chars": 16,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-tutorial",
+      "group": "email",
+      "variant": "tutorial",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "email",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 81,
+            "readable_chars": 69,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-template",
+      "group": "email",
+      "variant": "template",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "email",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 83,
+            "readable_chars": 71,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-legacy_conflict",
+      "group": "email",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": null,
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories",
+          "subtype_ambiguous"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 101,
+            "readable_chars": 85,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "email-ocr",
+      "group": "email",
+      "variant": "ocr",
+      "expected_label": [
+        "office",
+        "email"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "email",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 77,
+            "readable_chars": 65,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-positive",
+      "group": "warranty",
+      "variant": "positive",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "warranty",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 50,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-filename_only",
+      "group": "warranty",
+      "variant": "filename_only",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-title_only",
+      "group": "warranty",
+      "variant": "title_only",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 6,
+            "readable_chars": 6,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-one_group",
+      "group": "warranty",
+      "variant": "one_group",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 16,
+            "readable_chars": 14,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-negated_anchor",
+      "group": "warranty",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 53,
+            "readable_chars": 44,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-negated_fields",
+      "group": "warranty",
+      "variant": "negated_fields",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 66,
+            "readable_chars": 57,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-empty_fields",
+      "group": "warranty",
+      "variant": "empty_fields",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 30,
+            "readable_chars": 22,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-tutorial",
+      "group": "warranty",
+      "variant": "tutorial",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "warranty",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 54,
+            "readable_chars": 45,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-template",
+      "group": "warranty",
+      "variant": "template",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "warranty",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 56,
+            "readable_chars": 47,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-legacy_conflict",
+      "group": "warranty",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 74,
+            "readable_chars": 61,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "warranty-ocr",
+      "group": "warranty",
+      "variant": "ocr",
+      "expected_label": [
+        "life",
+        "warranty"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "warranty",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 50,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-positive",
+      "group": "insurance",
+      "variant": "positive",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "insurance",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 38,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-filename_only",
+      "group": "insurance",
+      "variant": "filename_only",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-title_only",
+      "group": "insurance",
+      "variant": "title_only",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-one_group",
+      "group": "insurance",
+      "variant": "one_group",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 14,
+            "readable_chars": 12,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-negated_anchor",
+      "group": "insurance",
+      "variant": "negated_anchor",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 49,
+            "readable_chars": 41,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-negated_fields",
+      "group": "insurance",
+      "variant": "negated_fields",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 62,
+            "readable_chars": 54,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-empty_fields",
+      "group": "insurance",
+      "variant": "empty_fields",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 28,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-tutorial",
+      "group": "insurance",
+      "variant": "tutorial",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "insurance",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 50,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-template",
+      "group": "insurance",
+      "variant": "template",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "insurance",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated",
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 52,
+            "readable_chars": 44,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-legacy_conflict",
+      "group": "insurance",
+      "variant": "legacy_conflict",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 70,
+            "readable_chars": 58,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "insurance-ocr",
+      "group": "insurance",
+      "variant": "ocr",
+      "expected_label": [
+        "life",
+        "insurance"
+      ],
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "object",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "insurance",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "purpose_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 38,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.95
+          }
+        }
+      }
+    }
+  ],
+  "quality_records": [
+    {
+      "id": "garbled-notes",
+      "expected": {
+        "state": "limited",
+        "issue": "text_garbled",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "text_garbled"
+          ],
+          "summary": "文字包含不可读字符，请核对原文件。",
+          "metrics": {
+            "text_chars": 44,
+            "readable_chars": 10,
+            "replacement_chars": 32,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "low-ocr-invoice",
+      "expected": {
+        "state": "limited",
+        "issue": "ocr_low_confidence",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "document_image",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "document_image",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "content_quality_limited",
+          "ocr_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "ocr_low_confidence"
+          ],
+          "summary": "已保留的图中文字识别分值偏低，请核对原图。",
+          "metrics": {
+            "text_chars": 40,
+            "readable_chars": 35,
+            "replacement_chars": 0,
+            "ocr_lines": 5,
+            "ocr_mean_confidence": 0.69
+          }
+        }
+      }
+    },
+    {
+      "id": "photo-no-text",
+      "expected": {
+        "state": "acceptable",
+        "level": "ordinary",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "landscape",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "photos",
+        "subcategory": "landscape",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "chart-no-text",
+      "expected": {
+        "state": "acceptable",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "blank-image",
+      "expected": {
+        "state": "unavailable",
+        "issue": "low_information_image",
+        "level": "abstain",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "vision_unavailable",
+          "engine_incomplete",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "vision_unavailable",
+          "content_quality_limited",
+          "engine_incomplete",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "unavailable",
+          "issues": [
+            "low_information_image"
+          ],
+          "summary": "图像信息不足，暂不能提供可靠的内容线索。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "partial-notes",
+      "expected": {
+        "state": "limited",
+        "issue": "partial_read",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "partial_content"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "content_quality_limited",
+          "partial_content"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "partial_read"
+          ],
+          "summary": "部分内容未完整读取，请核对未读取部分。",
+          "metrics": {
+            "text_chars": 11,
+            "readable_chars": 10,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "empty-text",
+      "expected": {
+        "state": "unavailable",
+        "issue": "no_readable_text",
+        "level": "abstain",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "unavailable",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "short-text",
+      "expected": {
+        "state": "limited",
+        "issue": "no_readable_text",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "photo-incidental-short-text",
+      "expected": {
+        "state": "limited",
+        "issue": "no_readable_text",
+        "level": "candidate",
+        "keep_name": true
+      },
+      "passed": true,
+      "baseline": {
+        "category": "photos",
+        "subcategory": "landscape",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "photos",
+        "subcategory": "landscape",
+        "content_form": "natural_photo",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "limited",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 4,
+            "readable_chars": 4,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    }
+  ],
+  "legacy_records": [
+    {
+      "id": "paper-en",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "paper",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "structure_uncalibrated"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "paper",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "structure_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 189,
+            "readable_chars": 163,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "notes-math",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "structure_uncalibrated"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "structure_uncalibrated"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 49,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "notes-explicit",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "notes",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 29,
+            "readable_chars": 24,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "paper-zh",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "paper",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "paper",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 38,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "courseware",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "courseware",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "courseware",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 34,
+            "readable_chars": 27,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "exam",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "exam",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "exam",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 29,
+            "readable_chars": 25,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "board",
+      "changed": [],
+      "baseline": {
+        "category": "study",
+        "subcategory": "board",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "board",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 20,
+            "readable_chars": 18,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "invoice",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 57,
+            "readable_chars": 47,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "receipt",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "receipt",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "receipt",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 35,
+            "readable_chars": 27,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "payment",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "payment",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "payment",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 31,
+            "readable_chars": 27,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "bill",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "bill",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "bill",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 24,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "reimbursement",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "reimbursement",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "reimbursement",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 30,
+            "readable_chars": 27,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "invoice-tutorial",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 64,
+            "readable_chars": 55,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "contract",
+      "changed": [],
+      "baseline": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "contract",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 38,
+            "readable_chars": 30,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "resume",
+      "changed": [],
+      "baseline": {
+        "category": "office",
+        "subcategory": "resume",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "resume",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 39,
+            "readable_chars": 32,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "report",
+      "changed": [],
+      "baseline": {
+        "category": "office",
+        "subcategory": "report",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "report",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 21,
+            "readable_chars": 19,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "work-notes",
+      "changed": [],
+      "baseline": {
+        "category": "office",
+        "subcategory": "work_notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": "work_notes",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 25,
+            "readable_chars": 22,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "notice",
+      "changed": [],
+      "baseline": {
+        "category": "activity",
+        "subcategory": "notice",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "activity",
+        "subcategory": "notice",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 31,
+            "readable_chars": 26,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "registration",
+      "changed": [],
+      "baseline": {
+        "category": "activity",
+        "subcategory": "registration",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "activity",
+        "subcategory": "registration",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 24,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "meeting",
+      "changed": [],
+      "baseline": {
+        "category": "activity",
+        "subcategory": "meeting",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "activity",
+        "subcategory": "meeting",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 23,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "delivery",
+      "changed": [],
+      "baseline": {
+        "category": "life",
+        "subcategory": "delivery",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "delivery",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 30,
+            "readable_chars": 26,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "travel",
+      "changed": [],
+      "baseline": {
+        "category": "life",
+        "subcategory": "travel",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "travel",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 34,
+            "readable_chars": 29,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "order",
+      "changed": [],
+      "baseline": {
+        "category": "life",
+        "subcategory": "order",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "order",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 40,
+            "readable_chars": 33,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "medical",
+      "changed": [],
+      "baseline": {
+        "category": "life",
+        "subcategory": "medical",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "medical",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 29,
+            "readable_chars": 25,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "identity",
+      "changed": [],
+      "baseline": {
+        "category": "life",
+        "subcategory": "identity",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "life",
+        "subcategory": "identity",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "example_context"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 34,
+            "readable_chars": 29,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "queue",
+      "changed": [],
+      "baseline": {
+        "category": "temporary",
+        "subcategory": "queue",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "temporary",
+        "subcategory": "queue",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 21,
+            "readable_chars": 18,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "code",
+      "changed": [],
+      "baseline": {
+        "category": "temporary",
+        "subcategory": "code",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "temporary",
+        "subcategory": "code",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 24,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "poster",
+      "changed": [],
+      "baseline": {
+        "category": "social",
+        "subcategory": "poster",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "poster",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 22,
+            "readable_chars": 19,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "illustration",
+      "changed": [],
+      "baseline": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 16,
+            "readable_chars": 15,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "wallpaper",
+      "changed": [],
+      "baseline": {
+        "category": "social",
+        "subcategory": "wallpaper",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "wallpaper",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 22,
+            "readable_chars": 21,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "meme",
+      "changed": [],
+      "baseline": {
+        "category": "social",
+        "subcategory": "meme",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "meme",
+        "content_form": "text_document",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 15,
+            "readable_chars": 14,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "empty",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence",
+          "content_quality_limited"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "unavailable",
+          "issues": [
+            "no_readable_text"
+          ],
+          "summary": "可用文字不足，请核对原文件。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "random",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 74,
+            "readable_chars": 60,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "misleading-name",
+      "changed": [],
+      "baseline": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "filename_only"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "finance",
+        "subcategory": "invoice",
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "weak_evidence",
+          "filename_only"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 20,
+            "readable_chars": 18,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "ambiguous",
+      "changed": [],
+      "baseline": {
+        "category": "office",
+        "subcategory": null,
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories",
+          "subtype_ambiguous"
+        ],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "office",
+        "subcategory": null,
+        "content_form": "text_document",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "competing_categories",
+          "subtype_ambiguous"
+        ],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 33,
+            "readable_chars": 28,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "references-help",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 31,
+            "readable_chars": 27,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "negated-invoice",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 40,
+            "readable_chars": 34,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "informal-study",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 39,
+            "readable_chars": 36,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "research-narrative",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "meeting-informal",
+      "changed": [],
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "text_document",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 46,
+            "readable_chars": 42,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    }
+  ],
+  "saved_image_records": [
+    {
+      "id": "scatter_plot",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 67,
+            "readable_chars": 51,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "line_chart",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 72,
+            "readable_chars": 54,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "bar_chart",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 70,
+            "readable_chars": 55,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "histogram",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 59,
+            "readable_chars": 46,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "pie_chart",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 28,
+            "readable_chars": 20,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "heatmap",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 198,
+            "readable_chars": 113,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "box_plot",
+      "baseline": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "study",
+        "subcategory": "data_chart",
+        "content_form": "data_chart",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 62,
+            "readable_chars": 46,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "flowchart",
+      "baseline": {
+        "category": "social",
+        "subcategory": "diagram",
+        "content_form": "diagram",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "diagram",
+        "content_form": "diagram",
+        "decision_level": "candidate",
+        "review_required": true,
+        "review_reasons": [
+          "visual_purpose_uncalibrated",
+          "visual_type_uncalibrated",
+          "visual_type_ambiguous"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 45,
+            "readable_chars": 39,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "screenshot",
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 74,
+            "readable_chars": 63,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "illustration",
+      "baseline": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "document_image",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false
+      },
+      "v5": {
+        "category": "social",
+        "subcategory": "illustration",
+        "content_form": "document_image",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": false,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 12,
+            "readable_chars": 12,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "document",
+      "baseline": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "other",
+        "subcategory": "unclassified",
+        "content_form": "unknown",
+        "decision_level": "abstain",
+        "review_required": true,
+        "review_reasons": [
+          "visual_ambiguous",
+          "insufficient_evidence"
+        ],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 217,
+            "readable_chars": 192,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "public_cat_photo",
+      "baseline": {
+        "category": "photos",
+        "subcategory": "pet",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true
+      },
+      "v5": {
+        "category": "photos",
+        "subcategory": "pet",
+        "content_form": "natural_photo",
+        "decision_level": "ordinary",
+        "review_required": false,
+        "review_reasons": [],
+        "kept_original_name": true,
+        "quality": {
+          "state": "acceptable",
+          "issues": [],
+          "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+          "metrics": {
+            "text_chars": 0,
+            "readable_chars": 0,
+            "replacement_chars": 0,
+            "ocr_lines": 0
+          }
+        }
+      }
+    }
+  ]
+}

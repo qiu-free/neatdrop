@@ -3,6 +3,7 @@ import copy
 import math
 
 from .taxonomy import SUBCATEGORIES
+from .classifier import PURPOSE_LABELS
 
 FALLBACKS = {('other', 'unclassified'), ('photos', 'unsorted_photo')}
 
@@ -27,6 +28,8 @@ def decide(rule_result, semantic=None, sampling=None):
     warnings.extend(semantics.get('warnings', []))
     rule_candidates = [dict(c, engine='rules') for c in result.get('candidates', []) if valid_candidate(c)]
     semantic_candidates = [dict(c, engine='semantic') for c in semantics.get('candidates', []) if valid_candidate(c)][:3]
+    if 'low_information_image' in result.get('quality', {}).get('issues', []):
+        semantic_candidates = []
     selected = (result.get('category'), result.get('subcategory'))
     known = selected[0] in SUBCATEGORIES and selected not in FALLBACKS and (
         selected[1] is None or selected[1] in SUBCATEGORIES[selected[0]])
@@ -82,6 +85,8 @@ def decide(rule_result, semantic=None, sampling=None):
                                       for key in ('token_sampling', 'chunk_support') if key in semantics}
     if result.get('category') != 'other' and result.get('subcategory') is None:
         reasons.append('subtype_ambiguous')
+    if (result.get('category'), result.get('subcategory')) in PURPOSE_LABELS:
+        reasons.append('purpose_uncalibrated')
     if any(code in warnings for code in ('ocr_unavailable', 'inference_timeout', 'inference_failed',
                                         'inference_budget_exceeded', 'inference_cancelled', 'image_low_information')):
         reasons.append('engine_incomplete')
@@ -98,6 +103,6 @@ def decide(rule_result, semantic=None, sampling=None):
     result['review_required'] = level != 'ordinary'
     result['decision_level'] = level
     result['engine_warnings'] = list(dict.fromkeys(warnings))
-    result['engine_versions'] = {'rules': '3', 'decision': '1', 'quality': 'not_calibrated',
+    result['engine_versions'] = {'rules': '5', 'decision': '2', 'quality': '5_heuristic_not_calibrated',
                                  'semantic': semantics.get('version', 'unavailable')}
     return result

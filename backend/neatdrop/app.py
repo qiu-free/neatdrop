@@ -233,6 +233,19 @@ def create_app():
     def history(identifier: str, request: Request):
         return granted(request, identifier)[1].history()
 
+    @app.get('/api/v1/workspaces/{identifier}/library')
+    def library(identifier: str, request: Request):
+        return granted(request, identifier)[1].library()
+
+    @app.get('/api/v1/workspaces/{identifier}/library/{entry_id}/preview')
+    def library_preview(identifier: str, entry_id: str, request: Request):
+        try:
+            return granted(request, identifier)[1].library_preview(entry_id)
+        except SafetyError as exc:
+            if exc.code == 'LIBRARY_ENTRY_NOT_FOUND':
+                raise HTTPException(404, exc.code) from exc
+            raise
+
     @app.post("/api/v1/workspaces/{identifier}/transactions/{transaction_id}/undo")
     def undo(identifier: str, transaction_id: str, body: Confirmation, request: Request):
         if not body.confirmed:

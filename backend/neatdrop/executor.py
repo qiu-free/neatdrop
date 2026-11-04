@@ -239,6 +239,16 @@ class Executor:
         return sorted(result, key=lambda t: t['created'], reverse=True)
 
     @protected
+    def library(self):
+        from .library import ArchiveLibrary
+        return ArchiveLibrary(self).listing()
+
+    @protected
+    def library_preview(self, entry_id):
+        from .library import ArchiveLibrary
+        return ArchiveLibrary(self).preview(entry_id)
+
+    @protected
     def acknowledge(self, transaction_id):
         with root_lock(self.ws.root):
             log = self._log(transaction_id)

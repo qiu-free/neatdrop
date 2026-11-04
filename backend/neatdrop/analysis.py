@@ -9,6 +9,7 @@ import warnings
 import copy
 import inspect
 import os
+import stat
 from threading import BoundedSemaphore, RLock
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -18,7 +19,7 @@ from .files import MAX_FILE, SafetyError, checked_path, safe_name
 from .journal import stamp
 from .model import suggest
 from .configuration import ModelConfigSnapshot, get_model_snapshot
-from .safe_io import locked_reader, protect_workspace
+from .safe_io import file_identity, locked_reader, protect_workspace
 from .classifier import classify_text, fuse_image
 from .decision import decide
 from .content_quality import assess_content, apply_content_quality
@@ -26,23 +27,41 @@ from .content_quality import assess_content, apply_content_quality
 PREPROCESS_SLOTS = BoundedSemaphore(2)
 
 
-def prepare_input(ws, record, local=False, cancelled=None):
+def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
     if not PREPROCESS_SLOTS.acquire(blocking=False):
         raise SafetyError('PARSER_BUSY')
     try:
-        return _prepare_input(ws, record, local, cancelled)
+        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity)
     finally:
         PREPROCESS_SLOTS.release()
 
 
-def _prepare_input(ws, record, local=False, cancelled=None):
+def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
     with protect_workspace(ws):
         path = checked_path(ws.root, record["name"])
         with locked_reader(path) as stream:
+            before = os.fstat(stream.fileno())
+            if expected_identity is not None and (
+                not stat.S_ISREG(before.st_mode) or before.st_size != record['size']
+                or before.st_size > MAX_FILE or file_identity(stream.fileno()) != expected_identity
+            ):
+                raise SafetyError('LIBRARY_ENTRY_CHANGED')
             data = stream.read(MAX_FILE + 1)
+            after = os.fstat(stream.fileno())
+            if expected_identity is not None and (
+                len(data) != record['size'] or after.st_size != before.st_size
+                or after.st_mtime_ns != before.st_mtime_ns
+                or file_identity(stream.fileno()) != expected_identity
+            ):
+                raise SafetyError('LIBRARY_ENTRY_CHANGED')
     if len(data) > MAX_FILE or hashlib.sha256(data).hexdigest() != record["sha256"]:
-        raise SafetyError("SOURCE_CHANGED")
-    ext = record["extension"].lower()
+        raise SafetyError('LIBRARY_ENTRY_CHANGED' if expected_identity is not None else 'SOURCE_CHANGED')
+    return decode_input(data, record['extension'], local, cancelled)
+
+
+def decode_input(data, extension, local=False, cancelled=None):
+    """Decode already bounded, verified bytes without opening another file."""
+    ext = extension.lower()
     if ext in {".png", ".jpg", ".jpeg", ".webp"}:
         try:
             with warnings.catch_warnings():

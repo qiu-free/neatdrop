@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Archive, ChevronLeft, ChevronRight, CircleAlert, Eye, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, X } from 'lucide-react'
 import { api, bytes } from '../api'
@@ -22,17 +22,20 @@ function displayDate(created: string) {
   return Number.isNaN(date.getTime()) ? '日期不可用' : date.toLocaleString('zh-CN')
 }
 
-export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session }: {
+export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session, onContentReady }: {
   workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void; session?: LibrarySession
+  onContentReady?: (workspaceId: string) => void
 }) {
   return <TaxonomyProvider taxonomy={taxonomy}>
     <section className="page-intro"><div><span className="intro-label">已生成的本机归档副本</span><h1>资料有序，随时查阅<span>。</span></h1><p>{workspace ? workspace.path : '选择资料所在的本机目录，查看净匣曾生成的归档副本。'}</p></div></section>
-    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
+    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} onContentReady={onContentReady} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
     <p className="library-local-note"><ShieldCheck size={17} />文件保存在本机；预览由本地服务核验后读取，不上传云端。</p>
   </TaxonomyProvider>
 }
 
-function LibraryContent({ workspace, history, session }: { workspace: Workspace; history: Transaction[]; session?: LibrarySession }) {
+function LibraryContent({ workspace, history, session, onContentReady }: {
+  workspace: Workspace; history: Transaction[]; session?: LibrarySession; onContentReady?: (workspaceId: string) => void
+}) {
   const { categories, subcategories } = useTaxonomy()
   const [listing, setListing] = useState<LibraryListing | null>(null)
   const [error, setError] = useState('')
@@ -58,6 +61,11 @@ function LibraryContent({ workspace, history, session }: { workspace: Workspace;
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '无法读取资料库，请重试。') })
     return () => controller.abort()
   }, [workspace.id, workspace.path, history, reload])
+  // The loaded list (or final error) is committed before App restores window Y.
+  // A loading placeholder cannot provide enough document height for deep offsets.
+  useLayoutEffect(() => {
+    if (listing !== null || error) onContentReady?.(workspace.id)
+  }, [listing, error, workspace.id, onContentReady])
   const items = listing?.items ?? []
   const needle = query.trim().toLocaleLowerCase()
   const visible = items.filter(item => (category === 'all' || category === item.category) && (!needle || item.name.toLocaleLowerCase().includes(needle)))

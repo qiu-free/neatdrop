@@ -20,6 +20,8 @@ export default function App() {
   const pageContent = useRef<HTMLDivElement>(null)
   const pageRef = useRef<Page>('workbench')
   const navigationRequested = useRef(false)
+  const pendingScroll = useRef<{ workspace: string; top: number; dispose: () => void } | null>(null)
+  const scrollWorkspace = useRef<string | null>(null)
   const [page, setPage] = useState<Page>('workbench')
   const [settings, setSettings] = useState(false)
   const [preferences, setPreferences] = useState(loadPreferences)
@@ -57,13 +59,59 @@ export default function App() {
     setPreferences(next)
     savePreferences(next)
   }, [])
+  const clearPendingScroll = useCallback(() => {
+    const pending = pendingScroll.current
+    pendingScroll.current = null
+    pending?.dispose()
+  }, [])
+  useEffect(() => clearPendingScroll, [clearPendingScroll])
+  useEffect(() => {
+    const workspaceId = state.workspace?.id ?? null
+    if (scrollWorkspace.current === workspaceId) return
+    scrollWorkspace.current = workspaceId
+    session.scroll.library = 0
+    session.scroll.history = 0
+    clearPendingScroll()
+  }, [state.workspace?.id, session, clearPendingScroll])
   const navigate = useCallback((next: Page) => {
     if (next === pageRef.current) return
-    session.scroll[pageRef.current] = window.scrollY
+    // A short loading view can clamp the browser's current Y. Preserve the
+    // intended position if the user leaves before its listing is ready.
+    session.scroll[pageRef.current] = pendingScroll.current?.top ?? window.scrollY
+    clearPendingScroll()
     pageRef.current = next
     navigationRequested.current = true
+    if (next === 'library' && state.workspace) {
+      const cancel = () => clearPendingScroll()
+      const interact = (event: Event) => {
+        if (event.target === document.documentElement || event.target === document.body || event.target instanceof Node && pageContent.current?.contains(event.target)) cancel()
+      }
+      const scrollKey = (event: KeyboardEvent) => {
+        if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) cancel()
+      }
+      window.addEventListener('wheel', cancel, { passive: true })
+      window.addEventListener('touchmove', cancel, { passive: true })
+      window.addEventListener('keydown', scrollKey)
+      window.addEventListener('pointerdown', interact)
+      window.addEventListener('input', interact)
+      window.addEventListener('change', interact)
+      pendingScroll.current = { workspace: state.workspace.id, top: session.scroll.library, dispose: () => {
+        window.removeEventListener('wheel', cancel)
+        window.removeEventListener('touchmove', cancel)
+        window.removeEventListener('keydown', scrollKey)
+        window.removeEventListener('pointerdown', interact)
+        window.removeEventListener('input', interact)
+        window.removeEventListener('change', interact)
+      } }
+    }
     setPage(next)
-  }, [session])
+  }, [session, state.workspace?.id, clearPendingScroll])
+  const restoreLibraryScroll = useCallback((workspaceId: string) => {
+    const pending = pendingScroll.current
+    if (pageRef.current !== 'library' || pending?.workspace !== workspaceId) return
+    clearPendingScroll()
+    window.scrollTo({ top: pending.top, behavior: 'instant' })
+  }, [clearPendingScroll])
   // Child cleanup runs before this effect, so an old drawer cannot steal the
   // destination's focus or leave the new page inert. No transition timers gate state.
   useEffect(() => {
@@ -72,7 +120,7 @@ export default function App() {
     const heading = pageContent.current?.querySelector<HTMLElement>('h1')
     heading?.setAttribute('tabindex', '-1')
     heading?.focus({ preventScroll: true })
-    window.scrollTo({ top: session.scroll[page], behavior: 'instant' })
+    window.scrollTo({ top: pendingScroll.current ? 0 : session.scroll[page], behavior: 'instant' })
   }, [page, session])
   async function refreshModelConfig() {
     await state.refreshConfig()
@@ -82,7 +130,7 @@ export default function App() {
     {state.error ? <div className="alert error" role="alert"><CircleAlert size={18} /><span>{state.error}</span><button className="icon-button" aria-label="关闭错误提示" onClick={() => state.setError('')}><X size={16} /></button></div> : null}
     {state.message ? <div className="alert success" role="status"><CheckCircle2 size={18} /><span>{state.message}</span><button className="icon-button" aria-label="关闭状态提示" onClick={() => state.setMessage('')}><X size={16} /></button></div> : null}
     <div key={page} className="page-transition" ref={pageContent} data-page={page}>
-      {page === 'workbench' ? <Workbench state={state} session={session.workbench} onLibrary={() => navigate('library')} onTutorial={openPractice} onHistory={() => navigate('history')} offlineFirst={preferences.offlineFirst} /> : page === 'library' ? <LibraryPage workspace={state.workspace} history={state.history} taxonomy={state.config?.taxonomy} session={session.library} onWorkbench={() => navigate('workbench')} /> : page === 'history' ? <HistoryPage state={state} /> : <HelpPage session={session.help} supportedExtensions={state.config?.supported_extensions} onPractice={openPractice} onReplayTour={() => setTour(true)} exerciseCompleted={preferences.tutorial.exerciseCompleted} />}
+      {page === 'workbench' ? <Workbench state={state} session={session.workbench} onLibrary={() => navigate('library')} onTutorial={openPractice} onHistory={() => navigate('history')} offlineFirst={preferences.offlineFirst} /> : page === 'library' ? <LibraryPage workspace={state.workspace} history={state.history} taxonomy={state.config?.taxonomy} session={session.library} onContentReady={restoreLibraryScroll} onWorkbench={() => navigate('workbench')} /> : page === 'history' ? <HistoryPage state={state} /> : <HelpPage session={session.help} supportedExtensions={state.config?.supported_extensions} onPractice={openPractice} onReplayTour={() => setTour(true)} exerciseCompleted={preferences.tutorial.exerciseCompleted} />}
     </div>
     <div className="page-bottom"><span>NeatDrop 净匣</span><span>少一点杂乱，多一点从容。</span><span>LOCAL FIRST · MVP 0.1</span></div>
   </main></div>{settings ? <SettingsDialog config={state.config} onClose={() => setSettings(false)} onSaved={refreshModelConfig} preferences={preferences} onPreferencesChange={changePreferences} /> : null}

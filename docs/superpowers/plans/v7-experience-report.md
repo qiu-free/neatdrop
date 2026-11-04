@@ -30,3 +30,11 @@ Fresh scoped validation: **14 test files, 154 tests passed**. Files cover FirstR
 Fresh `npm run build`: TypeScript and Vite production build passed (1604 modules, no build warning). Windows sandbox initially blocked Vite subprocess creation with `spawn EPERM`; reruns used the approved escalated test/build commands.
 
 Browser screenshots, measured animation durations/responsive overflow, full project test suites, true-ASGI format flow and five-person newcomer trial are delegated to root integration. **Human newcomer trial is unverified**; automated results are not a substitute and no usability completion rate is claimed.
+
+## P2-5 review repair: delayed library scroll
+
+Independent review identified that a library loading placeholder can clamp an early window scroll restoration to 0. Root reproduced this in a real 1440×1024 browser with 30 synthetic records and a 400ms delayed response: saved 1600px, restored 0px. The previous spy-only scroll assertion could not detect that browser behavior.
+
+App now retains a pending saved position until the current workspace's LibraryContent reports its loaded list (or final error) committed via a layout effect. No timer or hidden mounted page is used. The loading view starts at the top and restores the old offset only when final content provides its real height. Wheel, touch movement, scroll keys, pointer interaction and input/change cancel the pending restoration; navigation preserves an untouched pending offset and cancels the old listeners. Restoration/cancellation/navigation/unmount remove all pending listeners. New workspace identity clears library/history saved positions. Obsolete fetch responses remain aborted/ignored.
+
+Red/green evidence: a new test derives document height from the actual rendered synthetic list and models scrollTo clamping; the old implementation failed with actual scrollY=0 instead of 1600. It now passes. Added coverage includes repeated restoration, leaving before completion then returning, obsolete responses, wheel/touch/keyboard/filter intent and listener removal after completion. Fresh scoped verification: **6 files, 58 tests passed**; fresh `npm run build` passed (TypeScript and Vite, 1604 modules). Root retains actual-browser remeasurement and final full-suite verification; five-person newcomer trial remains unverified.

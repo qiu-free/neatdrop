@@ -14,7 +14,7 @@ beforeEach(() => {
   })))
 })
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 }) })
 
 it('offers a skippable first-run tour and reopens the in-memory exercise from the empty workbench', async () => {
   render(<App />)
@@ -143,4 +143,105 @@ it('preserves workbench drafts and library filters on unmount while aborting dra
   expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('C:/下一次待扫描目录')
   expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toContain('private')
   await act(async () => undefined)
+})
+
+async function delayedLibrary() {
+  const items = Array.from({ length: 30 }, (_, index) => ({ id: `copy-${index}`, transaction_id: 'tx', name: `合成资料-${index}.docx`, source: `原件-${index}.docx`, target: `02_学习科研/合成资料-${index}.docx`, category: 'study', subcategory: null, created: '', size: 40, availability: 'unverified' }))
+  const listing = { items, truncated: false }
+  const pending: { resolve: (value: Response) => void; signal?: AbortSignal | null }[] = []
+  const response = (value: unknown) => ({ ok: true, json: async () => value }) as Response
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.endsWith('/library')) return new Promise<Response>(resolve => pending.push({ resolve, signal: init?.signal }))
+    return response(url === '/api/session' ? { csrf: 'session' } : url.endsWith('/config') ? { model: { configured: false }, categories: {}, execution_supported: true, undo_supported: true, demo_path: '' }
+      : url.endsWith('/workspaces') ? { id: 'scroll-workspace', name: 'Synthetic', path: 'C:/synthetic-scroll', files: [] } : [])
+  }))
+  // jsdom has no layout. Model viewport/document dimensions from the real
+  // rendered list, and emulate the browser's actual clamping instead of merely
+  // recording requested scrollTo arguments.
+  let actualY = 0
+  const height = () => document.querySelector('.library-list') ? 1024 + document.querySelectorAll('.library-list > li').length * 180 : document.querySelector('[data-page="help"]') ? 5000 : 1024
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 1024 })
+  Object.defineProperty(document.documentElement, 'scrollHeight', { configurable: true, get: height })
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => Math.min(actualY, Math.max(0, document.documentElement.scrollHeight - window.innerHeight)) })
+  vi.mocked(window.scrollTo).mockImplementation((options?: ScrollToOptions | number) => {
+    actualY = Math.max(0, Math.min(typeof options === 'object' ? options.top ?? 0 : options ?? 0, document.documentElement.scrollHeight - window.innerHeight))
+  })
+  localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify({ version: 2, density: 'comfortable', offlineFirst: true, tutorial: { tourStatus: 'skipped', tourCompleted: false, exerciseCompleted: false } }))
+  const app = render(<App />)
+  await screen.findByText('本地服务已连接')
+  fireEvent.change(screen.getByLabelText('本地目录完整路径'), { target: { value: 'C:/synthetic-scroll' } })
+  fireEvent.click(screen.getByRole('button', { name: '扫描目录' }))
+  await screen.findByRole('heading', { name: 'Synthetic' })
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  await act(async () => pending.shift()!.resolve(response(listing)))
+  window.scrollTo({ top: 1600 })
+  expect(window.scrollY).toBe(1600)
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  expect(screen.queryByRole('button', { name: '查看 合成资料-0.docx' })).not.toBeInTheDocument()
+  expect(window.scrollY).toBe(0)
+  return { ...app, pending, resolve: async () => { await act(async () => pending.shift()!.resolve(response(listing))) } }
+}
+
+it('restores the actual scroll offset after a delayed library list has enough document height', async () => {
+  const library = await delayedLibrary()
+  await library.resolve()
+  expect(screen.getAllByRole('button', { name: /^查看 合成资料-/ })).toHaveLength(30)
+  expect(window.scrollY).toBe(1600)
+  // A return before the request completes must not replace the intended saved Y
+  // with the loading page's clamped value.
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  const abandoned = library.pending[0]
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  expect(abandoned.signal?.aborted).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  await library.resolve()
+  expect(window.scrollY).toBe(0)
+  await library.resolve()
+  expect(window.scrollY).toBe(1600)
+})
+
+it.each(['wheel', 'touchmove', 'scroll-key', 'filter'] as const)('cancels delayed library restoration when the user chooses %s', async intent => {
+  const library = await delayedLibrary()
+  if (intent === 'wheel') fireEvent.wheel(window, { deltaY: 100 })
+  else if (intent === 'touchmove') fireEvent.touchMove(window)
+  else if (intent === 'scroll-key') fireEvent.keyDown(window, { key: 'PageDown' })
+  else fireEvent.change(screen.getByLabelText('搜索资料库文件名'), { target: { value: '资料' } })
+  await library.resolve()
+  expect(window.scrollY).toBe(0)
+})
+
+it('removes pending restoration listeners when navigating away and does not restore an obsolete response', async () => {
+  const library = await delayedLibrary()
+  const abandoned = library.pending[0]
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  expect(abandoned.signal?.aborted).toBe(true)
+  fireEvent.wheel(window, { deltaY: 100 })
+  window.scrollTo({ top: 350 })
+  await library.resolve()
+  expect(window.scrollY).toBe(350)
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  await library.resolve()
+  expect(window.scrollY).toBe(1600)
+  library.unmount()
+  window.scrollTo({ top: 0 })
+  fireEvent.wheel(window, { deltaY: 100 })
+  expect(document.body.style.overflow).not.toBe('hidden')
+  expect(document.querySelector('[inert]')).toBeNull()
+})
+
+it('removes pending input listeners after restoration so a later visit can restore again', async () => {
+  const library = await delayedLibrary()
+  const remove = vi.spyOn(window, 'removeEventListener')
+  await library.resolve()
+  expect(window.scrollY).toBe(1600)
+  for (const event of ['wheel', 'touchmove', 'keydown', 'pointerdown', 'input', 'change']) {
+    expect(remove.mock.calls.some(([name]) => name === event)).toBe(true)
+  }
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  fireEvent.wheel(window, { deltaY: 100 })
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  await library.resolve()
+  expect(window.scrollY).toBe(1600)
 })

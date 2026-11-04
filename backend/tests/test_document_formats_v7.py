@@ -349,6 +349,34 @@ def test_cross_cell_evidence_uses_row_location_without_out_of_bounds_single_cell
         assert any(segment['start'] <= item['start'] < item['end'] <= segment['end'] for segment in matching)
 
 
+@pytest.mark.parametrize('bank', ['无锡银行', 'Straße BANK', 'Cafe\u0301银行'])
+def test_raw_evidence_offsets_survive_unicode_expansion_and_combining_characters(bank):
+    text = f'ＡＢＣ Straße e\u0301\n银行开户证明\n开户银行：  {bank}  \n账户名称：  林青  '
+    payload = decode_input(text.encode('utf-8'), '.txt', local=True)
+    result = analyze_local({'id': 'file', 'name': 'random.txt', 'extension': '.txt'}, payload)
+    assert result['subcategory'] == 'bank_material'
+    assert len(result['evidence_items']) >= 3
+    for item in result['evidence_items']:
+        assert item['text'] in text
+        assert item['start'] == text.index(item['text'])
+        assert text[item['start']:item['end']] == item['text']
+    title = next(item for item in result['evidence_items'] if item['text'] == '银行开户证明')
+    assert title['start'] == 14
+
+
+def test_legacy_normalized_fullwidth_evidence_maps_to_verified_original_characters():
+    text = 'Straße e\u0301\nＴＡＸ ＩＮＶＯＩＣＥ\n发票号码：123456\n购买方：甲公司\n销售方：乙公司\n税额：10'
+    payload = decode_input(text.encode('utf-8'), '.txt', local=True)
+    result = analyze_local({'id': 'file', 'name': 'random.txt', 'extension': '.txt'}, payload)
+    assert result['subcategory'] == 'invoice'
+    anchor = next(item for item in result['evidence_items'] if item['text'] == 'tax invoice')
+    assert text[anchor['start']:anchor['end']] == 'ＴＡＸ ＩＮＶＯＩＣＥ'
+    for item in result['evidence_items']:
+        if item['source'] in {'title', 'body'}:
+            assert 0 <= item['start'] < item['end'] <= len(text)
+    assert next(item for item in result['evidence_items'] if item['text'] == '购买方')['start'] == text.index('购买方')
+
+
 @pytest.mark.parametrize('data', [
     '<!DOCTYPE r [<!ENTITY x "entity">]><r>&x;</r>'.encode('utf-32'),
     '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE r [<!ENTITY x "entity">]><r>&x;</r>'.encode('utf-16-be'),

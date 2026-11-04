@@ -10,6 +10,7 @@ import copy
 import inspect
 import os
 import stat
+import unicodedata
 from threading import BoundedSemaphore, RLock
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -115,6 +116,40 @@ def local_semantic(text, cancelled=None):
     return classify_semantic(text, cancelled=cancelled) if cancelled else classify_semantic(text)
 
 
+def _evidence_interval(text, excerpt):
+    """Find a verified raw interval; normalized offsets are never raw offsets."""
+    text = text[:12000]
+    if not excerpt:
+        return None
+    offset = text.find(excerpt)
+    if offset >= 0:
+        return offset, offset + len(excerpt)
+
+    # Legacy rules can return normalized snippets (case, width, composition).
+    # Locate them in the same normalization, map both boundaries back through
+    # raw prefixes, then verify the complete raw slice before publishing it.
+    def normalized(value):
+        return unicodedata.normalize('NFKC', value).casefold()
+
+    needle = normalized(excerpt)
+    offset = normalized(text).find(needle)
+    if offset < 0:
+        return None
+
+    def boundary(position):
+        low, high = 0, len(text)
+        while low < high:
+            middle = (low + high + 1) // 2
+            if len(normalized(text[:middle])) <= position:
+                low = middle
+            else:
+                high = middle - 1
+        return low
+
+    start, end = boundary(offset), boundary(offset + len(needle))
+    return (start, end) if start < end and normalized(text[start:end]) == needle else None
+
+
 def analyze_local(record, payload, cancelled=None):
     text = payload.get("text", "")
     image_input = payload.get('local_image') or 'image' in payload
@@ -134,9 +169,11 @@ def analyze_local(record, payload, cancelled=None):
                 item['box'] = copy.deepcopy(line['box'])
         elif item.get('source') in {'title', 'body'}:
             # Map sampled text evidence back to original character intervals.
-            offset = text.casefold().find(item['text'].casefold())
+            interval = _evidence_interval(text, item['text'])
+            if interval is None:
+                continue
+            offset, evidence_end = interval
             cursor, matched = 0, []
-            evidence_end = offset + len(item['text'])
             for segment in payload.get('sampling', {}).get('segments', []):
                 length = segment.get('end', 0) - segment.get('start', 0)
                 sampled_start = segment.get('sample_start', cursor)
@@ -145,7 +182,7 @@ def analyze_local(record, payload, cancelled=None):
                     matched.append(segment)
                 if sampled_start <= offset < evidence_end <= sampled_end:
                     item['start'] = segment.get('start', 0) + offset - sampled_start
-                    item['end'] = item['start'] + len(item['text'])
+                    item['end'] = item['start'] + evidence_end - offset
                     for key in ('page', 'slide', 'sheet', 'cell', 'row', 'paragraph', 'table'):
                         if key in segment:
                             item[key] = segment[key]

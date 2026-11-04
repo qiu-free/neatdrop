@@ -86,6 +86,9 @@ def prediction(run, sampler, row):
             'review_reasons', 'engine_warnings', 'candidates', 'engine_versions', 'quality')
     return {key: result[key] for key in keys} | {
         'id': row['id'], 'kept_original_name': result['name'] == record['name'],
+        'evidence_is_source_substring': all(item.get('text', '') in payload['text']
+                                           for item in result.get('evidence_items', [])
+                                           if item.get('source') in {'title', 'body'}),
         'evidence_sources': dict(Counter(item['source'] for item in result.get('evidence_items', [])))}
 
 
@@ -183,6 +186,7 @@ def behavioral_check(row, result):
     acceptable = {(label['category'], label['subcategory']) for label in row['acceptable']}
     return ((actual in acceptable if acceptable else result['decision_level'] == 'abstain')
             and (not row['must_review'] or result['review_required'])
+            and (not row.get('evidence_substrings') or result['evidence_is_source_substring'])
             and set(row.get('required_reasons', [])) <= set(result['review_reasons']))
 
 
@@ -227,6 +231,7 @@ def evaluate():
             'legacy40': [dict(row, family='legacy') for row in json.loads(old_bytes)['records']],
             'prior8': list(previous_purposes(v5_manifest)),
             'quality9': list(quality_records(v5_manifest)),
+            'review13': [dict(row, family='review', split='development') for row in new_manifest['review_regressions']],
         }
         sections, failures = {}, []
         compared = ('category', 'subcategory', 'content_form', 'decision_level', 'review_required',

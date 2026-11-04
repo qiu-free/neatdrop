@@ -102,10 +102,23 @@ def test_email_domain_does_not_imply_template_context():
     assert 'example_context' not in result['review_reasons']
 
 
-@pytest.mark.parametrize('value', ['无', '未提供', '不适用', '未知', 'N/A', '不存在', '暂无'])
+@pytest.mark.parametrize('value', ['无', '未提供', '不适用', '未知', 'N/A', '不存在', '暂无',
+                                  '无。', '无，', '无；', '无!', '非。', '尚未采集', '尚未填写', '未填写'])
 def test_missing_or_negated_field_values_do_not_support_purpose(value):
     result = decide(classify_text('x.txt', f'产品保修说明\n产品型号：{value}\n保修期限：{value}'))
     assert (result['category'], result['subcategory']) != ('life', 'warranty')
+
+
+def test_actual_product_name_starting_with_wu_remains_meaningful():
+    result = decide(classify_text('x.txt', '保修卡\n产品型号：无刷电机A100\n保修期限：两年'))
+    assert (result['category'], result['subcategory']) == ('life', 'warranty')
+    assert result['decision_level'] == 'candidate'
+
+
+def test_old_warranty_fields_do_not_borrow_unknown_tab_columns():
+    result = decide(classify_text('x.txt', '保修卡\n产品型号\t\t备注\tA100\n保修期限\t\t备注\t两年'))
+    assert result['decision_level'] == 'abstain'
+    assert result['subcategory'] == 'unclassified'
 
 
 def test_empty_field_followed_by_negated_duplicate_cannot_become_support():

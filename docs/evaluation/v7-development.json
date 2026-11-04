@@ -43,5 +43,20 @@
     {"id":"bank-clause-scope", "group":"bank", "text":"这不是工作报告。\n银行开户证明\n开户银行：海岬银行\n账户名称：林青", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true},
     {"id":"bank-tax-conflict", "group":"bank-tax", "text":"银行开户证明\n开户银行：海岬银行\n账户名称：林青\n银行账号：6222000042\n税收完税证明\n纳税人：林青\n税种：个人所得税", "acceptable":[{"category":"finance","subcategory":null}], "must_review":true, "required_reasons":["competing_categories"]},
     {"id":"utility-generic-payment-overlap", "group":"utility", "text":"水费缴费凭证\n费用项目：居民水费\n缴费状态：已缴清\n缴费金额：86元\n缴费户号：U100\n支付成功\n交易单号：TX42\n收款人：海岬水务\n支付金额：86元", "acceptable":[{"category":"finance","subcategory":null}], "must_review":true, "required_reasons":["competing_categories"]}
+  ],
+  "review_regressions": [
+    {"id":"review-research-punctuated-none", "group":"missing-values", "text":"研究数据\n研究课题：无。\n观测数据：无。", "acceptable":[], "must_review":true},
+    {"id":"review-warranty-punctuated-none", "group":"missing-values", "text":"保修卡\n产品型号：无。\n保修期限：无。", "acceptable":[], "must_review":true},
+    {"id":"review-research-uncollected", "group":"missing-values", "text":"研究数据\n研究课题：尚未填写\n观测数据：尚未采集", "acceptable":[], "must_review":true},
+    {"id":"review-warranty-unfilled", "group":"missing-values", "text":"保修卡\n产品型号：尚未填写\n保修期限：尚未填写", "acceptable":[], "must_review":true},
+    {"id":"review-bank-real-wuxi", "group":"missing-values", "text":"银行开户证明\n开户银行：无锡银行\n账户名称：林青", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true},
+    {"id":"review-warranty-real-brushless", "group":"missing-values", "text":"保修卡\n产品型号：无刷电机A100\n保修期限：两年", "acceptable":[{"category":"life","subcategory":"warranty"}], "must_review":true},
+    {"id":"review-tab-bank-empty", "group":"tab-cells", "text":"银行开户证明\n开户银行\t\t备注\t海岬银行\n账户名称\t\t备注\t林青", "acceptable":[], "must_review":true},
+    {"id":"review-tab-bank-blank", "group":"tab-cells", "text":"银行开户证明\n开户银行\t   \t备注\t海岬银行\n账户名称\t   \t备注\t林青", "acceptable":[], "must_review":true},
+    {"id":"review-tab-warranty-empty", "group":"tab-cells", "text":"保修卡\n产品型号\t\t备注\tA100\n保修期限\t\t备注\t两年", "acceptable":[], "must_review":true},
+    {"id":"review-tab-utility-notes", "group":"tab-cells", "text":"水费缴费凭证\n费用项目\t居民水费\t备注\t本月\n缴费状态\t已缴清\t备注\t余额为0", "acceptable":[{"category":"finance","subcategory":"utility_payment"}], "must_review":true, "evidence_substrings":true},
+    {"id":"review-tab-bank-padding", "group":"source-evidence", "text":"银行开户证明\n开户银行\t  海岬银行  \n账户名称\t  林青  ", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true, "evidence_substrings":true},
+    {"id":"review-colon-bank-padding", "group":"source-evidence", "text":"银行开户证明\n开户银行：  海岬银行  \n账户名称：  林青  ", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true, "evidence_substrings":true},
+    {"id":"review-normalized-source", "group":"source-evidence", "text":"ＡＢＣ Straße é\n银行开户证明\n开户银行：  无锡银行  \n账户名称：  林青  ", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true, "evidence_substrings":true}
   ]
 }

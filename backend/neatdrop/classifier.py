@@ -101,6 +101,20 @@ def normalized(text):
     return unicodedata.normalize('NFKC', text or '').casefold()
 
 
+def source_excerpt(source, start, end):
+    """Map normalized offsets back to a contiguous original snippet."""
+    def boundary(offset):
+        low, high = 0, len(source)
+        while low < high:
+            middle = (low + high + 1) // 2
+            if len(normalized(source[:middle])) <= offset:
+                low = middle
+            else:
+                high = middle - 1
+        return low
+    return source[boundary(start):boundary(end)]
+
+
 def positive_match(pattern, text, purpose=False):
     for match in re.finditer(pattern, text):
         if not negated_at(text, match.start(), purpose):
@@ -119,21 +133,27 @@ def negated_at(text, start, purpose=False):
 
 
 def meaningful_field_value(value):
+    # Validate missing markers independently from displayed evidence. A full
+    # stop does not turn "无" into data; names such as "无锡银行" remain values.
+    marker = value
+    while marker and (marker[-1].isspace() or unicodedata.category(marker[-1]).startswith('P')):
+        marker = marker[:-1]
     if re.match(r'^(?:无(?:实际|真实)|没有|不存在|暂无|未提供|不适用|未知|待填|待补充|待录入|'
-                r'请填写|填写|占位|空白|未定义|未采集|未获取|n/?a\b|none\b|unknown\b|tbd\b|todo\b)', value):
+                r'请填写|填写|占位|空白|(?:尚)?未(?:定义|采集|获取|填写|填入|录入|提供)|'
+                r'n/?a\b|none\b|unknown\b|tbd\b|todo\b)', marker):
         return False
-    if re.fullmatch(r'无|非|[-—_.\s]*|x{2,}|某某|某公司|某银行', value):
+    if re.fullmatch(r'无|非|[-—_.\s]*|x{2,}|某某|某公司|某银行', marker):
         return False
     if re.fullmatch(r'\[.*\]|【.*】|\{\{.*\}\}|<.*>|\$\{.*\}', value):
         return False
     return any(unicodedata.category(char)[0] in {'L', 'N'} for char in value)
 
 
-def purpose_fields(groups, body, label=None):
+def purpose_fields(groups, body, label=None, source_body=None):
     """Count groups with a readable value on the same line, once per group.
 
-    Stop before another field label so an empty value cannot consume its next
-    field. Letters/numbers are required; punctuation placeholders do not count.
+    Stop at the next TAB cell or field label, including unknown later columns.
+    Validate a trimmed value, but preserve its original evidence span.
     """
     hits = []
     found = set()
@@ -141,10 +161,11 @@ def purpose_fields(groups, body, label=None):
         for field in re.finditer(pattern, body):
             if negated_at(body, field.start(), purpose=True):
                 continue
-            tail = body[field.end():].split('\n', 1)[0]
+            tail = body[field.end():].split('\n', 1)[0].split('\t', 1)[0]
             next_field = re.search(PURPOSE_FIELD_LABELS, tail)
-            value = tail[:next_field.start()] if next_field else tail
-            value = re.split(r'[;；]', value, maxsplit=1)[0].strip()
+            raw_value = tail[:next_field.start()] if next_field else tail
+            raw_value = re.split(r'[;；]', raw_value, maxsplit=1)[0]
+            value = raw_value.strip()
             if not meaningful_field_value(value):
                 continue
             if label == ('finance', 'utility_payment'):
@@ -153,7 +174,10 @@ def purpose_fields(groups, body, label=None):
                 if index == 1 and not re.fullmatch(r'(?:已缴清|已缴费|已缴纳|已付清|已支付|缴费成功|支付成功|缴纳成功)[。.!！]?', value):
                     continue
             found.add(index)
-            hits.append({'source': 'body', 'text': (field.group() + value)[:160]})
+            end = min(field.end() + len(raw_value), field.start() + 160)
+            excerpt = (body[field.start():end] if source_body is None else
+                       source_excerpt(source_body, field.start(), end))
+            hits.append({'source': 'body', 'text': excerpt})
             break
     if not REQUIRED_PURPOSE_GROUPS.get(label, set()) <= found:
         return []
@@ -161,7 +185,10 @@ def purpose_fields(groups, body, label=None):
 
 
 def classify_text(name, text):
-    body = normalized(text)[:12000]
+    # Bound raw normalization and source-position work before processing text;
+    # combining sequences must not pull unseen tail content into the budget.
+    source_body = (text or '')[:12000]
+    body = normalized(source_body)[:12000]
     lines = [s.strip().lstrip('# ') for s in body.splitlines() if s.strip()]
     title = '\n'.join(lines[:2])[:200]
     filename = normalized(name)
@@ -195,11 +222,12 @@ def classify_text(name, text):
         match = positive_match(anchor, body, purpose=True)
         if match is None:
             continue
-        supports = purpose_fields(groups, body, (category, subtype))
+        supports = purpose_fields(groups, body, (category, subtype), source_body=source_body)
         if len(supports) < 2:
             continue
         title_match = positive_match(anchor, title, purpose=True)
-        hits = [{'source': 'title' if title_match else 'body', 'text': (title_match or match).group()}]
+        hits = [{'source': 'title' if title_match else 'body',
+                 'text': source_excerpt(source_body, match.start(), match.end())}]
         hits.extend(supports)
         purpose_candidates.append({'category': category, 'subcategory': subtype,
                                    'score': (6 if title_match else 3) + 1.5 * len(supports), 'evidence': hits})

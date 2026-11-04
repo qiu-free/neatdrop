@@ -154,7 +154,7 @@ def test_extracted_tab_delimited_key_value_rows_keep_actual_evidence(category, s
     assert result['decision_level'] == 'candidate'
     body = [item for item in result['evidence_items'] if item['source'] == 'body']
     assert len(body) >= 2
-    assert all(item['text'] in text.casefold() and '\t' in item['text'] for item in body)
+    assert all(item['text'] in text and '\t' in item['text'] for item in body)
 
 
 def test_actual_csv_extraction_supports_key_value_rows_without_fabricating_punctuation():
@@ -170,3 +170,71 @@ def test_actual_csv_extraction_supports_key_value_rows_without_fabricating_punct
 def test_unstructured_whitespace_is_not_a_key_value_separator(separator):
     result = run(f'银行开户证明\n开户银行{separator}海岬银行\n账户名称{separator}林青')
     assert result['subcategory'] != 'bank_material'
+
+
+@pytest.mark.parametrize('value', ['无。', '无，', '无；', '无!', '非。', '尚未采集', '尚未填写', '未填写'])
+def test_punctuated_or_not_yet_collected_research_fields_are_not_values(value):
+    result = run(f'研究数据\n研究课题：{value}\n观测数据：{value}')
+    assert (result['category'], result['subcategory']) == ('other', 'unclassified')
+    assert result['decision_level'] == 'abstain'
+
+
+def test_actual_bank_name_starting_with_wu_is_not_a_missing_value():
+    result = run('银行开户证明\n开户银行：无锡银行\n账户名称：林青')
+    assert result['subcategory'] == 'bank_material'
+    assert result['decision_level'] == 'candidate'
+
+
+@pytest.mark.parametrize('empty_cell', ['', '   '])
+def test_empty_immediate_tab_value_cannot_borrow_unknown_later_columns(empty_cell):
+    text = f'银行开户证明\n开户银行\t{empty_cell}\t备注\t海岬银行\n账户名称\t{empty_cell}\t备注\t林青'
+    result = run(text)
+    assert result['decision_level'] == 'abstain'
+    assert result['subcategory'] == 'unclassified'
+
+
+def test_immediate_tab_value_ignores_later_notes_and_keeps_contiguous_evidence():
+    text = '水费缴费凭证\n费用项目\t居民水费\t备注\t本月\n缴费状态\t已缴清\t备注\t余额为0'
+    result = run(text)
+    assert result['subcategory'] == 'utility_payment'
+    assert result['decision_level'] == 'candidate'
+    assert [item['text'] for item in result['evidence_items'] if item['source'] == 'body'] == [
+        '费用项目\t居民水费', '缴费状态\t已缴清']
+
+
+@pytest.mark.parametrize('separator', ['\t', '：'])
+def test_field_value_padding_is_preserved_as_contiguous_source_evidence(separator):
+    text = f'银行开户证明\n开户银行{separator}  海岬银行  \n账户名称{separator}  林青  '
+    result = run(text)
+    assert result['subcategory'] == 'bank_material'
+    body = [item['text'] for item in result['evidence_items'] if item['source'] == 'body']
+    assert len(body) == 2
+    assert all(item in text for item in body)
+
+
+@pytest.mark.parametrize('with_value', [False, True])
+def test_actual_multicolumn_csv_keeps_immediate_cell_boundary(with_value):
+    from neatdrop.document_formats import extract_document
+    if with_value:
+        source = '水费缴费凭证,,,\n费用项目,居民水费,备注,本月\n缴费状态,已缴清,备注,余额为0\n'
+    else:
+        source = '银行开户证明,,,\n开户银行,,备注,海岬银行\n账户名称,,备注,林青\n'
+    payload = extract_document(source.encode('utf-8'), '.csv', 12000)
+    result = analyze_local({'id': 'csv', 'name': 'sample.csv', 'extension': '.csv'}, payload)
+    assert result['subcategory'] == ('utility_payment' if with_value else 'unclassified')
+    assert result['decision_level'] == ('candidate' if with_value else 'abstain')
+    assert all(item['text'] in payload['text'] for item in result['evidence_items'])
+
+
+def test_normalization_expansion_before_fields_does_not_change_raw_evidence():
+    text = 'ＡＢＣ Straße e\u0301\n银行开户证明\n开户银行：  无锡银行  \n账户名称：  林青  '
+    result = run(text)
+    assert result['subcategory'] == 'bank_material'
+    assert all(item['text'] in text for item in result['evidence_items'])
+    assert any(item['text'] == '开户银行：  无锡银行  ' for item in result['evidence_items'])
+
+
+def test_normalization_cannot_extend_the_raw_twelve_thousand_character_budget():
+    text = 'e\u0301' * 6000 + '\n银行开户证明\n开户银行：海岬银行\n账户名称：林青'
+    result = classify_text('original.txt', text)
+    assert result['subcategory'] == 'unclassified'

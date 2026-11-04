@@ -19,6 +19,7 @@ tmp*/
 backend/.pytest*/
 .neatdrop/
 .worktrees/
+.superpowers/
 *.pem
 *.key
 *.pfx

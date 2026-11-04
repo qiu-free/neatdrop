@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .analysis import prepare_input
 from .executor import Executor
-from .files import CATEGORIES, SafetyError, Workspace
+from .files import CATEGORIES, SUPPORTED, SafetyError, Workspace
 from .model import model_status
 from .security import LocalSecurity, RequestGuard, Session, current
 from .taxonomy import taxonomy_config, FORMS
@@ -144,6 +144,7 @@ def create_app():
         offline['semantic'] = semantic_status()
         offline['semantic']['enabled'] = os.getenv('NEATDROP_SEMANTIC_CANDIDATES') == '1'
         return {"model": model_status(), "offline": offline, "categories": CATEGORIES, "taxonomy": taxonomy_config(), "content_forms": FORMS, "undo_supported": os.name == "nt", "execution_supported": os.name == "nt",
+                "supported_extensions": sorted(SUPPORTED),
                 "limits": {"files": 50, "file_mib": 20, "total_mib": 200}, "demo_path": str(PROJECT / "demo-files")}
 
     @app.get("/api/v1/model-config")

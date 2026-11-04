@@ -12,7 +12,8 @@ from pathlib import Path
 MAX_FILE = 20 * 1024 * 1024
 MAX_TOTAL = 200 * 1024 * 1024
 MAX_FILES = 50
-SUPPORTED = {".jpg", ".jpeg", ".png", ".webp", ".pdf", ".txt", ".md"}
+SUPPORTED = {".jpg", ".jpeg", ".png", ".webp", ".pdf", ".txt", ".md",
+             ".docx", ".pptx", ".xlsx", ".csv"}
 from .taxonomy import GROUPS
 CATEGORIES = {key: value[1] for key, value in GROUPS.items()}
 

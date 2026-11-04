@@ -1,4 +1,4 @@
-"""Disposable PDF workers with parent-enforced time and process-memory budgets."""
+"""Disposable document workers with parent-enforced time/memory budgets."""
 import io
 import multiprocessing
 import os
@@ -109,8 +109,42 @@ def _pdf_worker(connection, data, limit):
 
 
 def parse_pdf(data, limit=1500, timeout=12, cancelled=None):
+    return _run_bounded(_pdf_worker, (data, limit), limit, timeout, cancelled, 'PDF')
+
+
+def _document_worker(connection, data, extension, limit):
+    try:
+        connection.recv()
+        if os.name != 'nt':
+            import resource
+            resource.setrlimit(resource.RLIMIT_AS, (384 * 1024 * 1024, 384 * 1024 * 1024))
+        from .document_formats import extract_document
+        connection.send(extract_document(data, extension, limit))
+    except SafetyError as exc:
+        connection.send({'error': exc.code})
+    except BaseException:
+        try:
+            connection.send({'error': 'DOCUMENT_PARSE_FAILED'})
+        except (OSError, EOFError):
+            pass
+    finally:
+        connection.close()
+
+
+def parse_document(data, extension, limit=1500, timeout=12, cancelled=None):
+    from .files import MAX_FILE
+    if extension not in {'.docx', '.pptx', '.xlsx', '.csv'}:
+        raise SafetyError('UNSUPPORTED_TYPE')
+    if not isinstance(data, bytes) or len(data) > MAX_FILE:
+        raise SafetyError('FILE_TOO_LARGE')
+    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 12000:
+        raise ValueError('invalid document character budget')
+    return _run_bounded(_document_worker, (data, extension, limit), limit, timeout, cancelled, 'DOCUMENT')
+
+
+def _run_bounded(worker, arguments, limit, timeout, cancelled, prefix):
     if cancelled is not None and cancelled():
-        raise SafetyError('PDF_PARSE_CANCELLED')
+        raise SafetyError(prefix + '_PARSE_CANCELLED')
     if not _SLOTS.acquire(blocking=False):
         raise SafetyError('PARSER_BUSY')
     parent = child = process = close_job = None
@@ -118,29 +152,29 @@ def parse_pdf(data, limit=1500, timeout=12, cancelled=None):
         deadline = time.monotonic() + min(timeout, 12)
         context = multiprocessing.get_context('spawn')
         parent, child = context.Pipe()
-        process = context.Process(target=_pdf_worker, args=(child, data, limit), daemon=True)
+        process = context.Process(target=worker, args=(child, *arguments), daemon=True)
         process.start()
         child.close()
         close_job = _limit_worker_memory(process)
         parent.send(True)
         while True:
             if cancelled is not None and cancelled():
-                raise SafetyError('PDF_PARSE_CANCELLED')
+                raise SafetyError(prefix + '_PARSE_CANCELLED')
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise SafetyError('PDF_PARSE_TIMEOUT')
+                raise SafetyError(prefix + '_PARSE_TIMEOUT')
             if parent.poll(min(.1, remaining)):
                 break
         try:
             result = parent.recv()
         except (EOFError, OSError) as exc:
-            raise SafetyError('PDF_PARSE_FAILED') from exc
+            raise SafetyError(prefix + '_PARSE_FAILED') from exc
         if not isinstance(result, dict):
-            raise SafetyError('PDF_PARSE_FAILED')
+            raise SafetyError(prefix + '_PARSE_FAILED')
         if 'error' in result:
-            raise SafetyError(result.get('error', 'PDF_PARSE_FAILED'))
+            raise SafetyError(result.get('error', prefix + '_PARSE_FAILED'))
         if not isinstance(result.get('text'), str) or len(result['text']) > limit:
-            raise SafetyError('PDF_PARSE_FAILED')
+            raise SafetyError(prefix + '_PARSE_FAILED')
         return result
     finally:
         if process is not None and process.pid is not None:

@@ -88,6 +88,9 @@ def decode_input(data, extension, local=False, cancelled=None):
         from .parsing import parse_pdf
         kwargs = {'cancelled': cancelled} if local and cancelled else {}
         return parse_pdf(data, limit=12000 if local else 1500, **kwargs)
+    if ext in {'.docx', '.pptx', '.xlsx', '.csv'}:
+        from .parsing import parse_document
+        return parse_document(data, ext, limit=12000 if local else 1500, cancelled=cancelled)
     else:
         try:
             text = data.decode("utf-8-sig")
@@ -135,11 +138,13 @@ def analyze_local(record, payload, cancelled=None):
             cursor = 0
             for segment in payload.get('sampling', {}).get('segments', []):
                 length = segment.get('end', 0) - segment.get('start', 0)
-                if 0 <= offset - cursor < length:
-                    item['start'] = segment.get('start', 0) + offset - cursor
+                sampled_start = segment.get('sample_start', cursor)
+                if 0 <= offset - sampled_start < length:
+                    item['start'] = segment.get('start', 0) + offset - sampled_start
                     item['end'] = item['start'] + len(item['text'])
-                    if 'page' in segment:
-                        item['page'] = segment['page']
+                    for key in ('page', 'slide', 'sheet', 'cell', 'row', 'paragraph', 'table'):
+                        if key in segment:
+                            item[key] = segment[key]
                     break
                 cursor += length + (1 if payload.get('sampling', {}).get('kind') == 'pdf' or
                                     payload.get('sampling', {}).get('separator') == '\n' else 0)
@@ -170,7 +175,7 @@ def analyze_local(record, payload, cancelled=None):
     return {**classification, "file_id": record["id"], "name": name, 'evidence': evidence,
             "review_required": review, "provider": 'offline_models' if image_input else 'offline_semantic' if any(
                 item.get('source') == 'semantic' for item in classification.get('evidence_items', [])) else "local_rules",
-            "sample": payload["sample"], "rule_version": "5"}
+            "sample": payload["sample"], "rule_version": "7"}
 
 
 class AnalysisJobs:

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "engine_version": "offline-purpose-v7",
+  "split": "development",
+  "source": "NeatDrop hand-authored deterministic synthetic fixtures, 2026-11-04",
+  "authorization": "CC0-1.0; no user files, private records, network, downloads or model inference",
+  "scope": "Seven purpose groups with related variants, plus separately reported adjacent documents and frozen old40/v5 groups. Variants are correlated development regressions, not independent accuracy samples or calibration evidence.",
+  "purpose_groups": [
+    {"id":"bank", "category":"finance", "subcategory":"bank_material", "anchor":"银行开户证明", "fields":["开户银行：海岬银行", "账户名称：林青", "银行账号：6222000042", "办理事项：工资账户开立"], "alias_anchor":"银行账户证明", "alias_fields":["开户行：海岬支行", "户名：林青", "账号：6222000042"]},
+    {"id":"utility", "category":"finance", "subcategory":"utility_payment", "anchor":"水费缴费凭证", "fields":["费用项目：居民水费", "缴费状态：已缴清", "缴费金额：86.40元", "缴费户号：U100"], "alias_anchor":"公共服务缴费回执", "alias_fields":["缴费项目：燃气费", "支付状态：缴费成功", "实缴金额：72元"]},
+    {"id":"tax", "category":"finance", "subcategory":"tax_material", "anchor":"个人所得税申报回执", "fields":["纳税人名称：林青", "纳税人识别号：T20260042", "税款所属期：2026年3月", "申报税种：个人所得税"], "alias_anchor":"税收完税证明", "alias_fields":["纳税人：林青", "税种：个人所得税", "所属期间：2026年3月"]},
+    {"id":"research", "category":"study", "subcategory":"research_data", "anchor":"研究观测数据", "fields":["研究课题：沿海水质观测", "变量定义：温度单位摄氏度", "观测数据：样本A温度18.5，样本B温度19.2", "采集日期：2026年3月2日"], "alias_anchor":"科研测量记录", "alias_fields":["研究项目：沿海温度变化", "测量值：样本A为18.5摄氏度", "变量说明：站点与温度"]},
+    {"id":"presentation", "category":"office", "subcategory":"presentation", "anchor":"项目汇报演示资料", "fields":["汇报主题：检索服务升级", "汇报对象：项目评审组", "演示提纲：现状、方案、上线安排", "讲稿：本次展示服务升级方案"], "alias_anchor":"工作汇报幻灯片", "alias_fields":["演讲主题：索引改造", "展示对象：部门同事", "页面提纲：现状与下一步"]},
+    {"id":"property", "category":"life", "subcategory":"property", "anchor":"物业维修通知", "fields":["房屋地址：海岬小区2栋301室", "物业事项：更换楼道照明", "办理安排：周三上午入户核查", "物业服务单位：海岬物业"], "alias_anchor":"住房管理记录", "alias_fields":["房屋坐落：海岬路2号", "管理事项：公共门禁维修", "处理安排：五月二日更换"]},
+    {"id":"travel", "category":"life", "subcategory":"travel_material", "anchor":"旅行行程规划", "fields":["旅行目的地：海岬市", "计划日期：2026年5月1日至3日", "游览安排：第一天参观海洋馆", "行前清单：雨具、药品"], "alias_anchor":"旅游攻略", "alias_fields":["目的地：青湾", "出游时间：五月上旬", "景点安排：海湾步道和博物馆"]}
+  ],
+  "variant_families": {
+    "positive": ["explicit", "synonym", "body_anchor", "two_fields", "same_line", "tab_fields", "ocr", "parsed_content", "partial"],
+    "sparse_negative": ["filename_only", "extension_only", "title_only", "one_field", "duplicate_group", "empty_fields", "tab_empty_fields", "placeholders", "negated_anchor", "negated_fields", "missing_values"],
+    "example": ["tutorial", "template", "teaching"],
+    "conflict": ["legacy_conflict"]
+  },
+  "adjacent_records": [
+    {"id":"bank-bill", "group":"bank", "text":"银行流水\n账户：6222000042\n收入：500元\n支出：200元\n余额：300元", "acceptable":[{"category":"finance","subcategory":"bill"}], "must_review":false},
+    {"id":"bank-payment", "group":"bank", "text":"转账成功\n交易单号：TX42\n收款人：海岬公司\n支付金额：300元", "acceptable":[{"category":"finance","subcategory":"payment"}], "must_review":false},
+    {"id":"bank-general-info", "group":"bank", "text":"银行业务介绍\n开户银行：海岬银行\n账户名称：林青", "acceptable":[], "must_review":true},
+    {"id":"utility-pending", "group":"utility", "text":"水费待缴账单\n费用项目：居民水费\n缴费状态：待缴费\n缴费金额：86元", "acceptable":[], "must_review":true},
+    {"id":"utility-failed", "group":"utility", "text":"水费缴费凭证\n费用项目：居民水费\n缴费状态：支付失败\n缴费金额：86元", "acceptable":[], "must_review":true},
+    {"id":"utility-not-complete", "group":"utility", "text":"水费缴费凭证\n费用项目：居民水费\n缴费状态：尚未缴费\n缴费金额：86元", "acceptable":[], "must_review":true},
+    {"id":"utility-not-public", "group":"utility", "text":"缴费凭证\n费用项目：礼品购买\n缴费状态：已支付\n缴费金额：86元", "acceptable":[], "must_review":true},
+    {"id":"tax-invoice", "group":"tax", "text":"增值税电子普通发票\n发票号码：12345\n购买方：林青\n销售方：海岬商店\n税额：12元", "acceptable":[{"category":"finance","subcategory":"invoice"}], "must_review":false},
+    {"id":"research-business", "group":"research", "text":"季度销售台账\n部门：零售部\n数据记录：一月收入3000元\n统计口径：营业收入", "acceptable":[], "must_review":true},
+    {"id":"research-metadata-only", "group":"research", "text":"研究数据\n研究课题：沿海温度\n采集日期：2026年3月2日", "acceptable":[], "must_review":true},
+    {"id":"presentation-courseware", "group":"presentation", "text":"课程课件\n课程：线性代数\n章节：第三章\n汇报主题：矩阵\n演示提纲：特征值", "acceptable":[{"category":"study","subcategory":"courseware"}], "must_review":false},
+    {"id":"presentation-report", "group":"presentation", "text":"工作报告\n项目：升级检索\n进度：已上线\n结论：稳定运行", "acceptable":[{"category":"office","subcategory":"report"}], "must_review":false},
+    {"id":"property-contract", "group":"property", "text":"租赁合同\n甲方：陈甲\n乙方：林乙\n期限：一年\n双方签字盖章\n房屋地址：青湾路2号", "acceptable":[{"category":"office","subcategory":"contract"}], "must_review":false},
+    {"id":"travel-ticket", "group":"travel", "text":"火车票\n出发：青湾\n到达：海岬\n车次：G42\n座位：03A", "acceptable":[{"category":"life","subcategory":"travel"}], "must_review":false}
+  ],
+  "robustness_records": [
+    {"id":"bank-bracket-placeholder", "group":"bank", "text":"银行开户证明\n开户银行：[银行名称]\n账户名称：____", "acceptable":[], "must_review":true},
+    {"id":"bank-text-placeholder", "group":"bank", "text":"银行开户证明\n开户银行：XXX\n账户名称：某某", "acceptable":[], "must_review":true},
+    {"id":"bank-negated-values", "group":"bank", "text":"银行开户证明\n开户银行：无实际银行\n账户名称：待补充", "acceptable":[], "must_review":true},
+    {"id":"bank-clause-scope", "group":"bank", "text":"这不是工作报告。\n银行开户证明\n开户银行：海岬银行\n账户名称：林青", "acceptable":[{"category":"finance","subcategory":"bank_material"}], "must_review":true},
+    {"id":"bank-tax-conflict", "group":"bank-tax", "text":"银行开户证明\n开户银行：海岬银行\n账户名称：林青\n银行账号：6222000042\n税收完税证明\n纳税人：林青\n税种：个人所得税", "acceptable":[{"category":"finance","subcategory":null}], "must_review":true, "required_reasons":["competing_categories"]},
+    {"id":"utility-generic-payment-overlap", "group":"utility", "text":"水费缴费凭证\n费用项目：居民水费\n缴费状态：已缴清\n缴费金额：86元\n缴费户号：U100\n支付成功\n交易单号：TX42\n收款人：海岬水务\n支付金额：86元", "acceptable":[{"category":"finance","subcategory":null}], "must_review":true, "required_reasons":["competing_categories"]}
+  ]
+}

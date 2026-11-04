@@ -34,7 +34,7 @@ RULES = [
     ('social', 'meme', r'表情包|搞笑表情|meme', [r'表情|搞笑']),
 ]
 
-# These eight purposes have no calibration data. An explicit content anchor
+# These purposes have no calibration data. An explicit content anchor
 # and at least two different field groups are mandatory; filenames never count.
 # Alternatives inside a regex are synonyms of one group, not extra evidence.
 PURPOSE_RULES = [
@@ -62,8 +62,39 @@ PURPOSE_RULES = [
     ('life', 'insurance', r'保险保单|保险合同|保险凭证|保险资料|保险单', [
         r'(?:保单号码|保单编号|保单号)[：:]', r'(?:被保险人|投保人)[：:]',
         r'(?:保险期间|保险期限|保障期限)[：:]', r'(?:保险责任|保障范围|保险金额)[：:]']),
+    ('finance', 'bank_material', r'银行(?:开户|销户|账户|资信)(?:办理)?(?:证明|申请(?:书|表)?|材料|回执)|开户许可证|银行业务回执', [
+        r'(?:开户银行|开户行|办理银行)[：:]', r'(?:账户名称|户名|账户持有人)[：:]',
+        r'(?:银行账号|银行帐号|账户号码|账号|帐号)[：:]', r'(?:办理事项|银行业务|证明用途)[：:]']),
+    ('finance', 'utility_payment', r'(?:水费|电费|燃气费|暖气费|物业费|学费|公共服务)?缴费(?:凭证|回执|证明)|费用缴纳回执', [
+        r'(?:费用项目|缴费项目)[：:]', r'(?:缴费状态|支付状态)[：:]',
+        r'(?:缴费金额|实缴金额)[：:]', r'(?:缴费户号|用户编号|缴费期间)[：:]']),
+    ('finance', 'tax_material', r'完税证明|税收缴款书|(?:纳税|税务|个人所得税|企业所得税)(?:申报|办理)(?:回执|材料|表)|纳税申报资料', [
+        r'(?:纳税人名称|纳税人|扣缴义务人)[：:]', r'(?:纳税人识别号|税务识别号|税号)[：:]',
+        r'(?:税款所属期|所属期间|申报期间)[：:]', r'(?:申报税种|税种|实缴税额|应纳税额)[：:]']),
+    ('study', 'research_data', r'研究(?:观测|测量)?数据|科研(?:测量|观测|数据)记录|科研数据|研究观测记录', [
+        r'(?:研究课题|研究项目|科研课题|研究背景)[：:]',
+        r'(?:变量定义|变量说明|观测数据|测量数据|测量值|观测值)[：:]',
+        r'(?:采集日期|采集时间|采集方法|测量方法)[：:]', r'(?:样本编号|观测站点|数据单位)[：:]']),
+    ('office', 'presentation', r'(?:项目|工作|业务|部门|年度|季度)(?:汇报)?(?:演示资料|汇报幻灯片|演示讲稿)|项目汇报演示|工作演示文稿', [
+        r'(?:汇报主题|演讲主题|演示主题)[：:]', r'(?:汇报对象|展示对象|演讲对象)[：:]',
+        r'(?:演示提纲|页面提纲|幻灯片提纲)[：:]', r'(?:讲稿|演讲稿|页面内容)[：:]']),
+    ('life', 'property', r'物业(?:维修|管理|服务|事项)(?:通知|记录|说明)|住房管理(?:记录|通知|说明)|交房(?:资料|通知)|房屋维修记录', [
+        r'(?:房屋地址|房屋坐落|小区名称|住房地址)[：:]', r'(?:物业事项|管理事项|维修事项|交房事项)[：:]',
+        r'(?:办理安排|处理安排|维修安排|交房时间)[：:]', r'(?:物业服务单位|物业联系人|物业电话)[：:]']),
+    ('life', 'travel_material', r'旅行(?:行程规划|计划|攻略|准备资料)|旅游攻略|出游计划|行前准备清单', [
+        r'(?:旅行目的地|目的地|游览城市)[：:]', r'(?:计划日期|出游时间|旅行日期)[：:]',
+        r'(?:游览安排|景点安排|行程规划)[：:]', r'(?:行前清单|行前准备|旅行预算)[：:]']),
 ]
+# Extracted table key/value cells are separated by a literal TAB. Keep that
+# delimiter in the matched evidence; arbitrary spaces cannot invent fields.
+PURPOSE_RULES = [(category, subtype, anchor, [pattern.replace('[：:]', r'[：:\t]') for pattern in groups])
+                 for category, subtype, anchor, groups in PURPOSE_RULES]
 PURPOSE_LABELS = {(category, subtype) for category, subtype, *_ in PURPOSE_RULES}
+# A pending bill is not a completed payment, and study metadata without
+# observations or variable definitions is not research data.
+REQUIRED_PURPOSE_GROUPS = {('finance', 'utility_payment'): {0, 1},
+                           ('study', 'research_data'): {0, 1}}
+PURPOSE_FIELD_LABELS = '|'.join(f'(?:{pattern})' for *_, groups in PURPOSE_RULES for pattern in groups)
 
 
 def normalized(text):
@@ -79,33 +110,53 @@ def positive_match(pattern, text, purpose=False):
 
 def negated_at(text, start, purpose=False):
     prefix = text[text.rfind('\n', 0, start) + 1:start]
+    # A disclaimer about an earlier clause does not negate a later document.
+    prefix = re.split(r'[。！？;；,，]', prefix)[-1]
     negation = r'不是|并非|不属于|勿作为|非真实|没有真实|not an?\s*$'
     if purpose:
-        negation += r'|没有|不(?:含|包含|提供)|未提供|(?:无|非)\s*$'
+        negation += r'|没有|不(?:含|包含|提供|涉及|用于)|未(?:提供|含有)|(?:无|非)\s*$|without\s*$'
     return bool(re.search(negation, prefix))
 
 
-def purpose_fields(groups, body):
+def meaningful_field_value(value):
+    if re.match(r'^(?:无(?:实际|真实)|没有|不存在|暂无|未提供|不适用|未知|待填|待补充|待录入|'
+                r'请填写|填写|占位|空白|未定义|未采集|未获取|n/?a\b|none\b|unknown\b|tbd\b|todo\b)', value):
+        return False
+    if re.fullmatch(r'无|非|[-—_.\s]*|x{2,}|某某|某公司|某银行', value):
+        return False
+    if re.fullmatch(r'\[.*\]|【.*】|\{\{.*\}\}|<.*>|\$\{.*\}', value):
+        return False
+    return any(unicodedata.category(char)[0] in {'L', 'N'} for char in value)
+
+
+def purpose_fields(groups, body, label=None):
     """Count groups with a readable value on the same line, once per group.
 
     Stop before another field label so an empty value cannot consume its next
     field. Letters/numbers are required; punctuation placeholders do not count.
     """
-    all_fields = '|'.join(f'(?:{pattern})' for pattern in groups)
     hits = []
-    for pattern in groups:
-        for label in re.finditer(pattern, body):
-            if negated_at(body, label.start(), purpose=True):
+    found = set()
+    for index, pattern in enumerate(groups):
+        for field in re.finditer(pattern, body):
+            if negated_at(body, field.start(), purpose=True):
                 continue
-            tail = body[label.end():].split('\n', 1)[0]
-            next_field = re.search(all_fields, tail)
+            tail = body[field.end():].split('\n', 1)[0]
+            next_field = re.search(PURPOSE_FIELD_LABELS, tail)
             value = tail[:next_field.start()] if next_field else tail
             value = re.split(r'[;；]', value, maxsplit=1)[0].strip()
-            if re.match(r'^(?:无|没有|不存在|暂无|未提供|不适用|未知|待填|占位|n/?a\b|none\b|unknown\b)', value):
+            if not meaningful_field_value(value):
                 continue
-            if any(unicodedata.category(char)[0] in {'L', 'N'} for char in value):
-                hits.append({'source': 'body', 'text': (label.group() + value)[:160]})
-                break
+            if label == ('finance', 'utility_payment'):
+                if index == 0 and not re.search(r'水费|电费|燃气费|天然气费|暖气费|供暖费|物业费|学费|公共服务费', value):
+                    continue
+                if index == 1 and not re.fullmatch(r'(?:已缴清|已缴费|已缴纳|已付清|已支付|缴费成功|支付成功|缴纳成功)[。.!！]?', value):
+                    continue
+            found.add(index)
+            hits.append({'source': 'body', 'text': (field.group() + value)[:160]})
+            break
+    if not REQUIRED_PURPOSE_GROUPS.get(label, set()) <= found:
+        return []
     return hits
 
 
@@ -144,7 +195,7 @@ def classify_text(name, text):
         match = positive_match(anchor, body, purpose=True)
         if match is None:
             continue
-        supports = purpose_fields(groups, body)
+        supports = purpose_fields(groups, body, (category, subtype))
         if len(supports) < 2:
             continue
         title_match = positive_match(anchor, title, purpose=True)
@@ -182,7 +233,7 @@ def classify_text(name, text):
             reasons.append('purpose_uncalibrated')
         if purpose_conflict:
             reasons.append('competing_categories')
-        if purpose_candidates and re.search(r'教程|示例|样例|占位|范本|模板|how\s+to|'
+        if purpose_candidates and re.search(r'教程|教学|示例|样例|占位|范本|模板|how\s+to|'
                                            r'(?<![\w@.])(?:tutorial|example|sample|specimen|template)(?![\w@.])', body):
             reasons.append('example_context')
         if best['score'] < 6:

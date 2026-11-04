@@ -226,12 +226,14 @@ class _Text:
 
     def add(self, text, *, separator='\n', **location):
         if not text.strip():
-            return
-        if len(self.units) >= MAX_UNITS or self.chars + len(text) > MAX_EXTRACTED_CHARS:
+            return False
+        if ('extraction_limit' in self.warnings or len(self.units) >= MAX_UNITS or
+                self.chars + len(text) + len(separator) > MAX_EXTRACTED_CHARS):
             self.warn('extraction_limit')
-            return
+            return False
         self.units.append((text, location, separator if self.units else ''))
-        self.chars += len(text)
+        self.chars += len(text) + len(separator)
+        return True
 
     def finish(self, limit):
         if not self.units:
@@ -309,6 +311,7 @@ def _docx(package, result):
     parents = {child: parent for parent in body.iter() for child in parent}
     tables = {node: index for index, node in enumerate(body.iter(f'{{{W}}}tbl'), 1)}
     previous_row = previous_cell = None
+    previous_column = None
     for index, paragraph in enumerate(body.iter(f'{{{W}}}p'), 1):
         location = {'paragraph': index}
         ancestor = parents.get(paragraph)
@@ -329,10 +332,12 @@ def _docx(package, result):
             result.warn('hidden_content_omitted')
             continue
         text = _word_text(paragraph, result)
-        separator = '\t' if row is not None and row is previous_row and cell is not previous_cell else '\n'
-        result.add(text, separator=separator, **location)
-        if text.strip():
+        column = row.findall(f'{{{W}}}tc').index(cell) if row is not None and cell is not None else None
+        separator = ('\t' * (column - previous_column)
+                     if row is not None and row is previous_row and cell is not previous_cell else '\n')
+        if result.add(text, separator=separator, **location):
             previous_row, previous_cell = row, cell
+            previous_column = column
     if any(re.match(r'word/(?:header|footer|footnotes|endnotes|comments)', name) for name in package.parts):
         result.warn('auxiliary_content_omitted')
 
@@ -434,16 +439,17 @@ def _xlsx(package, result):
                 result.warn('hidden_content_omitted')
                 continue
             cells = set()
-            row_has_text = False
+            previous_column, previous_seen_column = None, 0
             for cell in row.findall(f'{{{S}}}c'):
                 cell_count += 1
                 if cell_count > MAX_CELLS:
                     raise SafetyError('OFFICE_XML_LIMIT')
                 address = cell.get('r', '')
                 column, cell_row = _cell_location(address)
-                if cell_row != number or address in cells:
+                if cell_row != number or address in cells or column <= previous_seen_column:
                     raise SafetyError('OFFICE_PARSE_FAILED')
                 cells.add(address)
+                previous_seen_column = column
                 if any(start <= column <= end for start, end in hidden_columns):
                     result.warn('hidden_content_omitted')
                     continue
@@ -468,8 +474,10 @@ def _xlsx(package, result):
                     continue
                 elif kind not in {'n', 'b', 'd', 'str'}:
                     raise SafetyError('OFFICE_PARSE_FAILED')
-                result.add(text, separator='\t' if row_has_text else '\n', sheet=title, cell=address, row=number)
-                row_has_text |= bool(text.strip())
+                separator = ('\t' * (column - previous_column) if previous_column is not None else
+                             '\n' + '\t' * (column - 1))
+                if result.add(text, separator=separator, sheet=title, cell=address, row=number):
+                    previous_column = column
 
 
 def _csv(data, result):

@@ -2,6 +2,8 @@
 import io
 import os
 import random
+import subprocess
+import sys
 import struct
 import time
 import zipfile
@@ -290,6 +292,63 @@ def test_docx_table_field_value_adjacency_keeps_real_rows_and_paragraph_position
     assert any(item.get('table') == 1 for item in result['evidence_items'])
 
 
+def bank_table_package(ext, *, gap=None):
+    rows = [('开户银行', '海岬银行'), ('账户名称', '林青')]
+    if ext == '.xlsx':
+        hidden = '<cols><col min="2" max="2" hidden="1"/></cols>' if gap == 'hidden' else ''
+        extra_cell = {
+            None: '', 'empty': '<c r="B{row}"/>', 'missing': '',
+            'hidden': '<c r="B{row}" t="inlineStr"><is><t>省略内容</t></is></c>',
+            'formula': '<c r="B{row}"><f>1+2</f></c>',
+            'error': '<c r="B{row}" t="e"><v>#N/A</v></c>',
+        }[gap]
+        value_column = 'B' if gap is None else 'C'
+        xml = f'<worksheet xmlns="{S}">{hidden}<sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>银行开户证明</t></is></c></row>' + ''.join(
+            f'<row r="{row}"><c r="A{row}" t="inlineStr"><is><t>{label}</t></is></c>' +
+            extra_cell.format(row=row) +
+            f'<c r="{value_column}{row}" t="inlineStr"><is><t>{value}</t></is></c></row>'
+            for row, (label, value) in enumerate(rows, 2)) + '</sheetData></worksheet>'
+        return package(ext, {'xl/worksheets/sheet1.xml': xml})
+    gap_cell = '' if gap is None else ('<w:tc><w:p/></w:tc>' if gap == 'empty' else
+        f'<w:tc><w:p><w:r><w:rPr><w:vanish/></w:rPr><w:t>省略内容</w:t></w:r></w:p></w:tc>')
+    xml = f'<w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>银行开户证明</w:t></w:r></w:p><w:tbl>' + ''.join(
+        f'<w:tr><w:tc><w:p><w:r><w:t>{label}</w:t></w:r></w:p></w:tc>' + gap_cell +
+        f'<w:tc><w:p><w:r><w:t>{value}</w:t></w:r></w:p></w:tc></w:tr>'
+        for label, value in rows) + '</w:tbl></w:body></w:document>'
+    return package(ext, main_xml=xml)
+
+
+@pytest.mark.parametrize('ext,gap', [
+    ('.xlsx', 'empty'), ('.xlsx', 'missing'), ('.xlsx', 'hidden'),
+    ('.xlsx', 'formula'), ('.xlsx', 'error'), ('.docx', 'empty'), ('.docx', 'hidden'),
+])
+def test_empty_missing_or_omitted_table_cells_cannot_invent_field_value_adjacency(ext, gap):
+    payload = decode_input(bank_table_package(ext, gap=gap), ext, local=True)
+    assert '开户银行\t\t海岬银行' in payload['text']
+    assert '账户名称\t\t林青' in payload['text']
+    result = analyze_local({'id': 'file', 'name': 'random' + ext, 'extension': ext}, payload)
+    assert (result['category'], result['subcategory']) != ('finance', 'bank_material')
+    assert payload['truncated'] is (gap in {'hidden', 'formula', 'error'})
+
+
+@pytest.mark.parametrize('ext', ['.docx', '.xlsx'])
+def test_cross_cell_evidence_uses_row_location_without_out_of_bounds_single_cell_range(ext):
+    payload = decode_input(bank_table_package(ext), ext, local=True)
+    result = analyze_local({'id': 'file', 'name': 'random' + ext, 'extension': ext}, payload)
+    assert (result['category'], result['subcategory']) == ('finance', 'bank_material')
+    field = next(item for item in result['evidence_items'] if item['text'] == '开户银行\t海岬银行')
+    assert field['text'] in payload['text']
+    assert field.get('row') == (2 if ext == '.xlsx' else 1)
+    assert field.get('sheet') == '课程材料' if ext == '.xlsx' else field.get('table') == 1
+    assert not {'cell', 'paragraph', 'start', 'end'} & field.keys()
+    for item in result['evidence_items']:
+        if 'start' not in item:
+            continue
+        matching = [segment for segment in payload['sampling']['segments'] if all(
+            item.get(key) == segment.get(key) for key in ('paragraph', 'cell', 'sheet', 'table', 'row'))]
+        assert any(segment['start'] <= item['start'] < item['end'] <= segment['end'] for segment in matching)
+
+
 @pytest.mark.parametrize('data', [
     '<!DOCTYPE r [<!ENTITY x "entity">]><r>&x;</r>'.encode('utf-32'),
     '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE r [<!ENTITY x "entity">]><r>&x;</r>'.encode('utf-16-be'),
@@ -403,3 +462,24 @@ def test_new_format_uses_existing_preprocess_admission_before_disk_read(tmp_path
     finally:
         PREPROCESS_SLOTS.release()
         PREPROCESS_SLOTS.release()
+
+
+def test_application_import_does_not_initialize_scientific_runtime_in_document_child(tmp_path):
+    # A spawn child re-imports the launcher's main module after its memory cap
+    # is attached. App import must remain light, even for launcher entrypoints
+    # which import create_app before their __main__ guard.
+    script = tmp_path / 'app_import_launcher.py'
+    script.write_text(
+        'import sys\nfrom neatdrop.app import create_app\n'
+        "assert 'numpy' not in sys.modules, 'app import eagerly initialized numpy'\n"
+        "if __name__ == '__main__':\n"
+        '    from neatdrop.analysis import decode_input\n'
+        "    value = decode_input(b'label,value\\nfirst,second\\n', '.csv', local=True)\n"
+        "    assert 'first\\tsecond' in value['text']\n"
+        "    print('bounded-document-child-ok')\n", encoding='utf-8')
+    from pathlib import Path
+    env = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1])}
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True,
+                            env=env, timeout=25)
+    assert result.returncode == 0, result.stderr[-2000:]
+    assert 'bounded-document-child-ok' in result.stdout

@@ -19,7 +19,6 @@ from .files import CATEGORIES, SUPPORTED, SafetyError, Workspace
 from .model import model_status
 from .security import LocalSecurity, RequestGuard, Session, current
 from .taxonomy import taxonomy_config, FORMS
-from .offline import offline_status
 from .configuration import public_model_config, test_model_snapshot, update_model_config
 from . import model as model_api
 
@@ -139,6 +138,7 @@ def create_app():
 
     @app.get("/api/v1/config")
     def config():
+        from .offline import offline_status
         from .semantic import semantic_status
         offline = offline_status()
         offline['semantic'] = semantic_status()

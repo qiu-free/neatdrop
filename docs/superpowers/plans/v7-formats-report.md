@@ -45,3 +45,18 @@ Commands below use `.venv/Scripts/python.exe -m pytest`, `-q --tb=short -p no:ca
 6. Final target command: `backend/tests/test_document_formats_v7.py backend/tests/test_parsing_security.py backend/tests/test_extraction.py backend/tests/test_analysis.py backend/tests/test_analysis_v3.py backend/tests/test_parser_contention_v4.py backend/tests/test_library_v6.py backend/tests/test_api.py --basetemp .cache/v7-formats-final`. Result recorded after completion below.
 
 Final verification: **135 passed, 1 skipped in 46.23 seconds**, exit 0. The skip is an existing platform-specific test. Root task owns complete-suite/build/browser acceptance and independent security review. No representative-user accuracy or human-usability claim is made by this parser report.
+
+## Independent review fixes: P2-3 / P2-4 and launcher import
+
+The first review correctly reproduced two table issues in the initial extraction commit. The original report's word "adjacent" described output order but did not guarantee actual source-cell adjacency. That guarantee now follows XLSX column coordinates and DOCX physical cell indexes: empty, missing, hidden, formula-without-cache and error-valued cells leave their separators in the extracted row. A label in A followed by an omitted/empty B and unrelated C text remains `label\t\tC-value`, so the immediate-value rule cannot borrow C. XLSX rows with duplicate or descending column coordinates fail closed. Collection budgets count retained separators too; once collection is exhausted, later units cannot be joined across the omitted content. Plain two-column tables and independent paragraphs retain their earlier behavior.
+
+Evidence entirely inside one source unit retains exact unit-relative `start/end` and its cell/paragraph metadata. Cross-unit evidence gets only the scope shared by every contributing unit (e.g. XLSX sheet+row or DOCX table+row); it receives no misleading first-cell/paragraph character range. This uses existing row fields, with no new frontend data shape.
+
+Root browser testing also exposed a spawn-main import hazard: importing `neatdrop.app` eagerly imported `offline`, which imported NumPy in a child already assigned its 384 MiB job limit. `offline_status` now imports inside the config route. The real launcher regression imports `create_app` at top level, verifies no NumPy initialization, then starts the actual bounded CSV worker successfully. This avoids loosening the worker budget. Entrypoint code that actually runs server loops still needs its normal `if __name__ == '__main__'` guard.
+
+Review verification (same pytest options as above):
+
+- RED `backend/tests/test_document_formats_v7.py --basetemp .cache/v7-review-red -k 'invent_field or cross_cell'`: **9 failed**, reproducing seven real-byte blank/omitted-cell cases and two cross-unit ranges.
+- GREEN `backend/tests/test_document_formats_v7.py --basetemp .cache/v7-review-green -k 'invent_field or cross_cell or two_column or docx_table'`: **11 passed**, including the valid two-column regressions.
+- RED `backend/tests/test_document_formats_v7.py --basetemp .cache/v7-app-import-red -k application_import`: **1 failed**, subprocess proved the eager NumPy import.
+- Final GREEN `backend/tests/test_document_formats_v7.py backend/tests/test_extraction.py backend/tests/test_analysis.py backend/tests/test_library_v6.py --basetemp .cache/v7-review-final`: **124 passed, 1 skipped in 53.03 seconds**, exit 0. Includes the real top-level-app launcher subprocess and all new parser tests. Root owns final complete-suite and browser rerun.

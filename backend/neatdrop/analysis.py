@@ -135,11 +135,15 @@ def analyze_local(record, payload, cancelled=None):
         elif item.get('source') in {'title', 'body'}:
             # Map sampled text evidence back to original character intervals.
             offset = text.casefold().find(item['text'].casefold())
-            cursor = 0
+            cursor, matched = 0, []
+            evidence_end = offset + len(item['text'])
             for segment in payload.get('sampling', {}).get('segments', []):
                 length = segment.get('end', 0) - segment.get('start', 0)
                 sampled_start = segment.get('sample_start', cursor)
-                if 0 <= offset - sampled_start < length:
+                sampled_end = sampled_start + length
+                if offset >= 0 and sampled_start < evidence_end and offset < sampled_end:
+                    matched.append(segment)
+                if sampled_start <= offset < evidence_end <= sampled_end:
                     item['start'] = segment.get('start', 0) + offset - sampled_start
                     item['end'] = item['start'] + len(item['text'])
                     for key in ('page', 'slide', 'sheet', 'cell', 'row', 'paragraph', 'table'):
@@ -148,6 +152,14 @@ def analyze_local(record, payload, cancelled=None):
                     break
                 cursor += length + (1 if payload.get('sampling', {}).get('kind') == 'pdf' or
                                     payload.get('sampling', {}).get('separator') == '\n' else 0)
+            if len(matched) > 1:
+                # A field label/value may span separate cells or paragraphs.
+                # Only publish their common row/page scope; a single unit's
+                # character interval cannot describe the whole evidence.
+                for key in ('page', 'slide', 'sheet', 'table', 'row'):
+                    value = matched[0].get(key)
+                    if value is not None and all(segment.get(key) == value for segment in matched):
+                        item[key] = value
     first = next((line.strip().lstrip("# ") for line in text.splitlines() if line.strip()), "")
     title = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", first)[:70].strip(" .")
     review = classification['review_required']

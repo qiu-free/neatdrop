@@ -7,6 +7,21 @@ import { useWorkspace } from '../useWorkspace'
 vi.mock('../api', async importOriginal => ({ ...await importOriginal<typeof import('../api')>(), api: vi.fn(), initSession: vi.fn() }))
 const file: FileRecord = { id: 'a', name: 'first.md', extension: '.md', size: 100, modified: 1, supported: true, reason: '', sha256: 'abc' }
 
+it('shows useful Office and CSV evidence positions and partial reading summaries', async () => {
+  vi.mocked(api).mockResolvedValue({ text: 'Office preview', sample: 'text', truncated: true,
+    sampling: { kind: 'xlsx', summary: '仅提取已缓存的单元格值', segments: [], truncated: true, budget_exhausted: false } })
+  render(<Inspector workspaceId="w" file={file} onEdit={() => undefined} suggestion={{ file_id: 'a', name: 'first.md', category: 'study', evidence: '文字依据', review_required: true, provider: 'local_rules', sample: 'text', evidence_items: [
+    { source: 'body', text: '演示依据', location: { slide: 3, start: 0, end: 4 } },
+    { source: 'body', text: '表格依据', location: { sheet: '实验数据', cell: 'B12', row: 12 } },
+    { source: 'body', text: 'CSV 依据', location: { row: 7 } },
+  ] }} />)
+  fireEvent.click(screen.getByText('识别详情与读取范围'))
+  expect(screen.getByText('第 3 张幻灯片')).toBeVisible()
+  expect(screen.getByText('工作表“实验数据” · 单元格 B12 · 第 12 行')).toBeVisible()
+  expect(screen.getByText('第 7 行')).toBeVisible()
+  expect(await screen.findByText('仅提取已缓存的单元格值')).toBeVisible()
+})
+
 it('previews the actual copy directory and keeps image zoom scoped to the active identity', async () => {
   vi.mocked(api).mockResolvedValue({ image: 'data:image/png;base64,AAAA', sample: 'image' })
   const props = { workspaceId: 'w', workspacePath: 'C:/source', onEdit: () => undefined,

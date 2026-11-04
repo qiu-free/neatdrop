@@ -36,6 +36,7 @@ export interface ClassificationCandidate {
 }
 export interface EvidenceLocation {
   page?: number; start?: number; end?: number; box?: number[] | number[][]
+  slide?: number; sheet?: string; cell?: string; row?: number; paragraph?: number; table?: number
 }
 export interface EvidenceItem extends EvidenceLocation {
   source: string; text: string; location?: EvidenceLocation
@@ -87,9 +88,10 @@ export interface Config {
   model: { configured: boolean; text_model: string; vision_model: string; max_requests_per_batch: number; endpoint?: string; config_version?: string | number }
   categories: Record<Category, string>; undo_supported: boolean; execution_supported: boolean; demo_path: string
   taxonomy?: Taxonomy; content_forms?: Record<string, string>
+  supported_extensions?: string[]
   offline?: { ocr: { available: boolean; name: string }; vision: { available: boolean; name: string }; semantic?: SemanticCapability; network_required: boolean }
 }
-export interface Preview { text?: string; image?: string; sample: string; truncated?: boolean }
+export interface Preview { text?: string; image?: string; sample: string; truncated?: boolean; sampling?: Sampling }
 export interface LibraryItem {
   id: string; transaction_id: string; name: string; source: string; target: string
   category: Category; subcategory: string | null; created: string; size: number

@@ -1,28 +1,28 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { FirstRunTour } from './FirstRunTour'
 
-it('shows a skippable four-step tour and offers the safe practice at the end', () => {
-  const onClose = vi.fn()
-  const onPractice = vi.fn()
-  render(<FirstRunTour onClose={onClose} onPractice={onPractice} />)
-
-  expect(screen.getByRole('dialog', { name: '新手导览' })).toBeInTheDocument()
-  expect(screen.getByText('先从工作台开始')).toBeInTheDocument()
-  expect(screen.getByText('第 1 步，共 4 步')).toBeInTheDocument()
+it('introduces all six workflow stages including library and completes only by an explicit final action', () => {
+  const onClose = vi.fn(), onComplete = vi.fn(), onPractice = vi.fn()
+  render(<FirstRunTour onClose={onClose} onComplete={onComplete} onPractice={onPractice} />)
+  expect(screen.getByText('第 1 步，共 6 步')).toBeInTheDocument()
+  expect(screen.getByRole('navigation', { name: '完整整理流程' })).toHaveTextContent('资料库')
   expect(screen.getByRole('button', { name: '上一步' })).toBeDisabled()
-  fireEvent.click(screen.getByRole('button', { name: '下一步' }))
-  fireEvent.click(screen.getByRole('button', { name: '下一步' }))
-  fireEvent.click(screen.getByRole('button', { name: '下一步' }))
-  expect(screen.getByText('确认后生成可撤回副本')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: '完成导览' })).toBeInTheDocument()
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '下一步' }))
+  expect(screen.getByRole('heading', { name: '操作记录与撤回' })).toBeInTheDocument()
+  expect(onComplete).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: '去做安全练习' }))
+  expect(onComplete).toHaveBeenCalledOnce()
   expect(onPractice).toHaveBeenCalledOnce()
-  expect(onClose).toHaveBeenCalledOnce()
+  expect(onClose).not.toHaveBeenCalled()
 })
 
-it('can be skipped at any time', () => {
-  const onClose = vi.fn()
-  render(<FirstRunTour onClose={onClose} />)
+it('skipping or Escape does not report completion', () => {
+  const onClose = vi.fn(), onComplete = vi.fn()
+  render(<FirstRunTour onClose={onClose} onComplete={onComplete} />)
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
   expect(onClose).toHaveBeenCalledOnce()
+  expect(onComplete).not.toHaveBeenCalled()
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(onClose).toHaveBeenCalledTimes(2)
+  expect(onComplete).not.toHaveBeenCalled()
 })

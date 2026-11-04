@@ -1,29 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowRight, Check, CircleAlert, FolderInput, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { ArrowRight, CircleAlert, FolderInput, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { api, explain } from '../api'
 import { FileTable } from './FileTable'
 import { Inspector } from './Inspector'
 import { ConsentDialog } from './ConsentDialog'
 import { PlanDialog } from './PlanDialog'
 import { Modal } from './Modal'
-import { type Category, type Filter } from '../types'
+import { type Category } from '../types'
 import { TaxonomyProvider, useTaxonomy } from '../taxonomy'
 import { FileGrid } from './FileGrid'
 import type { useWorkspace } from '../useWorkspace'
 import { visibleFiles } from '../fileSelection'
+import { useSessionState, type WorkbenchSession } from '../pageSession'
+import { WorkflowOverview } from './WorkflowOverview'
+import { supportedFormats } from '../supportedFormats'
 
 type State = ReturnType<typeof useWorkspace>
-type Stage = 'choose' | 'analyze' | 'review' | 'results'
 type ResetRequest = { type: 'scan'; path: string } | { type: 'rescan' }
 type ConsentRequest = { fileIds: string[]; initialMode: 'local' | 'cloud'; retry: boolean }
-
-const stages: { id: Stage; label: string }[] = [
-  { id: 'choose', label: '选择' },
-  { id: 'analyze', label: '分析' },
-  { id: 'review', label: '复核' },
-  { id: 'results', label: '结果' },
-]
 
 const analysisPhaseLabels: Record<string, string> = {
   queued: '排队中', preparing: '准备中', model: '云端识别', classifying: '分类中',
@@ -31,26 +26,30 @@ const analysisPhaseLabels: Record<string, string> = {
 }
 
 export function Workbench(props: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
 }) {
   return <TaxonomyProvider taxonomy={props.state.config?.taxonomy} contentForms={props.state.config?.content_forms}><WorkbenchContent {...props} /></TaxonomyProvider>
 }
 
-function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirst, active: pageActive = true }: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean
+function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirst, active: pageActive = true, session }: {
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
 }) {
   const { categories, taxonomy } = useTaxonomy()
-  const [viewChoice, setViewChoice] = useState<{ workspace: string; view: 'grid' | 'list' } | null>(null)
-  const [path, setPath] = useState('')
-  const [stage, setStage] = useState<Stage>('choose')
-  const [filter, setFilter] = useState<Filter>('all')
-  const [query, setQuery] = useState('')
+  const [viewChoice, setViewChoice] = useSessionState(session, 'viewChoice', null)
+  const [path, setPath] = useSessionState(session, 'path', '')
+  const [stage, setStage] = useSessionState(session, 'stage', 'choose')
+  const [filter, setFilter] = useSessionState(session, 'filter', 'all')
+  const [query, setQuery] = useSessionState(session, 'query', '')
   const [consent, setConsent] = useState<ConsentRequest | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(null)
   const [picking, setPicking] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailVisited, setDetailVisited] = useState(false)
-  const [bulkCategory, setBulkCategory] = useState<Category>('other')
+  const [bulkCategory, setBulkCategory] = useSessionState(session, 'bulkCategory', 'other')
+  const scrollRoot = useRef<HTMLDivElement>(null)
+  const stageSurface = useRef<HTMLDivElement>(null)
+  const pickerRequest = useRef<AbortController | null>(null)
+  const pathWorkspace = useRef(session?.workspace ?? null)
   const inspectorColumnRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const navigationFocusRef = useRef<'previous' | 'next' | null>(null)
@@ -81,6 +80,17 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   const canCreatePlan = selected.size > 0 && approvalEligible.length === selected.size && [...selected].every(id => reviewed.has(id)) && !!config?.execution_supported && !busy
   const drawerVisible = pageActive && stage !== 'results' && detailOpen && Boolean(active)
 
+  useLayoutEffect(() => {
+    const list = scrollRoot.current?.querySelector<HTMLElement>('.table-scroll, .file-grid-region')
+    if (list && session) list.scrollTop = session.listScroll
+  }, [session, view, stage])
+  useEffect(() => () => { pickerRequest.current?.abort() }, [])
+  useLayoutEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    const animation = stageSurface.current?.animate?.([{ opacity: .75, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'ease-out' })
+    return () => animation?.cancel()
+  }, [stage])
+
   const closeConsent = useCallback(() => setConsent(null), [])
   const closeReset = useCallback(() => setResetRequest(null), [])
 
@@ -89,7 +99,11 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }, [activeId, effectiveId, state.setActiveId])
 
   useEffect(() => {
-    if (workspace) setPath(workspace.path)
+    if (workspace && pathWorkspace.current !== workspace.id) {
+      pathWorkspace.current = workspace.id
+      if (session) session.workspace = workspace.id
+      setPath(workspace.path)
+    }
   }, [workspace?.id, workspace?.path])
 
   useEffect(() => {
@@ -159,14 +173,17 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }
 
   async function pickDirectory() {
+    const controller = new AbortController()
+    pickerRequest.current?.abort()
+    pickerRequest.current = controller
     setPicking(true)
     try {
-      const result = await api<{ path: string | null }>('/pick-directory', {})
-      if (result.path) await requestScan(result.path)
+      const result = await api<{ path: string | null }>('/pick-directory', {}, controller.signal)
+      if (!controller.signal.aborted && result.path) await requestScan(result.path)
     } catch (err) {
-      state.setError(err instanceof Error ? err.message : '无法打开目录选择器。')
+      if (!controller.signal.aborted) state.setError(err instanceof Error ? err.message : '无法打开目录选择器。')
     } finally {
-      setPicking(false)
+      if (!controller.signal.aborted) setPicking(false)
     }
   }
 
@@ -282,24 +299,20 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }
 
   const suggestionCount = Object.keys(suggestions).length
-  const stageIndex = stages.findIndex(item => item.id === stage)
 
-  return <>
+  return <div ref={scrollRoot} className="workbench-content" onScrollCapture={event => {
+    if (session && event.target instanceof HTMLElement && event.target.matches('.table-scroll, .file-grid-region')) session.listScroll = event.target.scrollTop
+  }}>
     <section className="page-intro">
       <div><span className="intro-label">一点秩序，更多从容</span><h1>给文件，一个清晰的归处<span>。</span></h1><p>把杂乱交给净匣，把决定留给你。先预览，再安心整理。</p></div>
       <button className="button primary choose-main" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={17} />{picking ? '等待选择…' : '选择本地目录'}</button>
     </section>
 
-    {workspace ? <>
-      <nav className="workflow workflow-nav" aria-label="整理步骤">
-        {stages.map((item, index) => <button key={item.id} type="button" disabled={!!busy} className={`${stage === item.id ? 'current' : ''} ${index < stageIndex ? 'done' : ''}`} aria-current={stage === item.id ? 'step' : undefined} onClick={() => setStage(item.id)}>
-          <span className="step-number">{index < stageIndex ? <Check size={14} /> : `0${index + 1}`}</span><strong>{item.label}</strong>{index < stages.length - 1 ? <span className="step-line" /> : null}
-        </button>)}
-        <small>草稿会保留，直到你确认清除</small>
-      </nav>
-    </> : <div className="workflow workflow-empty" aria-label="整理步骤">
-      {stages.map((item, index) => <div key={item.id} className={index === 0 ? 'current' : ''}><span className="step-number">0{index + 1}</span><strong>{item.label}</strong>{index < stages.length - 1 ? <span className="step-line" /> : null}</div>)}
-    </div>}
+    <WorkflowOverview current={stage === 'results' ? 'copy' : stage} label="整理步骤" working={!!busy} onNavigate={next => {
+      if (next === 'library') onLibrary?.()
+      else if (next === 'history') onHistory?.()
+      else setStage(next === 'copy' ? 'results' : next)
+    }} />
 
     <section className="directory-panel">
       <div className="directory-icon"><FolderInput size={30} strokeWidth={1.35} /></div>
@@ -324,6 +337,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
       <div className="workspace-path"><FolderOpen size={13} /><span>{workspace.path}</span><button className="icon-button" aria-label="重新扫描目录" title="重新扫描，清除旧建议" disabled={!!busy} onClick={() => setResetRequest({ type: 'rescan' })}><RotateCw size={14} /></button></div>
       <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>副本位置：当前文件夹内的分类子目录，原件保留。</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹（当前不进入） · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
 
+      <div ref={stageSurface} className="workbench-stage-surface">
       {stage !== 'results' ? <section className="work-area">
         <div className="file-panel">
           <div className="file-panel-heading"><h2>{stage === 'choose' ? '选择需要整理的文件' : stage === 'analyze' ? '分析与进度' : '检查建议并确认'} <span>{visible.length.toString().padStart(2, '0')}</span></h2><div className="search-field"><Search size={15} /><input aria-label="搜索文件" placeholder="搜索文件…" value={query} onChange={event => setQuery(event.target.value)} /></div></div>
@@ -354,9 +368,10 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
           <div className="selection-legend"><span><i className="legend-active" />点击文件查看详情</span><span><i className="legend-checked" />勾选加入整理批次</span></div>
           <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可生成副本。</span></div>
           {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} />}
-          <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : '支持图片、文本型 PDF、UTF-8 TXT / Markdown'}</span><span>不递归扫描</span></div>
+          <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>不递归扫描</span></div>
         </div>
       </section> : <ExecutionResults execution={state.execution} busy={busy} onCheck={() => void state.checkExecution()} onHistory={onHistory} onLibrary={onLibrary} />}
+      </div>
 
       {failedCount ? <div className="analysis-errors"><div className="analysis-errors-heading"><strong><CircleAlert size={14} />{failedCount} 项分析失败</strong><button className="button secondary" disabled={!!busy || activeAnalysis} onClick={retryFailed}>仅重试失败项</button></div>{retryIds.map(id => <p key={id}><strong>{files.find(file => file.id === id)?.name}</strong>：{explain(errors[id])}</p>)}</div> : null}
       {busy === 'analysis' && state.job ? <div className="progress-region" role="status" aria-live="polite"><div><LoaderCircle size={16} className="spin" /><span>正在分析 {state.job.processed} / {state.job.total}{state.job.current_file ? ` · ${state.job.current_file}` : ''}{state.job.phase ? ` · ${analysisPhaseLabels[state.job.phase] ?? state.job.phase}` : ''}，未执行文件操作</span><button className="text-button" onClick={() => void state.cancel()}>取消分析</button></div><progress value={state.job.processed} max={Math.max(state.job.total, 1)} /></div> : null}
@@ -384,7 +399,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
       <div className="notice"><ShieldCheck size={18} /><span>新扫描只读取所选目录的一层文件。清除草稿后可以重新选择和复核。</span></div>
       <footer className="modal-footer"><button className="button secondary" onClick={closeReset} disabled={!!busy}>保留当前草稿</button><button className="button primary" onClick={() => void confirmReset()} disabled={!!busy}>{busy === 'scan' ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}清除草稿并继续</button></footer>
     </Modal> : null}
-  </>
+  </div>
 }
 
 function ExecutionResults({ execution, busy, onCheck, onHistory, onLibrary }: {

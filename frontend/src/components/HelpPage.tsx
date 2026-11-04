@@ -1,7 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { ArrowRight, BookOpen, Search, ShieldCheck } from 'lucide-react'
 import './tutorial.css'
 import './help.css'
+import { useSessionState, type HelpSession } from '../pageSession'
+import { supportedFormats } from '../supportedFormats'
+import { workflow } from '../workflow'
+import { WorkflowOverview } from './WorkflowOverview'
 
 interface HelpTopic {
   id: string
@@ -11,7 +15,8 @@ interface HelpTopic {
 }
 
 const topics: HelpTopic[] = [
-  { id: 'supported-files', title: '支持的文件和目录', terms: '目录 文件夹 扫描 格式 图片 照片 PDF 文档 文本 JPG JPEG PNG WebP TXT Markdown', body: '支持 JPG / JPEG / PNG / WebP 静态图片、文本型 PDF、UTF-8 TXT 和 Markdown。只读取所选目录的直接子文件，不递归进入子目录，也不跟随链接。' },
+  { id: 'supported-files', title: '支持的文件和目录', terms: '目录 文件夹 扫描 格式 图片 照片 PDF 文档 文本 JPG JPEG PNG WebP TXT Markdown DOCX PPTX XLSX CSV', body: '' },
+  { id: 'office-reading', title: 'Office 与表格的读取范围', terms: 'DOCX PPTX XLSX CSV Word Excel PowerPoint 段落 幻灯片 表格 公式 缓存 有界', body: '服务支持时，可提取 DOCX 段落与表格、PPTX 幻灯片文字、XLSX 工作表与单元格文字及缓存值、UTF-8 CSV 字段。不会计算公式、启动 Office、执行宏、打开外链或嵌入对象。无缓存公式与部分读取会明确提示；受保护、损坏或超出安全预算的文件会保留原件并给出错误。格式只决定如何读取，归档用途仍以内容证据为准。' },
   { id: 'photos-documents-categories', title: '照片、文档和分类', terms: '照片 图片 photo OCR 文档 票据凭证 学习科研 工作办公 活动事务 生活服务 设计娱乐 临时资料 待分类', body: '静态图片会结合可用的视觉内容与 OCR 文字，文本型 PDF 和 TXT / Markdown 则使用提取到的文字。分类覆盖票据凭证、学习科研、工作办公、活动事务、生活服务、照片影像、设计娱乐、临时资料和待分类；内容证据不足时应保留待复核。' },
   { id: 'batch-limits', title: '批次容量边界', terms: '容量 限制 大小 数量 MiB 像素 文件数', body: '每批最多 50 个文件、单个不超过 20 MiB、合计不超过 200 MiB；目录最多列出 2000 项。图片预览长边不超过 1024 px。' },
   { id: 'analysis-review', title: '分析和复核', terms: '模型 建议 复核 证据 分类 编辑 选择 侧栏', body: '待复核文件可以加入批次，分析后保留选择；生成计划前仍须明确审核。点击文件打开右侧详情栏，勾选只加入批次。可以在详情中搜索分类、查看完整副本位置和修改名称。图表类型与归档用途分别核对，模型建议不是安全保证。' },
@@ -24,21 +29,24 @@ const topics: HelpTopic[] = [
   { id: 'withdraw-copy', title: '副本撤回', terms: '撤回 撤销 undo 副本 原件 修改 Windows', body: 'Windows 下可以把未经修改的归档副本撤回到 .neatdrop/withdrawn，原件保持不动。修改过的副本保留现状；其他平台不承诺自动撤回。' },
   { id: 'privacy-deployment', title: '隐私与部署', terms: '隐私 上传 网络 路径 部署 localhost 127.0.0.1', body: '本地服务只面向 127.0.0.1，不可直接暴露到公网。云端内容受所配置服务商的隐私政策约束；本地操作记录包含路径信息，不加密。' },
   { id: 'sessions-costs', title: '会话与费用', terms: '费用 价格 成本 会话 请求 限额 网络', body: '本地会话有效 8 小时；完成的分析状态约保留 15 分钟。服务重启会丢失分析与计划状态，但磁盘操作记录仍在。云端请求有批次上限，不自动重试；实际费用由服务商决定。' },
-  { id: 'unsupported', title: '首版暂不支持', terms: '暂不支持 删除 移动 去重 递归 CSV ICS HEIC DOCX PPTX 监听', body: '首版不提供原位移动、永久删除、扫描 PDF OCR、DOCX / PPTX / HEIC、递归目录、票据 CSV、日历 ICS、自动去重或后台监听。' },
+  { id: 'unsupported', title: '暂不支持的能力', terms: '暂不支持 删除 移动 去重 递归 ICS HEIC GIF DOC XLS PPT 监听 扫描 PDF', body: '暂不提供旧 DOC / XLS / PPT、扫描 PDF OCR、HEIC / GIF、宏文档、递归目录、原位移动、永久删除、日历 ICS、自动去重或后台监听。CSV 的内容分析不等于票据导出功能。' },
 ]
 
 export interface HelpPageProps {
   onPractice?: () => void
   onReplayTour?: () => void
   exerciseCompleted?: boolean
+  session?: HelpSession
+  supportedExtensions?: string[]
 }
 
-export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false }: HelpPageProps) {
-  const [query, setQuery] = useState('')
+export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false, session, supportedExtensions }: HelpPageProps) {
+  const [query, setQuery] = useSessionState(session, 'query', '')
   const results = useMemo(() => {
+    const currentTopics = topics.map(topic => topic.id === 'supported-files' ? { ...topic, body: `${supportedFormats(supportedExtensions)}只读取所选目录的直接子文件，不递归进入子目录，也不跟随链接。` } : topic)
     const needle = query.trim().toLocaleLowerCase()
-    return needle ? topics.filter(topic => `${topic.title} ${topic.terms} ${topic.body}`.toLocaleLowerCase().includes(needle)) : topics
-  }, [query])
+    return needle ? currentTopics.filter(topic => `${topic.title} ${topic.terms} ${topic.body}`.toLocaleLowerCase().includes(needle)) : currentTopics
+  }, [query, supportedExtensions])
 
   return <>
     <section className="page-intro help-intro"><div><span className="intro-label">简单开始，放心整理</span><h1>一份清晰的使用指南<span>。</span></h1><p>先了解流程，再决定哪些文件要整理。</p></div>
@@ -46,7 +54,7 @@ export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false }
     </section>
     <section className="help-content">
       <section className="help-practice-card" aria-label="安全练习">
-        <div><span className="intro-label">内置样例 · 约 2 分钟</span><h2>先在练习里熟悉每一步</h2><p>用六个小任务体验查看、选择、分析、复核、确认和撤回；不会读取本机文件或访问 API。</p></div>
+        <div><span className="intro-label">内置样例 · 约 2 分钟</span><h2>先在练习里熟悉每一步</h2><p>体验选择、分析、审核、计划确认、资料库和记录撤回；不会读取本机文件或访问 API。</p></div>
         {exerciseCompleted ? <span className="practice-badge"><ShieldCheck size={14} />练习已完成</span> : null}
         {onPractice ? <button className="button primary" onClick={onPractice}>开始安全练习<ArrowRight size={14} /></button> : null}
       </section>
@@ -55,11 +63,10 @@ export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false }
         <label className="help-search"><Search size={17} /><input type="search" role="searchbox" aria-label="搜索使用说明" placeholder="搜索目录、复核、撤回…" value={query} onChange={event => setQuery(event.target.value)} /></label>
       </header>
 
-      <h2 className="help-section-title">三个步骤，把文件理清楚</h2>
+      <h2 className="help-section-title">六个阶段，把文件理清楚</h2>
+      <WorkflowOverview label="完整整理流程" />
       <div className="help-steps">
-        <article><img src="/help/folder.svg" alt="先选择一个工作目录" /><span>01</span><h3>选择一个目录</h3><p>选择本机目录或粘贴完整路径。只扫描直接子文件，不进入子目录，也不跟随链接。初次体验可以先完成上方的内存练习。</p></article>
-        <article><img src="/help/review.svg" alt="查看状态与勾选选择分开表示" /><span>02</span><h3>分析，再预览</h3><p>离线分析无需网络。内容证据不足或分类冲突时会提醒复核；云端分析需要单独授权。查看文件和选择加入批次是两个独立动作。</p></article>
-        <article><img src="/help/copy.svg" alt="保留原件并创建归档副本" /><span>03</span><h3>核对并生成副本</h3><p>修改建议后生成计划，再逐项检查目标位置。只有明确确认后才会生成副本；原件保留，目标冲突时不会覆盖。</p></article>
+        {workflow.map((step, index) => <article key={step.id}>{index === 0 ? <img src="/help/folder.svg" alt="先选择一个工作目录" /> : null}<span>0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p></article>)}
       </div>
 
       <div className="notice help-safety-note"><ShieldCheck size={23} /><div><strong>为什么首版保留原件？</strong><p>移动和删除存在文件竞争、外部修改与系统中断风险。当前执行器使用独占创建、复制校验和分步记录。副本模式以文件安全为先，不会释放磁盘空间。</p></div></div>

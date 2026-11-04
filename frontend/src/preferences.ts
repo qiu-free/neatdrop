@@ -2,11 +2,12 @@ export type Density = 'comfortable' | 'compact'
 
 export interface TutorialProgress {
   tourCompleted: boolean
+  tourStatus: 'unseen' | 'skipped' | 'completed' | 'legacy-dismissed'
   exerciseCompleted: boolean
 }
 
 export interface Preferences {
-  version: 1
+  version: 2
   density: Density
   offlineFirst: boolean
   tutorial: TutorialProgress
@@ -19,10 +20,10 @@ export interface PreferenceStorage {
 
 export const PREFERENCES_STORAGE_KEY = 'neatdrop.preferences.v1'
 export const DEFAULT_PREFERENCES: Preferences = {
-  version: 1,
+  version: 2,
   density: 'comfortable',
   offlineFirst: true,
-  tutorial: { tourCompleted: false, exerciseCompleted: false },
+  tutorial: { tourCompleted: false, tourStatus: 'unseen', exerciseCompleted: false },
 }
 
 function freshDefaults(): Preferences {
@@ -42,12 +43,19 @@ function normalizePreferences(value: unknown): Preferences {
   const progress = input.tutorial && typeof input.tutorial === 'object'
     ? input.tutorial as Record<string, unknown>
     : {}
+  // v1 used the same flag for skipping and finishing. Preserve dismissal without
+  // claiming that the person completed a tour we cannot distinguish.
+  const tourStatus = input.version === 1
+    ? progress.tourCompleted === true ? 'legacy-dismissed' : 'unseen'
+    : ['skipped', 'completed', 'legacy-dismissed'].includes(String(progress.tourStatus))
+      ? progress.tourStatus as TutorialProgress['tourStatus'] : 'unseen'
   return {
-    version: 1,
+    version: 2,
     density: input.density === 'compact' ? 'compact' : 'comfortable',
-    offlineFirst: input.offlineFirst === true,
+    offlineFirst: input.offlineFirst !== false,
     tutorial: {
-      tourCompleted: progress.tourCompleted === true,
+      tourCompleted: tourStatus === 'completed',
+      tourStatus,
       exerciseCompleted: progress.exerciseCompleted === true,
     },
   }
@@ -58,7 +66,7 @@ export function loadPreferences(storage?: PreferenceStorage): Preferences {
     const raw = (storage ?? browserStorage())?.getItem(PREFERENCES_STORAGE_KEY)
     if (!raw) return freshDefaults()
     const parsed: unknown = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || (parsed as Record<string, unknown>).version !== 1) {
+    if (!parsed || typeof parsed !== 'object' || ![1, 2].includes(Number((parsed as Record<string, unknown>).version))) {
       return freshDefaults()
     }
     return normalizePreferences(parsed)

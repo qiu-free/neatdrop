@@ -35,6 +35,14 @@ function validCandidates(candidates: ClassificationCandidate[] = [], categories:
 function evidenceLocation(item: EvidenceItem) {
   const location = item.location ?? item
   if (Number.isInteger(location.page) && location.page! > 0) return `第 ${location.page} 页`
+  if (Number.isInteger(location.slide) && location.slide! > 0) return `第 ${location.slide} 张幻灯片`
+  const parts: string[] = []
+  if (typeof location.sheet === 'string' && location.sheet) parts.push(`工作表“${location.sheet}”`)
+  if (typeof location.cell === 'string' && /^[A-Z]{1,3}[1-9]\d{0,6}$/i.test(location.cell)) parts.push(`单元格 ${location.cell}`)
+  if (Number.isInteger(location.table) && location.table! > 0) parts.push(`第 ${location.table} 个表格`)
+  if (Number.isInteger(location.row) && location.row! > 0) parts.push(`第 ${location.row} 行`)
+  if (Number.isInteger(location.paragraph) && location.paragraph! > 0) parts.push(`第 ${location.paragraph} 段`)
+  if (parts.length) return parts.join(' · ')
   if (Array.isArray(location.box) && location.box.length) return '图像局部区域'
   if (Number.isInteger(location.start) && Number.isInteger(location.end) && location.start! >= 0 && location.end! > location.start!) {
     return `字符 ${location.start! + 1}–${location.end}`
@@ -89,7 +97,7 @@ export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, 
   const relativePath = group ? `${group.directory}${subtype ? `/${group.subcategories[subtype]}` : ''}/${name}` : '请选择归档分类'
   const destination = workspacePath ? `${workspacePath.replace(/[\\/]$/, '')}/${relativePath}` : relativePath
   const decisionLevel = suggestion?.decision_level ?? (suggestion?.review_required ? 'candidate' : 'ordinary')
-  const sampling = suggestion?.sampling
+  const sampling = suggestion?.sampling ?? preview?.sampling
   const imageTypes = suggestion?.tags?.filter(tag => Object.hasOwn(imageTypeLabels, tag)).map(tag => imageTypeLabels[tag]) ?? []
   const change = (patch: Partial<Edit>) => onEdit({ file_id: file.id, name, category, subcategory: subtype ?? null, ...patch })
   return <aside id="file-details" className="inspector" aria-label="文件详情" role={drawerOpen ? 'dialog' : undefined} aria-modal={drawerOpen ? true : undefined} tabIndex={-1}><div className="inspector-heading"><span><Eye size={15} />当前文件详情</span><div className="detail-navigation"><button className="icon-button" aria-label="上一个文件" disabled={!onPrevious || position === 0} onClick={onPrevious}><ChevronLeft size={17} /></button>{total ? <span>{(position ?? 0) + 1} / {total}</span> : null}<button className="icon-button" aria-label="下一个文件" disabled={!onNext || position === (total ?? 1) - 1} onClick={onNext}><ChevronRight size={17} /></button>{onClose ? <button className="icon-button close-detail" aria-label="关闭文件详情" onClick={onClose}><X size={17} /></button> : null}</div></div>

@@ -1,0 +1,21 @@
+/* Only the current page is mounted. Animation never controls workflow state. */
+@keyframes page-arrive { from { opacity: .72; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes drawer-arrive { from { opacity: .75; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+.page-transition, .stage-transition { animation: page-arrive 180ms ease-out; min-width: 0; }
+.app-shell .page-transition .page-intro, .app-shell .page-transition .workflow, .app-shell .page-transition .directory-panel, .app-shell .page-transition .work-area { animation: none; }
+.workbench-detail-layer:not([hidden]) .inspector, .library-overlay .library-drawer { animation: drawer-arrive 160ms ease-out; }
+.workbench-content { min-width: 0; }
+.workflow-overview { margin: 0 0 20px; }
+.workflow-overview ol { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 0; margin: 0; list-style: none; gap: 8px; }
+.workflow-overview li { display: flex; align-items: center; gap: 7px; padding: 10px 8px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 13px; line-height: 1.5; background: var(--surface); min-width: 0; }
+.workflow-overview li[aria-current="step"] { border-color: var(--green); color: var(--green); background: var(--green-soft); font-weight: 600; }
+.workflow-overview li > span, .workflow-overview button > span { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-soft); flex-shrink: 0; }
+.workflow-overview button { display: flex; align-items: center; gap: 7px; color: inherit; padding: 0; background: transparent; border: 0; text-align: left; width: 100%; min-height: 26px; font: inherit; white-space: normal; }
+.learning-tour .workflow-overview { margin: 16px 0 0; }
+.learning-tour .workflow-overview ol, .tutorial-exercise .workflow-overview ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.learning-tour .workflow-overview li { font-size: 12px; }
+.library-drawer .library-preview { height: 280px; }
+.page-transition h1:focus, .exercise-stage h3:focus { outline: none; }
+@media (max-width: 1000px) { .workflow-overview ol { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .workflow-overview li { padding: 8px 6px; font-size: 12px; gap: 4px; }.workflow-overview button { gap: 4px; }.workflow-overview li > span, .workflow-overview button > span { width: 20px; height: 20px; } }
+@media (prefers-reduced-motion: reduce) { .page-transition, .stage-transition, .workbench-detail-layer:not([hidden]) .inspector, .library-overlay .library-drawer { animation: none !important; transition: none !important; } }

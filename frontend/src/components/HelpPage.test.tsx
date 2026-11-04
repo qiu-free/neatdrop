@@ -37,3 +37,13 @@ it('provides an accessible topic directory that moves focus to the selected help
   fireEvent.click(link)
   expect(document.querySelector(targetSelector)).toHaveFocus()
 })
+
+it('describes supported Office content without promising formulas, old Office or scanned PDF support', () => {
+  render(<HelpPage supportedExtensions={['.pdf', '.txt', '.docx', '.pptx', '.xlsx', '.csv']} />)
+  fireEvent.change(screen.getByRole('searchbox', { name: '搜索使用说明' }), { target: { value: 'XLSX' } })
+  expect(screen.getByRole('heading', { name: '支持的文件和目录' }).parentElement).toHaveTextContent('DOCX')
+  expect(screen.getByRole('heading', { name: 'Office 与表格的读取范围' }).parentElement).toHaveTextContent('不会计算公式')
+  fireEvent.change(screen.getByRole('searchbox', { name: '搜索使用说明' }), { target: { value: '暂不支持' } })
+  expect(screen.getByRole('heading', { name: '暂不支持的能力' }).parentElement).toHaveTextContent('旧 DOC / XLS / PPT')
+  expect(screen.getByRole('heading', { name: '暂不支持的能力' }).parentElement).not.toHaveTextContent('DOCX / PPTX')
+})

@@ -83,6 +83,15 @@ it('allows selecting visible review items but requires approval before planning'
   expect(screen.getByText(/副本位置：当前文件夹内的分类子目录/)).toBeInTheDocument()
 })
 
+it('keeps workflow stage changes disabled during active work while library navigation remains available', () => {
+  const onLibrary = vi.fn()
+  render(<Workbench state={makeState({ busy: 'analysis' })} onLibrary={onLibrary} />)
+  const navigation = screen.getByRole('navigation', { name: '整理步骤' })
+  for (const name of [/选择/, /分析/, /复核/, /计划与复制/]) expect(within(navigation).getByRole('button', { name })).toBeDisabled()
+  fireEvent.click(within(navigation).getByRole('button', { name: /资料库/ }))
+  expect(onLibrary).toHaveBeenCalledOnce()
+})
+
 beforeEach(() => {
   vi.mocked(api).mockReset().mockImplementation((_path, _body, signal) => new Promise((_resolve, reject) => {
     const abort = () => reject(new DOMException('Preview request canceled', 'AbortError'))
@@ -372,7 +381,7 @@ it('closes a desktop drawer on page navigation and results without reopening it 
   rerender(<Workbench state={current} active />)
   expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤', hidden: true })).getByRole('button', { name: /结果/, hidden: true }))
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤', hidden: true })).getByRole('button', { name: /计划与复制/, hidden: true }))
   expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
 })
 
@@ -398,7 +407,7 @@ it('offers a library entry after execution completes', () => {
   const onLibrary = vi.fn()
   const execution = { plan_id: 'p', status: 'completed', processed: 1, total: 1, current_file: null, items: [], error: null }
   render(<Workbench state={makeState({ execution })} onLibrary={onLibrary} />)
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /结果/ }))
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /计划与复制/ }))
   fireEvent.click(screen.getByRole('button', { name: '查看资料库' }))
   expect(onLibrary).toHaveBeenCalledOnce()
 })

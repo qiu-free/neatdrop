@@ -5,6 +5,7 @@ import { api, bytes } from '../api'
 import { requestPreview } from '../previewRequests'
 import { TaxonomyProvider, useTaxonomy } from '../taxonomy'
 import type { LibraryItem, LibraryListing, Preview, Taxonomy, Transaction, Workspace } from '../types'
+import { useSessionState, type LibrarySession } from '../pageSession'
 import './library.css'
 
 const availabilityLabels: Record<LibraryItem['availability'], string> = {
@@ -21,23 +22,29 @@ function displayDate(created: string) {
   return Number.isNaN(date.getTime()) ? '日期不可用' : date.toLocaleString('zh-CN')
 }
 
-export function LibraryPage({ workspace, history, taxonomy, onWorkbench }: {
-  workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void
+export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session }: {
+  workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void; session?: LibrarySession
 }) {
   return <TaxonomyProvider taxonomy={taxonomy}>
     <section className="page-intro"><div><span className="intro-label">已生成的本机归档副本</span><h1>资料有序，随时查阅<span>。</span></h1><p>{workspace ? workspace.path : '选择资料所在的本机目录，查看净匣曾生成的归档副本。'}</p></div></section>
-    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
+    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
     <p className="library-local-note"><ShieldCheck size={17} />文件保存在本机；预览由本地服务核验后读取，不上传云端。</p>
   </TaxonomyProvider>
 }
 
-function LibraryContent({ workspace, history }: { workspace: Workspace; history: Transaction[] }) {
+function LibraryContent({ workspace, history, session }: { workspace: Workspace; history: Transaction[]; session?: LibrarySession }) {
   const { categories, subcategories } = useTaxonomy()
   const [listing, setListing] = useState<LibraryListing | null>(null)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
-  const [category, setCategory] = useState('all')
-  const [query, setQuery] = useState('')
+  // A different authorized workspace gets a fresh filter. Same-workspace page
+  // revisits retain the filter, without retaining a mounted preview drawer.
+  const [pageSession] = useState(() => {
+    if (session && session.workspace !== workspace.id) Object.assign(session, { workspace: workspace.id, category: 'all', query: '' })
+    return session
+  })
+  const [category, setCategory] = useSessionState(pageSession, 'category', 'all')
+  const [query, setQuery] = useSessionState(pageSession, 'query', '')
   const [activeId, setActiveId] = useState<string | null>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const close = useCallback(() => setActiveId(null), [])
@@ -129,6 +136,7 @@ function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, trigger, pos
         {unavailable ? <p className="library-preview-message" role="status"><CircleAlert size={22} />{unavailable}</p> : current?.error ? <p className="library-preview-message" role="alert"><CircleAlert size={22} />{current.error}</p> : !preview ? <p className="library-preview-message"><LoaderCircle className="library-spinner" size={25} />正在核验并读取本机副本…</p> : image ? <img src={image} alt={`${item.name} 的归档副本预览`} /> : preview.text ? <pre>{preview.text}</pre> : <p className="library-preview-message">此文件没有可显示的文本或图像预览。</p>}
       </section>
       {preview?.truncated ? <p className="library-preview-note">为控制本地读取量，当前显示部分内容。</p> : null}
+      {preview?.sampling?.summary ? <p className="library-preview-note">{preview.sampling.summary}</p> : null}
       <dl className="library-detail-metadata"><div><dt>生成日期</dt><dd>{displayDate(item.created)}</dd></div><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际相对路径</dt><dd>{item.target}</dd></div></dl>
     </div><footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div><button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
       // Move focus before React disables the boundary control; browsers may

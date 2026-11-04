@@ -46,3 +46,30 @@
   .tutorial-exercise { padding: 17px 14px; }.tutorial-exercise-head h2 { font-size: 19px; }.exercise-step { grid-template-columns: 29px minmax(0,1fr); gap: 9px; }.exercise-number { width: 27px; height: 27px; }.exercise-step > .button { grid-column: 2; justify-self: stretch; }.exercise-file { grid-template-columns: minmax(0,1fr) auto; gap: 7px; }.exercise-file label { grid-column: 1 / -1; justify-self: start; padding-left: 2px; }.exercise-state { font-size: 9px; }.exercise-field { grid-template-columns: 1fr; gap: 5px; }.exercise-result { grid-template-columns: 29px minmax(0,1fr); }.exercise-result > .button, .exercise-result > .practice-badge { grid-column: 2; justify-self: start; }
 }
 @media(prefers-reduced-motion: reduce) { .learning-tour *, .tutorial-exercise * { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+/* v7 keeps the existing theme and gives the practice the same readable controls. */
+.modal:has(.learning-tour) { width: min(580px, 100%); overflow-y: auto; }
+.modal:has(.tutorial-exercise) { width: min(760px, 100%); }
+.learning-tour .stage-transition p { color: var(--muted); font-size: 14px; line-height: 1.85; margin: 8px 0 0; }
+.learning-tour-actions, .learning-tour-actions > span { flex-wrap: wrap; }
+.tutorial-exercise { background: var(--surface); padding: 22px; }
+.tutorial-exercise .tutorial-exercise-intro, .tutorial-exercise .exercise-stage-copy, .tutorial-exercise .exercise-state, .tutorial-exercise .exercise-source, .tutorial-exercise .exercise-check, .tutorial-exercise .exercise-field { font-size: 14px; line-height: 1.8; color: var(--muted); }
+.tutorial-exercise .tutorial-exercise-intro { margin: 10px 0 20px; }
+.exercise-stage { display: grid; gap: 16px; padding-top: 18px; border-top: 1px solid var(--line); }
+.exercise-stage h3 { font-size: 19px; color: var(--ink); margin: 0; }
+.exercise-stage .exercise-stage-copy { margin: 0; }
+.exercise-stage .exercise-file-list { grid-column: auto; }
+.exercise-stage .exercise-file { padding: 12px; gap: 12px; }
+.exercise-stage .exercise-file strong, .exercise-stage .exercise-file label { font-size: 14px; color: var(--ink); }
+.exercise-stage .exercise-file small { font-size: 12px; color: var(--muted); }
+.exercise-stage .exercise-file .button { min-height: 40px; font-size: 13px; }
+.exercise-stage .exercise-state, .exercise-stage .exercise-field, .exercise-stage .exercise-check { grid-column: auto; }
+.exercise-stage input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--green); }
+.exercise-stage select { min-height: 44px; font-size: 14px; }
+.exercise-preview, .exercise-plan { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-soft); padding: 16px; color: var(--ink); font-size: 14px; overflow-wrap: anywhere; min-width: 0; }
+.exercise-preview pre { padding: 14px 0; margin: 0; font: 14px/1.9 var(--font-ui); white-space: pre-wrap; }
+.exercise-preview p, .exercise-plan p, .exercise-plan dd, .exercise-plan dt { color: var(--muted); font-size: 14px; line-height: 1.8; }
+.exercise-plan dl { margin: 8px 0 0; }.exercise-plan dd { margin: 0 0 10px; color: var(--ink); }.exercise-plan article + article { border-top: 1px solid var(--line); padding-top: 12px; }
+.exercise-actions { display: flex; gap: 10px; flex-wrap: wrap; }.exercise-back { margin-top: 18px; }
+.exercise-source { overflow-wrap: anywhere; }.exercise-state { flex-wrap: wrap; }
+@media (max-width: 600px) { .tutorial-exercise { padding: 14px; }.tutorial-exercise-head { flex-wrap: wrap; gap: 8px; }.learning-tour-art { height: 70px; }.exercise-actions > .button { flex: 1 1 100%; }.learning-tour-actions > span { width: 100%; }.exercise-stage > .button { white-space: normal; } }

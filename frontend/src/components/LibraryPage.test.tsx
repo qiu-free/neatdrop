@@ -79,6 +79,32 @@ it('opens previews only by entry ID and restores focus, scroll and keyboard boun
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 })
 
+it.each([
+  { name: 'Next reaches the last item', start: '报销账单.txt', direction: '下一个归档副本', target: '研究笔记.txt' },
+  { name: 'Previous reaches the first item', start: '研究笔记.txt', direction: '上一个归档副本', target: '报销账单.txt' },
+])('keeps focus on an enabled drawer control when $name', async ({ start, direction, target }) => {
+  setup(items.slice(0, 2))
+  render(<LibraryPage workspace={workspace} history={history} onWorkbench={vi.fn()} />)
+  fireEvent.click(await screen.findByRole('button', { name: `查看 ${start}` }))
+  const dialog = screen.getByRole('dialog', { name: '归档副本详情' })
+  await within(dialog).findByText('本机安全预览')
+  const navigation = within(dialog).getByRole('button', { name: direction })
+  navigation.focus()
+  expect(navigation).toHaveFocus()
+
+  fireEvent.click(navigation)
+  await within(dialog).findByText('本机安全预览')
+  expect(within(dialog).getByRole('heading', { name: target })).toBeInTheDocument()
+  expect(navigation).toBeDisabled()
+  expect(within(dialog).getByRole('button', { name: '关闭资料库详情' })).toHaveFocus()
+  expect(document.activeElement).not.toBe(document.body)
+  expect(document.activeElement).not.toBeDisabled()
+
+  fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true })
+  expect(document.activeElement).not.toBeDisabled()
+  expect(dialog).toContainElement(document.activeElement as HTMLElement)
+})
+
 it('shows unavailable reasons without attempting to read missing, changed or unverified copies', async () => {
   const { requests } = setup()
   render(<LibraryPage workspace={workspace} history={history} onWorkbench={vi.fn()} />)

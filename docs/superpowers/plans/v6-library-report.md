@@ -29,3 +29,9 @@ Task 3，分支 `feat/archive-library-review-v6`。实现主导航“资料库�
 - 遮罩按钮：`关闭资料库详情遮罩`
 - 相邻文件按钮：`上一个归档副本` / `下一个归档副本`
 - 无目录 CTA：`返回工作台选择目录`
+
+## P2 审查修复：首尾导航焦点
+
+复核 `v6-review-report.md` 的 Task 3 P2，确认下一项到末项、上一项到首项时，保留的 DOM 按钮会在仍有焦点的情况下禁用。新增两个真实焦点回归测试，先观察两例均因焦点仍停在禁用导航按钮上失败。修复在到达边界的点击处理器中、React 禁用按钮之前，将已有导航焦点移到关闭按钮，并使用 `preventScroll` 保留预览滚动位置。普通中间导航仍保留原导航焦点。
+
+修复后 `npm test -- --run src/components/LibraryPage.test.tsx src/App.test.tsx`：13/13 通过，包含两侧首尾边界与后续 Tab 约束；`git diff --check` 无空白错误。该修复不重挂载侧栏或预览容器。

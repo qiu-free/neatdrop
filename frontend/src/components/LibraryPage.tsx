@@ -130,6 +130,14 @@ function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, trigger, pos
       </section>
       {preview?.truncated ? <p className="library-preview-note">为控制本地读取量，当前显示部分内容。</p> : null}
       <dl className="library-detail-metadata"><div><dt>生成日期</dt><dd>{displayDate(item.created)}</dd></div><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际相对路径</dt><dd>{item.target}</dd></div></dl>
-    </div><footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div><button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={onPrevious}><ChevronLeft size={20} /></button><span>{position + 1} / {total}</span><button className="icon-button" aria-label="下一个归档副本" disabled={!onNext} onClick={onNext}><ChevronRight size={20} /></button></div></footer>
+    </div><footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div><button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
+      // Move focus before React disables the boundary control; browsers may
+      // otherwise leave focus on a disabled button or drop it to the body.
+      if (position === 1 && document.activeElement === event.currentTarget) closeButton.current?.focus({ preventScroll: true })
+      onPrevious?.()
+    }}><ChevronLeft size={20} /></button><span>{position + 1} / {total}</span><button className="icon-button" aria-label="下一个归档副本" disabled={!onNext} onClick={event => {
+      if (position === total - 2 && document.activeElement === event.currentTarget) closeButton.current?.focus({ preventScroll: true })
+      onNext?.()
+    }}><ChevronRight size={20} /></button></div></footer>
   </aside></div>, document.body)
 }

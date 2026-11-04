@@ -23,7 +23,7 @@ export const reviewReasons: Record<string, string> = {
   ocr_quality_limited: '部分图片文字识别不够可靠',
   purpose_uncalibrated: '此用途为新增识别候选，需要人工确认',
 }
-export type Page = 'workbench' | 'history' | 'help'
+export type Page = 'workbench' | 'library' | 'history' | 'help'
 export type Filter = 'all' | 'unreviewed' | 'review' | 'failed' | 'selected'
 export interface FileRecord {
   id: string; name: string; size: number; modified: number; extension: string
@@ -90,3 +90,9 @@ export interface Config {
   offline?: { ocr: { available: boolean; name: string }; vision: { available: boolean; name: string }; semantic?: SemanticCapability; network_required: boolean }
 }
 export interface Preview { text?: string; image?: string; sample: string; truncated?: boolean }
+export interface LibraryItem {
+  id: string; transaction_id: string; name: string; source: string; target: string
+  category: Category; subcategory: string | null; created: string; size: number
+  availability: 'available' | 'missing' | 'changed' | 'unverified'
+}
+export interface LibraryListing { items: LibraryItem[]; truncated: boolean }

@@ -43,3 +43,18 @@ it('shows saved display preferences without restoring any file draft', async () 
   expect(screen.queryByText('private-path')).not.toBeInTheDocument()
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
+
+it('opens the library from the main navigation and returns to directory selection without fetching a path', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
+
+  fireEvent.click(screen.getByRole('button', { name: '资料库' }))
+  expect(screen.getByRole('button', { name: '资料库' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('heading', { name: '先选择一个本机目录' })).toBeInTheDocument()
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/library'))).toBe(false)
+
+  fireEvent.click(screen.getByRole('button', { name: '返回工作台选择目录' }))
+  expect(screen.getByRole('button', { name: '整理工作台' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByLabelText('本地目录完整路径')).toBeVisible()
+})

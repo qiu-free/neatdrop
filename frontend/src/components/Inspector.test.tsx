@@ -115,13 +115,24 @@ it('lets a user individually approve a review-required suggestion', async () => 
   await screen.findByText('Approval preview')
 })
 
-it('offers a manual default approval before any fields have been edited', async () => {
+it('requires analysis or a manual edit before an item can be confirmed', async () => {
   const onApprove = vi.fn()
   vi.mocked(api).mockResolvedValueOnce({ text: 'Manual preview', sample: 'text' })
   render(<Inspector workspaceId="w" file={file} onEdit={() => undefined} onApprove={onApprove} />)
-  fireEvent.click(screen.getByRole('button', { name: '按当前名称确认' }))
-  expect(onApprove).toHaveBeenCalledOnce()
+  const confirm = screen.getByRole('button', { name: '先分析或编辑后确认' })
+  expect(confirm).toBeDisabled()
+  fireEvent.click(confirm)
+  expect(onApprove).not.toHaveBeenCalled()
   await screen.findByText('Manual preview')
+})
+
+it('does not approve an edited file with an unresolved analysis error', async () => {
+  vi.mocked(api).mockResolvedValueOnce({ text: 'Failed preview', sample: 'text' })
+  const onApprove = vi.fn()
+  render(<Inspector workspaceId="w" file={file} edit={{ file_id: 'a', name: '人工.md', category: 'study' }} analysisError="READ_FAILED" onEdit={() => undefined} onApprove={onApprove} />)
+  expect(screen.getByRole('button', { name: '处理错误后确认' })).toBeDisabled()
+  expect(screen.getByText(/分析错误尚未处理/)).toBeInTheDocument()
+  await screen.findByText('Failed preview')
 })
 
 const candidateSuggestion: Suggestion = {

@@ -42,10 +42,11 @@ function evidenceLocation(item: EvidenceItem) {
   return ''
 }
 
-export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, onEdit, position, total, onPrevious, onNext, checked = false, editingDisabled = false, reviewed = false, onApprove, onClose, drawerOpen = false }: {
+export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, onEdit, position, total, onPrevious, onNext, checked = false, editingDisabled = false, reviewed = false, onApprove, onClose, drawerOpen = false, analysisError, previewEnabled = true }: {
   workspaceId: string; workspacePath?: string; file: FileRecord; suggestion?: Suggestion; edit?: Edit; onEdit: (edit: Edit) => void
   position?: number; total?: number; onPrevious?: () => void; onNext?: () => void; checked?: boolean
   editingDisabled?: boolean; reviewed?: boolean; onApprove?: () => void; onClose?: () => void; drawerOpen?: boolean
+  analysisError?: string; previewEnabled?: boolean
 }) {
   const { taxonomy, categories, subcategories, contentForms } = useTaxonomy()
   const [loaded, setLoaded] = useState<{ key: string; preview: Preview | null; error: string } | null>(null)
@@ -56,7 +57,7 @@ export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, 
   const zoomTo = (value: number) => setZoom({ identity, scale: Math.min(3, Math.max(1, value)) })
   useEffect(() => { previews.current.clear() }, [workspaceId])
   useEffect(() => {
-    if (previews.current.has(identity)) return
+    if (!previewEnabled || previews.current.has(identity)) return
     let ignore = false
     const controller = new AbortController()
     if (file.supported) requestPreview(`/workspaces/${workspaceId}/files/${file.id}/preview`, controller.signal)
@@ -75,7 +76,7 @@ export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, 
       })
       .catch(err => { if (!ignore && err.name !== 'AbortError') setLoaded({ key: identity, preview: null, error: err.message }) })
     return () => { ignore = true; controller.abort() }
-  }, [workspaceId, file.id, file.supported, identity])
+  }, [workspaceId, file.id, file.supported, identity, previewEnabled])
   const preview = loaded?.key === identity ? loaded.preview : previews.current.get(identity) ?? null
   const error = loaded?.key === identity ? loaded.error : ''
   const name = edit?.name ?? suggestion?.name ?? file.name
@@ -112,7 +113,8 @@ export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, 
       {sampling ? <section className="classification-sampling" aria-label="读取范围"><h3>读取范围</h3><p>{sampling.summary || '读取范围未提供，请核对原文件。'}</p>{sampling.truncated || sampling.budget_exhausted ? <p className="sampling-warning">{sampling.budget_exhausted ? '已达到本地处理预算；' : ''}本文件未完整读取，请确认归档用途。</p> : null}</section> : null}
       <div className="evidence"><Quote size={16} /><div><strong>{suggestion?.provider === 'cloud_model' ? '云端模型依据' : suggestion?.provider === 'offline_semantic' ? '本地语义依据' : suggestion?.provider === 'offline_models' ? '离线内容依据' : suggestion ? '多证据规则依据' : '等待分析或手动编辑'}</strong><p>{suggestion?.evidence ?? '可以直接编辑名称与分类，无需配置模型。编辑后仍需生成计划并确认。'}</p>{suggestion?.evidence_items?.length ? <ul className="evidence-list">{suggestion.evidence_items.slice(0, 5).map((item, i) => <li key={i}><span>{evidenceLabels[item.source] ?? '内容线索'}</span>{item.text}{evidenceLocation(item) ? <small className="evidence-location">{evidenceLocation(item)}</small> : null}</li>)}</ul> : null}{suggestion ? <small>{suggestion.review_required ? (suggestion.review_reasons?.map(r => reviewReasons[r] ?? '此项需要人工复核').join('；') || '信息不足，请人工复核。') : '这是建议，不代表已执行。'}</small> : null}{suggestion?.engine_warnings?.length ? <small className="engine-warning">部分本地识别能力受限，请结合原文件核对。</small> : null}</div></div>
       </details>
-      <div className={`individual-approval ${reviewed ? 'approved' : ''}`}><span>{reviewed ? '已确认此项' : suggestion?.review_required || edit ? '需要逐项确认' : suggestion ? '建议尚未确认' : '按当前名称归到待分类'}</span><button className="button secondary" disabled={editingDisabled || reviewed || !onApprove} aria-pressed={reviewed} onClick={onApprove}>{reviewed ? '已确认此项' : suggestion || edit ? '逐项确认此项' : '按当前名称确认'}</button></div>
+      {analysisError ? <p className="review-task">分析错误尚未处理：{explain(analysisError)}。请先重新分析此项。</p> : null}
+      <div className={`individual-approval ${reviewed ? 'approved' : ''}`}><span>{reviewed ? '已确认此项' : suggestion || edit ? '确认当前分类与名称' : '尚未分析，请先分析或编辑分类与名称。'}</span><button className="button secondary" disabled={editingDisabled || reviewed || !onApprove || !!analysisError || !suggestion && !edit} aria-pressed={reviewed} onClick={onApprove}>{reviewed ? '已确认此项' : analysisError ? '处理错误后确认' : suggestion || edit ? '逐项确认此项' : '先分析或编辑后确认'}</button></div>
       <p className="inspector-note">始终保留原扩展名；修改只影响待确认计划。</p>
     </> : <div className="notice muted">{explain(file.reason)}。原文件保持不变。</div>}
   </aside>

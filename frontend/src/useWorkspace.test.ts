@@ -85,13 +85,16 @@ it('requires explicit review approval before creating a plan', async () => {
   expect(vi.mocked(api)).not.toHaveBeenCalledWith('/workspaces/workspace/plans', expect.anything())
 })
 
-it('allows an untouched manual entry to be individually approved before planning', async () => {
+it('requires analysis or an explicit manual edit before approval and never defaults an untouched entry to other', async () => {
   const { result } = renderHook(() => useWorkspace())
   await waitFor(() => expect(result.current.online).toBe(true))
   await act(async () => { await result.current.scan('C:/test') })
   act(() => result.current.approve('a'))
-  expect(result.current.reviewed.has('a')).toBe(true)
+  expect(result.current.reviewed.has('a')).toBe(false)
+  expect(result.current.edits.a).toBeUndefined()
   act(() => result.current.toggle('a'))
+  act(() => result.current.edit({ file_id: 'a', name: '课程.md', category: 'study', subcategory: 'notes' }))
+  act(() => result.current.approve('a'))
   await act(async () => { await result.current.createPlan() })
   expect(result.current.plan?.id).toBe('plan')
 })
@@ -100,8 +103,9 @@ it('invalidates an existing plan when setSelected changes the selection directly
   const { result } = renderHook(() => useWorkspace())
   await waitFor(() => expect(result.current.online).toBe(true))
   await act(async () => { await result.current.scan('C:/test') })
-  act(() => result.current.approve('a'))
   act(() => result.current.toggle('a'))
+  act(() => result.current.edit({ file_id: 'a', name: 'a.md', category: 'study' }))
+  act(() => result.current.approve('a'))
   await act(async () => { await result.current.createPlan() })
   expect(result.current.plan?.id).toBe('plan')
 
@@ -129,13 +133,57 @@ it('retains review-required files in the batch and lets the user toggle them bef
   act(() => result.current.toggle('b'))
   await act(async () => { await result.current.analyze('local', false) })
   expect(result.current.selected).toEqual(new Set(['a', 'b']))
-  act(() => { result.current.approveOrdinary() })
-  expect(result.current.reviewed).toEqual(new Set(['a']))
+  act(() => { result.current.approveSelected() })
+  expect(result.current.reviewed).toEqual(new Set(['a', 'b']))
   act(() => result.current.toggle('b'))
   expect(result.current.selected).toEqual(new Set(['a']))
+  expect(result.current.reviewed).toEqual(new Set(['a', 'b']))
   act(() => result.current.toggle('b'))
   expect(result.current.selected).toEqual(new Set(['a', 'b']))
-  expect(result.current.reviewed.has('b')).toBe(false)
+  expect(result.current.reviewed.has('b')).toBe(true)
+})
+
+it('approves only selected supported analyzed or edited files without unresolved errors', async () => {
+  filesToScan = [file('a'), file('b'), file('untouched'), { ...file('unsupported'), supported: false }, file('failed'), file('manual')]
+  const job = { id: 'job', status: 'completed', processed: 3, total: 3, mode: 'local', results: [
+    { file_id: 'a', name: '研究.md', category: 'study', review_required: true, evidence: '', provider: 'local_rules', sample: '' },
+    { file_id: 'b', name: '未选择.md', category: 'office', review_required: false, evidence: '', provider: 'local_rules', sample: '' },
+  ], errors: [{ file_id: 'failed', code: 'READ_FAILED' }] }
+  const baseline = vi.mocked(api).getMockImplementation()!
+  vi.mocked(api).mockImplementation((path, ...args) => path.startsWith('/analysis-jobs') ? Promise.resolve(job) as never : baseline(path, ...args))
+  const { result } = renderHook(() => useWorkspace())
+  await waitFor(() => expect(result.current.online).toBe(true))
+  await act(async () => { await result.current.scan('C:/test') })
+  await act(async () => { await result.current.analyze('local', false, ['a', 'b', 'failed']) })
+  act(() => {
+    result.current.setSelected(new Set(['a', 'untouched', 'failed', 'manual', 'unsupported']))
+    result.current.edit({ file_id: 'failed', name: 'failed.md', category: 'study' })
+    result.current.edit({ file_id: 'manual', name: '人工.md', category: 'office' })
+    result.current.edit({ file_id: 'unsupported', name: 'unsupported.md', category: 'study' })
+  })
+  act(() => result.current.approveSelected())
+  expect(result.current.reviewed).toEqual(new Set(['a', 'manual']))
+  expect(result.current.edits.untouched).toBeUndefined()
+  act(() => result.current.approve('failed'))
+  act(() => result.current.approve('unsupported'))
+  expect(result.current.reviewed).toEqual(new Set(['a', 'manual']))
+  expect(result.current.errors.failed).toBe('READ_FAILED')
+})
+
+it('preserves approvals on selection changes while keeping the viewed file unchanged', async () => {
+  const { result } = renderHook(() => useWorkspace())
+  await waitFor(() => expect(result.current.online).toBe(true))
+  await act(async () => { await result.current.scan('C:/test') })
+  act(() => result.current.setActiveId('b'))
+  act(() => result.current.toggle('a'))
+  expect(result.current.activeId).toBe('b')
+  act(() => result.current.edit({ file_id: 'a', name: 'a.md', category: 'study' }))
+  act(() => result.current.approveSelected())
+  expect(result.current.reviewed.has('a')).toBe(true)
+  act(() => result.current.setSelected(new Set()))
+  expect(result.current.reviewed.has('a')).toBe(true)
+  act(() => result.current.toggle('a'))
+  expect(result.current.reviewed.has('a')).toBe(true)
 })
 
 it('removes failed files from selection when a job reports per-file errors', async () => {

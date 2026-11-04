@@ -68,13 +68,13 @@ it('clicking a category cell opens that file without selecting its checkbox', ()
   expect(screen.getByRole('checkbox')).not.toBeChecked()
 })
 
-it('checking a file also makes it the current detail file', () => {
+it('checking a file changes the batch without opening its details', () => {
   const onActive = vi.fn(), onSelect = vi.fn()
   render(<FileTable files={[file]} suggestions={{}} edits={{}} selected={new Set()}
     activeId={null} filter="all" query="" errors={{}} onSelect={onSelect} onActive={onActive} />)
   fireEvent.click(screen.getByRole('checkbox'))
   expect(onSelect).toHaveBeenCalledWith('a')
-  expect(onActive).toHaveBeenCalledWith('a')
+  expect(onActive).not.toHaveBeenCalled()
 })
 
 it('active detail row is explicitly labelled and keyboard accessible', () => {

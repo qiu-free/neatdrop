@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowRight, Check, CircleAlert, Command, FolderInput, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { ArrowRight, Check, CircleAlert, FolderInput, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { api, explain } from '../api'
 import { FileTable } from './FileTable'
 import { Inspector } from './Inspector'
@@ -29,24 +30,14 @@ const analysisPhaseLabels: Record<string, string> = {
   completed: '已完成', cancelled: '已取消', canceled: '已取消', failed: '失败',
 }
 
-function useNarrowScreen() {
-  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1000)
-  useEffect(() => {
-    const update = () => setNarrow(window.innerWidth <= 1000)
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-  return narrow
-}
-
 export function Workbench(props: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; offlineFirst?: boolean
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean
 }) {
   return <TaxonomyProvider taxonomy={props.state.config?.taxonomy} contentForms={props.state.config?.content_forms}><WorkbenchContent {...props} /></TaxonomyProvider>
 }
 
-function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; offlineFirst?: boolean
+function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirst, active: pageActive = true }: {
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean
 }) {
   const { categories, taxonomy } = useTaxonomy()
   const [viewChoice, setViewChoice] = useState<{ workspace: string; view: 'grid' | 'list' } | null>(null)
@@ -58,12 +49,13 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(null)
   const [picking, setPicking] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [detailVisited, setDetailVisited] = useState(false)
   const [bulkCategory, setBulkCategory] = useState<Category>('other')
-  const narrowScreen = useNarrowScreen()
   const inspectorColumnRef = useRef<HTMLDivElement>(null)
   const returnFocusRef = useRef<HTMLElement | null>(null)
   const navigationFocusRef = useRef<'previous' | 'next' | null>(null)
-  const restoreFocusPending = useRef(false)
+  const pageActiveRef = useRef(pageActive)
+  pageActiveRef.current = pageActive
   const { workspace, selected, busy, config, suggestions, edits, errors, reviewed, activeId } = state
   const files = workspace?.files ?? []
   const visible = useMemo(() => visibleFiles(files, suggestions, edits, selected, filter, query, errors, reviewed), [files, suggestions, edits, selected, filter, query, errors, reviewed])
@@ -72,7 +64,11 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   const activeIndex = visible.findIndex(file => file.id === effectiveId)
   const supported = files.filter(file => file.supported)
   const retryIds = Object.keys(errors).filter(id => files.some(file => file.id === id))
-  const ordinaryCount = visible.filter(file => suggestions[file.id] && !suggestions[file.id].review_required && !edits[file.id]).length
+  const selectedFiles = files.filter(file => selected.has(file.id))
+  const approvalEligible = selectedFiles.filter(file => file.supported && (suggestions[file.id] || edits[file.id]) && !errors[file.id])
+  const approvalCount = approvalEligible.filter(file => !reviewed.has(file.id)).length
+  const approvalSkipped = selected.size - approvalEligible.length
+  const selectedReviewed = selectedFiles.filter(file => reviewed.has(file.id)).length
   const reviewCount = files.filter(file => suggestions[file.id]?.review_required && !reviewed.has(file.id)).length
   const failedCount = retryIds.length
   const unreviewedCount = files.filter(file => (suggestions[file.id] || edits[file.id]) && !reviewed.has(file.id)).length
@@ -82,7 +78,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   const view = viewChoice && viewChoice.workspace === workspace?.id ? viewChoice.view : imageCount > 0 && imageCount >= supported.length / 2 ? 'grid' : 'list'
   const visibleAllSelected = visibleSelectable.length > 0 && visibleSelectable.every(file => selected.has(file.id))
   const activeAnalysis = Boolean(state.job && ['queued', 'running'].includes(state.job.status))
-  const canCreatePlan = selected.size > 0 && [...selected].every(id => reviewed.has(id)) && !!config?.execution_supported && !busy
+  const canCreatePlan = selected.size > 0 && approvalEligible.length === selected.size && [...selected].every(id => reviewed.has(id)) && !!config?.execution_supported && !busy
+  const drawerVisible = pageActive && stage !== 'results' && detailOpen && Boolean(active)
 
   const closeConsent = useCallback(() => setConsent(null), [])
   const closeReset = useCallback(() => setResetRequest(null), [])
@@ -100,11 +97,30 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   }, [state.plan?.id])
 
   useEffect(() => {
-    if (!narrowScreen || !detailOpen) return
+    if (!pageActive || stage === 'results' || !active) setDetailOpen(false)
+  }, [pageActive, stage, active?.id])
+
+  useEffect(() => {
+    if (!drawerVisible) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = previousOverflow }
-  }, [narrowScreen, detailOpen])
+    const layer = inspectorColumnRef.current
+    const background = [...document.body.children].filter((node): node is HTMLElement => node instanceof HTMLElement && node !== layer)
+    const previouslyInert = background.map(node => node.hasAttribute('inert'))
+    background.forEach(node => node.setAttribute('inert', ''))
+    layer?.querySelector<HTMLButtonElement>('.close-detail')?.focus({ preventScroll: true })
+    const containFocus = (event: FocusEvent) => {
+      if (!layer?.contains(event.target as Node)) layer?.querySelector<HTMLButtonElement>('.close-detail')?.focus({ preventScroll: true })
+    }
+    document.addEventListener('focusin', containFocus)
+    return () => {
+      document.removeEventListener('focusin', containFocus)
+      document.body.style.overflow = previousOverflow
+      background.forEach((node, index) => { if (!previouslyInert[index]) node.removeAttribute('inert') })
+      if (pageActiveRef.current && returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true })
+      returnFocusRef.current = null
+    }
+  }, [drawerVisible])
 
   useEffect(() => {
     const inspector = inspectorColumnRef.current?.querySelector<HTMLElement>('.inspector')
@@ -122,20 +138,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
       navigationFocusRef.current = null
       return
     }
-    if (!narrowScreen) return
-    if (detailOpen && active) {
-      const close = inspector?.querySelector<HTMLButtonElement>('.close-detail')
-      if (close) close.focus({ preventScroll: true })
-      else inspector?.focus({ preventScroll: true })
-      restoreFocusPending.current = false
-      return
-    }
-    if (!detailOpen && restoreFocusPending.current) {
-      if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true })
-      returnFocusRef.current = null
-      restoreFocusPending.current = false
-    }
-  }, [narrowScreen, detailOpen, active?.id])
+  }, [drawerVisible, active?.id])
 
   async function runScan(nextPath: string) {
     await state.scan(nextPath)
@@ -189,16 +192,16 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   function openDetails(target?: HTMLElement) {
     rememberDrawerTrigger(target)
     navigationFocusRef.current = null
+    setDetailVisited(true)
     setDetailOpen(true)
   }
 
   function activate(id: string) {
-    if (narrowScreen) openDetails()
+    openDetails()
     state.setActiveId(id)
   }
 
   function closeDetails() {
-    if (narrowScreen && detailOpen) restoreFocusPending.current = true
     setDetailOpen(false)
   }
 
@@ -209,7 +212,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   }
 
   function handleDrawerKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (!narrowScreen || !detailOpen) return
+    if (!drawerVisible) return
     if (event.key === 'Escape') {
       event.preventDefault()
       closeDetails()
@@ -217,9 +220,16 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
     }
     if (event.key !== 'Tab') return
     const inspector = inspectorColumnRef.current?.querySelector('.inspector')
-    const candidates = inspector?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-    )
+    const candidates = [...inspector?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? []].filter(node => {
+      if (node.closest('[hidden], [inert]')) return false
+      for (const details of node.closest('details') ? [node.closest('details')!] : []) {
+        if (!details.open && node !== details.querySelector('summary')) return false
+      }
+      const style = window.getComputedStyle(node)
+      return style.display !== 'none' && style.visibility !== 'hidden'
+    })
     if (!candidates?.length) {
       event.preventDefault()
       return
@@ -329,25 +339,24 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
             </div>
             <button className="text-button select-all" disabled={!!busy || !visibleSelectable.length} onClick={toggleVisibleSelection}>{visibleAllSelected ? '取消选择可见项' : '选择可见项'}</button>
           </div>
-          {stage === 'review' ? <div className="review-toolbar">
-            <button className="button secondary" disabled={!!busy || ordinaryCount === 0} onClick={() => state.approveOrdinary(visible.map(file => file.id))}>批量确认普通建议（不含待复核）</button>
-            <label>批量分类<select aria-label="批量分类" value={bulkCategory} onChange={event => setBulkCategory(event.target.value as Category)}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-            <button className="button secondary" disabled={!!busy || !selected.size} onClick={applyBulkCategory}>应用到已选择项</button>
-            <span>{selected.size} 项已选；更改分类后需要重新逐项确认。</span>
+          {stage === 'review' ? <div className="review-toolbar review-toolbar-v6">
+            <div className="review-main"><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
+            <p>确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。修改后需要重新审核；生成副本前仍需独立确认。</p>
+            {approvalSkipped ? <p className="review-skipped">{approvalSkipped} 项尚未分析或存在未处理错误，请先分析或编辑，错误项需重新分析。</p> : null}
+            <details className="review-more"><summary>更多操作</summary><div className="review-advanced">
+              <label>批量分类<select aria-label="批量分类" value={bulkCategory} onChange={event => setBulkCategory(event.target.value as Category)}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+              <button className="button secondary" disabled={!!busy || !selected.size} onClick={applyBulkCategory}>应用到已选择项</button>
+              <button className="button secondary" disabled={!selected.size || !!busy || activeAnalysis} onClick={() => beginAnalysis()}><Sparkles size={16} />重新分析所选</button>
+              <span>更改分类后需要重新审核。</span>
+            </div></details>
           </div> : null}
           <div className="safe-banner"><ShieldCheck size={14} /><span>保留原件<span className="separator">/</span>生成归档副本<span className="separator">/</span>执行前再次确认</span></div>
-          <div className="selection-legend"><span><i className="legend-active" />正在查看</span><span><i className="legend-checked" />加入整理批次</span>{active ? <button className="text-button mobile-details-link" onClick={event => openDetails(event.currentTarget)}>查看当前文件详情 ↓</button> : null}</div>
+          <div className="selection-legend"><span><i className="legend-active" />点击文件查看详情</span><span><i className="legend-checked" />勾选加入整理批次</span></div>
           <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可生成副本。</span></div>
-          {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={effectiveId} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={effectiveId} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} />}
+          {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} />}
           <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : '支持图片、文本型 PDF、UTF-8 TXT / Markdown'}</span><span>不递归扫描</span></div>
         </div>
-        <div ref={inspectorColumnRef} className={`inspector-column ${detailOpen ? 'detail-open' : ''}`} aria-hidden={!active || narrowScreen && !detailOpen} onKeyDown={handleDrawerKeyDown}>
-          {active ? <>
-            <button type="button" tabIndex={-1} className="detail-backdrop" aria-label="关闭详情遮罩" onClick={closeDetails} />
-            <Inspector key={workspace.id} workspaceId={workspace.id} workspacePath={workspace.path} file={active} suggestion={suggestions[active.id]} edit={edits[active.id]} onEdit={state.edit} editingDisabled={!!busy} checked={selected.has(active.id)} reviewed={reviewed.has(active.id)} onApprove={() => state.approve(active.id)} onClose={closeDetails} drawerOpen={narrowScreen && detailOpen} position={activeIndex} total={visible.length} onPrevious={() => navigateInspector(visible[Math.max(0, activeIndex - 1)].id, 'previous')} onNext={() => navigateInspector(visible[Math.min(visible.length - 1, activeIndex + 1)].id, 'next')} />
-          </> : <aside className="inspector inspector-empty"><span className="inspector-heading">建议，由你来决定</span><div className="empty-illustration"><div className="paper paper-back" /><div className="paper paper-front"><span /><span /><span /><i><Check size={18} /></i></div></div><h3>{files.length ? '当前筛选没有文件' : '清楚看见每一次变化'}</h3><p>选择文件，预览内容与建议。<br />编辑名称、核对分类，<br />确认后才生成归档副本。</p><div className="empty-kbd"><Command size={13} /><span>你的文件，始终由你掌控</span></div></aside>}
-        </div>
-      </section> : <ExecutionResults execution={state.execution} busy={busy} onCheck={() => void state.checkExecution()} onHistory={onHistory} />}
+      </section> : <ExecutionResults execution={state.execution} busy={busy} onCheck={() => void state.checkExecution()} onHistory={onHistory} onLibrary={onLibrary} />}
 
       {failedCount ? <div className="analysis-errors"><div className="analysis-errors-heading"><strong><CircleAlert size={14} />{failedCount} 项分析失败</strong><button className="button secondary" disabled={!!busy || activeAnalysis} onClick={retryFailed}>仅重试失败项</button></div>{retryIds.map(id => <p key={id}><strong>{files.find(file => file.id === id)?.name}</strong>：{explain(errors[id])}</p>)}</div> : null}
       {busy === 'analysis' && state.job ? <div className="progress-region" role="status" aria-live="polite"><div><LoaderCircle size={16} className="spin" /><span>正在分析 {state.job.processed} / {state.job.total}{state.job.current_file ? ` · ${state.job.current_file}` : ''}{state.job.phase ? ` · ${analysisPhaseLabels[state.job.phase] ?? state.job.phase}` : ''}，未执行文件操作</span><button className="text-button" onClick={() => void state.cancel()}>取消分析</button></div><progress value={state.job.processed} max={Math.max(state.job.total, 1)} /></div> : null}
@@ -359,11 +368,15 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
         <div className="action-buttons">
           {stage === 'choose' ? <button className="button primary" disabled={!selected.size || !!busy} onClick={() => setStage('analyze')}>下一步：分析 <ArrowRight size={16} /></button> : null}
           {stage === 'analyze' ? <><button className="button secondary" disabled={!selected.size || !!busy || activeAnalysis} onClick={() => beginAnalysis() }><Sparkles size={16} />分析选中文件</button><button className="button primary" disabled={!suggestionCount && !Object.keys(edits).length} onClick={() => setStage('review')}>查看建议</button></> : null}
-          {stage === 'review' ? <><button className="button secondary" disabled={!selected.size || !!busy || activeAnalysis} onClick={() => beginAnalysis() }><Sparkles size={16} />重新分析所选</button><button className="button primary" disabled={!canCreatePlan} onClick={createPlan}>{busy === 'plan' ? <LoaderCircle size={16} className="spin" /> : <ArrowRight size={16} />}生成整理计划</button></> : null}
+          {stage === 'review' ? <button className="button primary" disabled={!canCreatePlan} onClick={createPlan}>{busy === 'plan' ? <LoaderCircle size={16} className="spin" /> : <ArrowRight size={16} />}生成整理计划</button> : null}
         </div>
       </footer> : null}
     </>}
 
+    {detailVisited && workspace && active ? createPortal(<div ref={inspectorColumnRef} className="app-shell workbench-detail-layer" hidden={!drawerVisible} aria-hidden={!drawerVisible} onKeyDown={handleDrawerKeyDown}>
+      <button type="button" tabIndex={-1} className="detail-backdrop" aria-label="关闭详情遮罩" onClick={closeDetails} />
+      <Inspector key={workspace.id} workspaceId={workspace.id} workspacePath={workspace.path} file={active} suggestion={suggestions[active.id]} edit={edits[active.id]} onEdit={state.edit} editingDisabled={!!busy} checked={selected.has(active.id)} reviewed={reviewed.has(active.id)} analysisError={errors[active.id]} previewEnabled={drawerVisible} onApprove={() => state.approve(active.id)} onClose={closeDetails} drawerOpen={drawerVisible} position={activeIndex} total={visible.length} onPrevious={() => navigateInspector(visible[Math.max(0, activeIndex - 1)].id, 'previous')} onNext={() => navigateInspector(visible[Math.min(visible.length - 1, activeIndex + 1)].id, 'next')} />
+    </div>, document.body) : null}
     {consent ? <ConsentDialog key={`${consent.retry ? 'retry' : 'analysis'}-${consent.fileIds.join(',')}`} count={consent.fileIds.length} config={config} initialMode={consent.initialMode} onClose={closeConsent} onStart={(mode, approved, binding) => { setConsent(null); void state.analyze(mode, approved, consent.fileIds, binding) }} /> : null}
     {state.plan ? <PlanDialog key={state.plan.id} plan={state.plan} busy={busy === 'execute'} onClose={() => { state.setPlan(null); setStage('review') }} onConfirm={() => { setStage('results'); void state.execute() }} /> : null}
     {resetRequest ? <Modal title={resetRequest.type === 'rescan' ? '重新扫描并清除当前草稿？' : '切换目录并清除当前草稿？'} onClose={closeReset} busy={!!busy}>
@@ -374,8 +387,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, offlineFirst }: {
   </>
 }
 
-function ExecutionResults({ execution, busy, onCheck, onHistory }: {
-  execution: State['execution']; busy: string; onCheck: () => void; onHistory?: () => void
+function ExecutionResults({ execution, busy, onCheck, onHistory, onLibrary }: {
+  execution: State['execution']; busy: string; onCheck: () => void; onHistory?: () => void; onLibrary?: () => void
 }) {
   if (!execution) return <section className="execution-results empty-results"><div className="empty-landing-icon"><ShieldCheck size={26} /></div><h2>整理结果会显示在这里</h2><p>生成计划后，先核对路径并勾选确认。执行时会逐项显示成功、失败和未开始状态。</p></section>
   const completed = execution.items.filter(item => item.stage === 'completed').length
@@ -387,7 +400,7 @@ function ExecutionResults({ execution, busy, onCheck, onHistory }: {
     <div className="execution-progress"><div><span>{execution.processed} / {execution.total} 项</span>{execution.current_file ? <strong>当前文件：{execution.current_file}</strong> : null}</div><progress value={execution.processed} max={Math.max(execution.total, 1)} /></div>
     {execution.error ? <p className="execution-error"><CircleAlert size={15} />{explain(execution.error)}</p> : null}
     <div className="execution-items">{execution.items.map(item => <article className={`execution-item ${item.stage}`} key={item.file_id}><div><strong>{item.source}</strong><span>{item.target}</span></div><b>{item.stage === 'completed' ? '成功' : item.stage === 'failed' ? '失败' : item.stage === 'copying' ? '处理中' : '未开始'}</b>{item.error ? <small>{explain(item.error)}</small> : null}</article>)}</div>
-    <footer className="execution-actions"><span>原件全部保留。状态可在操作记录中再次核对。</span><div>{onHistory ? <button className="button secondary" onClick={onHistory}>查看操作记录</button> : null}<button className="button secondary" disabled={busy === 'execute'} onClick={onCheck}>{busy === 'execute' ? <LoaderCircle size={15} className="spin" /> : <RotateCw size={15} />}重新查询状态</button></div></footer>
+    <footer className="execution-actions"><span>原件全部保留。状态可在操作记录中再次核对。</span><div>{onLibrary && !running ? <button className="button primary" onClick={onLibrary}>查看资料库</button> : null}{onHistory ? <button className="button secondary" onClick={onHistory}>查看操作记录</button> : null}<button className="button secondary" disabled={busy === 'execute'} onClick={onCheck}>{busy === 'execute' ? <LoaderCircle size={15} className="spin" /> : <RotateCw size={15} />}重新查询状态</button></div></footer>
   </section>
 }
 

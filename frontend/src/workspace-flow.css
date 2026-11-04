@@ -1,0 +1,34 @@
+/* Review stays in the file list; details open on demand at every viewport. */
+.app-shell .work-area { grid-template-columns: minmax(0, 1fr); }
+.app-shell .review-toolbar-v6 { display: grid; align-items: start; gap: 10px; }
+.review-main { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.app-shell .review-toolbar-v6 p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.75; }
+.app-shell .review-toolbar-v6 .review-skipped { color: var(--warning-ink); }
+.review-more { border-top: 1px solid var(--line); width: 100%; }
+.review-more summary { cursor: pointer; padding: 12px 0; min-height: 44px; color: var(--ink); font-size: 14px; }
+.review-advanced { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 0 6px; }
+.review-advanced span { flex-basis: 100%; }
+
+/* The portal carries app-shell so the shared readable theme also styles it. */
+.workbench-detail-layer { position: fixed; inset: 0; z-index: 120; display: flex; justify-content: flex-end; background: #182a1e55; }
+.workbench-detail-layer[hidden] { display: none; }
+.workbench-detail-layer .detail-backdrop { display: block; position: absolute; inset: 0; border: 0; padding: 0; background: transparent; cursor: default; }
+.workbench-detail-layer .inspector { position: relative; z-index: 1; display: block; width: min(100%, 520px); height: 100dvh; max-height: 100dvh; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; border-radius: 14px 0 0 14px; box-shadow: -12px 0 40px #18302033; scrollbar-gutter: stable; overflow-anchor: none; }
+.workbench-detail-layer .inspector .inspector-heading { position: sticky; top: -1px; z-index: 2; }
+.workbench-detail-layer .detail-navigation .icon-button { min-width: 44px; min-height: 44px; }
+.workbench-detail-layer .close-detail { display: inline-flex; }
+.workbench-detail-layer .preview-stage { height: 280px; }
+.workbench-detail-layer .preview-stage img, .workbench-detail-layer .preview-stage pre { max-height: 280px; }
+.workbench-detail-layer .inspector-fields { margin-top: 16px; }
+.workbench-detail-layer .inspector-heading > span { flex-shrink: 0; }
+
+@media (max-width: 600px) {
+  .workbench-detail-layer .inspector { width: 100%; padding: 18px 16px; border-radius: 0; }
+  .workbench-detail-layer .inspector .inspector-heading { font-size: 14px; gap: 4px; }
+  .workbench-detail-layer .detail-navigation { gap: 0; }
+  .workbench-detail-layer .detail-navigation .icon-button { min-width: 40px; }
+  .app-shell .review-toolbar-v6 { padding: 14px 16px; }
+  .review-main { align-items: stretch; flex-direction: column; }
+  .review-advanced { align-items: stretch; flex-direction: column; }
+  .review-advanced label { justify-content: space-between; }
+}

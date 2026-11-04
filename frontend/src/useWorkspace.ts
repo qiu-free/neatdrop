@@ -193,7 +193,6 @@ export function useWorkspace() {
     const file = filesRef.current.find(item => item.id === id)
     if (!file?.supported) return
     setPlan(null)
-    setActiveId(id)
     const current = selectedRef.current
     if (current.has(id)) {
       const next = new Set(current)
@@ -215,25 +214,34 @@ export function useWorkspace() {
   }, [])
 
   const approve = useCallback((id: string) => {
-    if (!suggestions[id] && !edits[id]) {
-      const file = filesRef.current.find(item => item.id === id)
-      if (!file?.supported) {
-        setError('此文件暂不支持整理。')
-        return
-      }
-      setEdits(current => ({ ...current, [id]: { file_id: id, name: file.name, category: 'other', subcategory: null } }))
-    }
+    if (actionLock.current) return
+    const file = filesRef.current.find(item => item.id === id)
+    if (!file?.supported) { setError('此文件暂不支持整理。'); return }
+    if (errors[id]) { setError('此项存在未处理的分析错误，请先重新分析。'); return }
+    if (!suggestions[id] && !edits[id]) { setError('请先分析或编辑此项的分类与名称，再确认。'); return }
     setReviewed(current => new Set(current).add(id))
     setPlan(null)
-  }, [suggestions, edits])
+  }, [suggestions, edits, errors])
+
+  const approveSelected = useCallback(() => {
+    if (actionLock.current) return 0
+    const eligible = filesRef.current.filter(file => selectedRef.current.has(file.id) && file.supported &&
+      !errors[file.id] && (suggestions[file.id] || edits[file.id]))
+    const pending = eligible.filter(file => !reviewed.has(file.id))
+    setReviewed(current => new Set([...current, ...pending.map(file => file.id)]))
+    setPlan(null)
+    const skipped = selectedRef.current.size - eligible.length
+    setMessage(`已确认 ${pending.length} 项当前分类与名称。${skipped ? `${skipped} 项尚未分析或存在未处理错误，请先分析或编辑。` : '生成副本前仍需核对整理计划并独立勾选确认。'}`)
+    return pending.length
+  }, [suggestions, edits, errors, reviewed])
 
   const approveOrdinary = useCallback((ids?: string[]) => {
     const candidates = ids ?? filesRef.current.map(file => file.id)
-    const eligible = candidates.filter(id => Boolean(suggestions[id]) && !suggestions[id].review_required && !edits[id])
+    const eligible = candidates.filter(id => filesRef.current.some(file => file.id === id && file.supported) && !errors[id] && Boolean(suggestions[id]) && !suggestions[id].review_required && !edits[id])
     setReviewed(current => new Set([...current, ...eligible]))
     setPlan(null)
     return eligible.length
-  }, [suggestions, edits])
+  }, [suggestions, edits, errors])
 
   function mergeJob(state: Job) {
     const results = state.results ?? []
@@ -355,9 +363,9 @@ export function useWorkspace() {
       setError('请先选择要整理的文件。')
       return
     }
-    const notApproved = [...selected].filter(id => !reviewed.has(id))
+    const notApproved = [...selected].filter(id => !reviewed.has(id) || errors[id] || !suggestions[id] && !edits[id])
     if (notApproved.length) {
-      setError(`还有 ${notApproved.length} 个所选文件未逐项确认或通过普通建议批量确认。`)
+      setError(`还有 ${notApproved.length} 个所选文件未逐项确认或通过一键审核，请先处理错误并确认当前分类与名称。`)
       return
     }
     await guard('plan', async () => {
@@ -539,7 +547,7 @@ export function useWorkspace() {
   return {
     config, online, refreshConfig, workspace, selected, setSelected, activeId, setActiveId, suggestions, edits,
     errors, job, plan, setPlan, execution, history, busy, error, setError, message, setMessage,
-    scan, rescan, toggle, edit, reviewed, approve, approveOrdinary, analyze, cancel,
+    scan, rescan, toggle, edit, reviewed, approve, approveSelected, approveOrdinary, analyze, cancel,
     createPlan, execute, checkExecution, resumeAnalysis, historyAction, refreshHistory,
   }
 }

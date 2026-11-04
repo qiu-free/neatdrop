@@ -95,7 +95,7 @@ export function FileGrid({ workspaceId, files, suggestions, edits, selected, act
       return <li key={file.id} className={`file-grid-card${active ? ' is-active' : ''}${checked ? ' is-selected' : ''}`}>
         <button type="button" className="file-grid-view" aria-label={`查看 ${file.name}`} aria-current={active ? 'true' : undefined}
           ref={button => { if (button) buttons.current.set(file.id, button); else buttons.current.delete(file.id) }}
-          onClick={() => onActive(file.id)} onKeyDown={event => navigate(event, index)}>
+          onClick={event => { event.currentTarget.focus({ preventScroll: true }); onActive(file.id) }} onKeyDown={event => navigate(event, index)}>
           {isImage ? <Thumbnail key={identity} workspaceId={workspaceId} file={file} identity={identity} /> : <span className="file-grid-preview file-grid-document"><FileIcon file={file} /><span>{file.extension.slice(1).toUpperCase() || '文件'}</span></span>}
           <span className="file-grid-info"><strong title={file.name}>{file.name}</strong><span className="file-grid-category" title={label}>{label}</span></span>
           <span className="file-grid-view-label"><Eye size={14} aria-hidden="true" />{active ? '正在查看' : '查看详情'}</span>

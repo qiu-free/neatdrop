@@ -57,6 +57,7 @@ function makeState(overrides: Record<string, unknown> = {}) {
     edit: vi.fn(),
     approve: vi.fn(),
     approveOrdinary: vi.fn(),
+    approveSelected: vi.fn(),
     analyze: vi.fn(),
     scan: vi.fn(),
     rescan: vi.fn(),
@@ -170,9 +171,14 @@ it('excludes approved review-required files from the pending review filter and c
   expect(screen.queryByRole('row', { name: /a\.md/ })).not.toBeInTheDocument()
 })
 
-it('opens the narrow inspector as a keyboard drawer and restores focus after Escape', () => {
-  setWidth(390)
+it.each([390, 1440])('opens details only after viewing a file at width %s and restores focus after Escape', width => {
+  setWidth(width)
   render(<Workbench state={makeState()} />)
+
+  expect(screen.queryByLabelText('文件详情')).not.toBeInTheDocument()
+  expect(api).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('checkbox', { name: '选择 a.md' }))
+  expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
 
   const trigger = screen.getByRole('row', { name: /a\.md/ })
   trigger.focus()
@@ -184,7 +190,7 @@ it('opens the narrow inspector as a keyboard drawer and restores focus after Esc
   const next = screen.getByRole('button', { name: '下一个文件' })
   next.focus()
   fireEvent.keyDown(next, { key: 'Tab', shiftKey: true })
-  expect(screen.getByRole('button', { name: '按当前名称确认' })).toHaveFocus()
+  expect(screen.getByText('识别详情与读取范围')).toHaveFocus()
   fireEvent.keyDown(drawer, { key: 'Escape' })
 
   expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
@@ -307,6 +313,7 @@ it('keeps the detail shell mounted and moves navigation focus without scrolling 
     return <Workbench state={makeState({ activeId, setActiveId })} />
   }
   render(<Harness />)
+  fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
   await screen.findByText('Stable preview')
   const shell = screen.getByLabelText('文件详情')
   shell.scrollTop = 75
@@ -322,11 +329,76 @@ it('keeps the detail shell mounted and moves navigation focus without scrolling 
 it('opens the fixed mobile detail drawer without scrolling the background into view', () => {
   setWidth(390)
   render(<Workbench state={makeState()} />)
-  const inspector = document.getElementById('file-details')!
+  const original = Element.prototype.scrollIntoView
   const scrollIntoView = vi.fn()
-  inspector.scrollIntoView = scrollIntoView
-  fireEvent.click(screen.getByRole('button', { name: '查看当前文件详情 ↓' }))
+  Element.prototype.scrollIntoView = scrollIntoView
+  fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
   expect(screen.getByRole('dialog', { name: '文件详情' })).toBeInTheDocument()
   expect(scrollIntoView).not.toHaveBeenCalled()
   expect(screen.getByRole('button', { name: '关闭文件详情' })).toHaveFocus()
+  Element.prototype.scrollIntoView = original
+})
+
+it('makes selected pending review the main action and keeps bulk edits inside collapsed more actions', () => {
+  const current = makeState({ suggestions: { a: reviewSuggestion, b: { ...reviewSuggestion, file_id: 'b' } }, selected: new Set(['a', 'c']) })
+  render(<Workbench state={current} />)
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ }))
+  expect(screen.getByText(/确认已选文件的当前分类与名称.*筛选外已选项和待复核候选/)).toBeInTheDocument()
+  expect(screen.getByText(/1 项尚未分析或存在未处理错误/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '一键审核已选项（1）' }))
+  expect(current.approveSelected).toHaveBeenCalledOnce()
+  expect(screen.getByRole('combobox', { name: '批量分类' })).not.toBeVisible()
+  expect(screen.getByRole('button', { name: /重新分析所选/ })).not.toBeVisible()
+  fireEvent.click(screen.getByText('更多操作'))
+  expect(screen.getByRole('combobox', { name: '批量分类' })).toBeVisible()
+  expect(screen.getByRole('button', { name: /重新分析所选/ })).toBeVisible()
+})
+
+it('disables approval once all eligible selected files are confirmed', () => {
+  render(<Workbench state={makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })} />)
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ }))
+  expect(screen.getByRole('button', { name: '一键审核已选项（0）' })).toBeDisabled()
+  expect(screen.getByText(/已确认 1 项 · 剩余待确认 0 项/)).toBeInTheDocument()
+})
+
+it('closes a desktop drawer on page navigation and results without reopening it when returning', () => {
+  const current = makeState()
+  const { rerender } = render(<Workbench state={current} active />)
+  fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
+  expect(screen.getByRole('dialog', { name: '文件详情' })).toBeInTheDocument()
+  rerender(<Workbench state={current} active={false} />)
+  expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
+  expect(document.body.style.overflow).not.toBe('hidden')
+  rerender(<Workbench state={current} active />)
+  expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤', hidden: true })).getByRole('button', { name: /结果/, hidden: true }))
+  expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
+})
+
+it('closes with the backdrop, inerts the background and retains the same cached inspector on reopening', async () => {
+  vi.mocked(api).mockResolvedValue({ text: 'Cached preview', sample: 'text' })
+  const { container } = render(<Workbench state={makeState()} />)
+  const trigger = screen.getByRole('row', { name: /a\.md/ })
+  trigger.focus()
+  fireEvent.click(trigger)
+  await screen.findByText('Cached preview')
+  const inspector = screen.getByRole('dialog', { name: '文件详情' })
+  expect(container).toHaveAttribute('inert')
+  fireEvent.click(screen.getByRole('button', { name: '关闭详情遮罩' }))
+  expect(trigger).toHaveFocus()
+  expect(container).not.toHaveAttribute('inert')
+  fireEvent.click(trigger)
+  expect(screen.getByRole('dialog', { name: '文件详情' })).toBe(inspector)
+  expect(screen.getByText('Cached preview')).toBeInTheDocument()
+  expect(api).toHaveBeenCalledTimes(1)
+})
+
+it('offers a library entry after execution completes', () => {
+  const onLibrary = vi.fn()
+  const execution = { plan_id: 'p', status: 'completed', processed: 1, total: 1, current_file: null, items: [], error: null }
+  render(<Workbench state={makeState({ execution })} onLibrary={onLibrary} />)
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /结果/ }))
+  fireEvent.click(screen.getByRole('button', { name: '查看资料库' }))
+  expect(onLibrary).toHaveBeenCalledOnce()
 })

@@ -6,7 +6,7 @@
   "authorization": "CC0-1.0; no user files, private records, network, downloads or model inference",
   "scope": "Compare actual analyze_local with frozen 3b041c1 on synthetic development data.\n\nNo inference, downloads, network, user paths or decoding are performed. Inputs\nare deterministic extracted-text/OCR payloads. Format byte support is verified\nseparately; a parsed_content variant only checks extension-independent purpose.\nRelated variants share a group and must never be counted as independent samples.\n",
   "baseline_commit": "3b041c13352027b9bbb169ec0bfa56087cac2683",
-  "current_head": "a382bd127673502e1335981e2085d6bb6fe91a00",
+  "current_head": "373e57b785fda75e5b0a5ec82d34cdee1f390056",
   "semantics": "disabled by NEATDROP_SEMANTIC_CANDIDATES=0; no model inference",
   "manifest_sha256": {
     "v7": "9d7839f96a4471a47a7221e3c96cab58d6b1d39bb96ed30b8d2141e4609ce053",
@@ -30,7 +30,7 @@
   },
   "baseline_profiles_sha256": "a920da2d9a836eba75c1d7dabe755eff666c598704dc5896ae87326233bdb46c",
   "current_engine_sha256": {
-    "analysis.py": "7f964cb7dadf9228d3b9f033b4da0fcb673e77830e1a7bcc4199c8ff3b38f28e",
+    "analysis.py": "9235398716eb07ad1407f61ca23741fe94eebbb77318aaeb9e25c60dd4e53355",
     "classifier.py": "2ff30094f46eb723f0d0d8156fbd0c9b7acaf54368ca064a8d58a49f511a35be",
     "decision.py": "e28df51b6f0baff031b9b9f1b3b82093e5d8bc15d8a20efc58a0ba25fb90e5fb",
     "content_quality.py": "f82f41bbe67a527c38407d797a9af4ec11c41055c2757537dd6ef91544317f8b",

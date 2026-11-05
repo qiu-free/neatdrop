@@ -223,11 +223,15 @@ def withdraw_windows(target, withdrawn, expected_hash, expected_identity=None):
             raise SafetyError("TARGET_CHANGED")
         filename = str(withdrawn.absolute()).encode("utf-16-le")
         offset = RenameInfo.FileName.offset
-        buffer = ctypes.create_string_buffer(max(ctypes.sizeof(RenameInfo), offset + len(filename)))
+        # Reserve a terminating WCHAR beyond FileNameLength. Some Windows
+        # rename paths inspect it; allocator tail bytes must never become a
+        # filename suffix or make a valid non-replacing rename fail.
+        buffer_size = max(ctypes.sizeof(RenameInfo), offset + len(filename) + ctypes.sizeof(wintypes.WCHAR))
+        buffer = ctypes.create_string_buffer(buffer_size)
         info = ctypes.cast(buffer, ctypes.POINTER(RenameInfo)).contents
         info.ReplaceIfExists = False
         info.RootDirectory = None
         info.FileNameLength = len(filename)
         ctypes.memmove(ctypes.addressof(buffer) + offset, filename, len(filename))
-        if not kernel.SetFileInformationByHandle(msvcrt.get_osfhandle(stream.fileno()), 3, buffer, len(buffer)):
+        if not kernel.SetFileInformationByHandle(msvcrt.get_osfhandle(stream.fileno()), 3, buffer, buffer_size):
             raise OSError(ctypes.get_last_error(), "Non-replacing undo rename failed")

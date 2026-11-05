@@ -103,6 +103,6 @@ def decide(rule_result, semantic=None, sampling=None):
     result['review_required'] = level != 'ordinary'
     result['decision_level'] = level
     result['engine_warnings'] = list(dict.fromkeys(warnings))
-    result['engine_versions'] = {'rules': '7', 'decision': '2', 'quality': '5_heuristic_not_calibrated',
+    result['engine_versions'] = {'rules': '8', 'decision': '2', 'quality': '5_heuristic_not_calibrated',
                                  'semantic': semantics.get('version', 'unavailable')}
     return result

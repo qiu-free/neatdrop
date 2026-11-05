@@ -38,6 +38,23 @@ it('previews the actual copy directory and keeps image zoom scoped to the active
 
 beforeEach(() => { vi.mocked(api).mockReset() })
 
+it('explains title and field limitations without hiding the required review', async () => {
+  vi.mocked(api).mockResolvedValue({ text: '空白票据', sample: 'text' })
+  const onApprove = vi.fn()
+  render(<Inspector workspaceId="w" file={file} suggestion={{ file_id: 'a', name: 'first.md',
+    category: 'finance', subcategory: 'invoice', evidence: '电子发票标题', review_required: true,
+    decision_level: 'candidate', provider: 'local_rules', sample: 'text',
+    review_reasons: ['title_only', 'required_fields_missing'],
+  }} onEdit={() => undefined} onApprove={onApprove} />)
+  expect(screen.getByText('待复核候选')).toBeVisible()
+  fireEvent.click(screen.getByText('识别详情与读取范围'))
+  expect(screen.getByText(/目前仅有标题线索，正文缺少独立支持/)).toBeVisible()
+  expect(screen.getByText(/缺少可核对的关键字段，请结合原文件确认/)).toBeVisible()
+  expect(onApprove).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: '逐项确认此项' })).toBeEnabled()
+  await screen.findByText('空白票据')
+})
+
 it('shows reading limitations before technical evidence and does not auto approve', async () => {
   vi.mocked(api).mockResolvedValue({ text: 'Quality preview', sample: 'text' })
   const onApprove = vi.fn()

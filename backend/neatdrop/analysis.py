@@ -155,21 +155,33 @@ def analyze_local(record, payload, cancelled=None):
     image_input = payload.get('local_image') or 'image' in payload
     quality = assess_content(payload, bool(image_input))
     if image_input:
-        classification = fuse_image(record['name'], text, payload.get('visual', []), payload.get('warnings', []))
+        classification = fuse_image(record['name'], text, payload.get('visual', []), payload.get('warnings', []), payload.get('sampling'))
     else:
-        classification = classify_text(record['name'], text)
+        classification = classify_text(record['name'], text, payload.get('sampling'))
     semantics = local_semantic(text, cancelled=cancelled) if cancelled else local_semantic(text)
     classification = apply_content_quality(classification, quality)
     classification = decide(classification, semantics, payload.get('sampling'))
     for item in classification.get('evidence_items', []):
+        start_hint, end_hint = item.pop('_sample_start', None), item.pop('_sample_end', None)
+        verified_hint = (isinstance(start_hint, int) and isinstance(end_hint, int) and
+                         0 <= start_hint < end_hint <= len(text) and text[start_hint:end_hint] == item['text'])
         if item.get('source') == 'ocr':
-            line = next((line for line in payload.get('ocr_lines', [])
-                         if item['text'].casefold() in line.get('text', '').casefold()), None)
+            if verified_hint:
+                line, cursor = None, 0
+                for row in payload.get('ocr_lines', []):
+                    row_text = row.get('text', '')
+                    if cursor <= start_hint < end_hint <= cursor + len(row_text):
+                        line = row
+                        break
+                    cursor += len(row_text) + 1
+            else:
+                line = next((line for line in payload.get('ocr_lines', [])
+                             if item['text'].casefold() in line.get('text', '').casefold()), None)
             if line and line.get('box'):
                 item['box'] = copy.deepcopy(line['box'])
         elif item.get('source') in {'title', 'body'}:
             # Map sampled text evidence back to original character intervals.
-            interval = _evidence_interval(text, item['text'])
+            interval = (start_hint, end_hint) if verified_hint else _evidence_interval(text, item['text'])
             if interval is None:
                 continue
             offset, evidence_end = interval
@@ -224,7 +236,7 @@ def analyze_local(record, payload, cancelled=None):
     return {**classification, "file_id": record["id"], "name": name, 'evidence': evidence,
             "review_required": review, "provider": 'offline_models' if image_input else 'offline_semantic' if any(
                 item.get('source') == 'semantic' for item in classification.get('evidence_items', [])) else "local_rules",
-            "sample": payload["sample"], "rule_version": "7"}
+            "sample": payload["sample"], "rule_version": "8"}
 
 
 class AnalysisJobs:

@@ -22,6 +22,8 @@ export const reviewReasons: Record<string, string> = {
   content_quality_limited: '提取内容质量受限，请结合原文件核对',
   ocr_quality_limited: '部分图片文字识别不够可靠',
   purpose_uncalibrated: '此用途为新增识别候选，需要人工确认',
+  title_only: '目前仅有标题线索，正文缺少独立支持',
+  required_fields_missing: '缺少可核对的关键字段，请结合原文件确认',
 }
 export type Page = 'workbench' | 'library' | 'history' | 'help'
 export type Filter = 'all' | 'unreviewed' | 'review' | 'failed' | 'selected'

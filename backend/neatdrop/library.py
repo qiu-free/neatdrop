@@ -115,7 +115,7 @@ class ArchiveLibrary:
             items.append(entry)
         return {'items': items, 'truncated': len(records) > MAX_ENTRIES}
 
-    def preview(self, identifier):
+    def descriptor(self, identifier):
         if not valid_hex(identifier, 64):
             raise SafetyError('LIBRARY_ENTRY_NOT_FOUND')
         for entry, item, identity in self._records():
@@ -124,18 +124,25 @@ class ArchiveLibrary:
             availability = self._availability(item, identity)
             if availability != 'available':
                 raise SafetyError('LIBRARY_ENTRY_' + availability.upper())
+            return entry, item, identity
+        raise SafetyError('LIBRARY_ENTRY_NOT_FOUND')
+
+    def read(self, identifier, *, local=False, cancelled=None, reject_hardlinks=False):
+        entry, item, identity = self.descriptor(identifier)
+        try:
             record = {'name': item['target'], 'extension': PurePosixPath(item['target']).suffix,
                       'sha256': item['sha256'], 'size': item['size']}
-            try:
-                # The identity/size/hash validation and bounded byte read share
-                # one locked handle; prepare_input never reopens to decode.
-                return prepare_input(self.ws, record, expected_identity=identity)
-            except FileNotFoundError as exc:
-                raise SafetyError('LIBRARY_ENTRY_MISSING') from exc
-            except OSError as exc:
+            kwargs = {'reject_hardlinks': True} if reject_hardlinks else {}
+            return prepare_input(self.ws, record, local=local, cancelled=cancelled, expected_identity=identity, **kwargs)
+        except FileNotFoundError as exc:
+            raise SafetyError('LIBRARY_ENTRY_MISSING') from exc
+        except OSError as exc:
+            raise SafetyError('LIBRARY_ENTRY_CHANGED') from exc
+        except SafetyError as exc:
+            if exc.code in {'LINK_FORBIDDEN', 'UNSAFE_PATH'}:
                 raise SafetyError('LIBRARY_ENTRY_CHANGED') from exc
-            except SafetyError as exc:
-                if exc.code in {'LINK_FORBIDDEN', 'UNSAFE_PATH'}:
-                    raise SafetyError('LIBRARY_ENTRY_CHANGED') from exc
-                raise
-        raise SafetyError('LIBRARY_ENTRY_NOT_FOUND')
+            raise
+
+    def preview(self, identifier):
+        # Preserve the public preview behavior and original error codes.
+        return self.read(identifier)

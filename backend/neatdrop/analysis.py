@@ -28,20 +28,22 @@ from .content_quality import assess_content, apply_content_quality
 PREPROCESS_SLOTS = BoundedSemaphore(2)
 
 
-def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
+def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False):
     if not PREPROCESS_SLOTS.acquire(blocking=False):
         raise SafetyError('PARSER_BUSY')
     try:
-        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity)
+        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity, reject_hardlinks=reject_hardlinks)
     finally:
         PREPROCESS_SLOTS.release()
 
 
-def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
+def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False):
     with protect_workspace(ws):
         path = checked_path(ws.root, record["name"])
         with locked_reader(path) as stream:
             before = os.fstat(stream.fileno())
+            if reject_hardlinks and before.st_nlink != 1:
+                raise SafetyError('LIBRARY_ENTRY_CHANGED')
             if expected_identity is not None and (
                 not stat.S_ISREG(before.st_mode) or before.st_size != record['size']
                 or before.st_size > MAX_FILE or file_identity(stream.fileno()) != expected_identity

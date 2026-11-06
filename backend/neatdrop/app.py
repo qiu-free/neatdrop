@@ -77,12 +77,30 @@ class Confirmation(Body):
     confirmed: bool = False
 
 
+class GraphJobBody(Body):
+    entry_ids: list[str] = Field(min_length=1, max_length=50)
+    confirmed: bool = False
+
+
+class GraphRevision(Body):
+    revision: int = Field(ge=0, lt=2**53)
+
+
+class GraphRelationBody(GraphRevision):
+    source: str = Field(pattern=r'^[a-f0-9]{64}$')
+    target: str = Field(pattern=r'^[a-f0-9]{64}$')
+    kind: Literal['related', 'reference', 'attachment', 'version']
+    candidate_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+
 def create_app():
     tasks = set()
 
     @asynccontextmanager
     async def lifespan(app):
         yield
+        for session in app.state.sessions.values():
+            session.graph_jobs.cancel_all()
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -122,6 +140,7 @@ def create_app():
             for token, old in list(app.state.sessions.items()):
                 if time.monotonic() - old.created > 8 * 3600:
                     old.jobs.cancel_all()
+                    old.graph_jobs.cancel_all()
                     app.state.sessions.pop(token, None)
             if len(app.state.sessions) >= 64:
                 raise HTTPException(429, "SESSION_LIMIT")
@@ -252,6 +271,62 @@ def create_app():
         if not body.confirmed:
             raise SafetyError("CONFIRMATION_REQUIRED")
         return granted(request, identifier)[1].undo(transaction_id)
+
+    def graph_service(request, identifier):
+        from .graph import GraphService
+        return GraphService(granted(request, identifier)[1])
+
+    def graph_result(action):
+        try:
+            return action()
+        except SafetyError as exc:
+            if exc.code in {'GRAPH_JOB_NOT_FOUND', 'GRAPH_RELATION_NOT_FOUND', 'GRAPH_ENTRY_NOT_FOUND'}:
+                return JSONResponse({'code': exc.code}, status_code=404)
+            raise
+
+    @app.get('/api/v1/workspaces/{identifier}/graph')
+    def graph_listing(identifier: str, request: Request):
+        return graph_service(request, identifier).listing()
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/jobs')
+    async def graph_start_job(identifier: str, body: GraphJobBody, request: Request):
+        service = graph_service(request, identifier)
+        manager = current(request).graph_jobs
+        job = await asyncio.to_thread(manager.create, service, body.entry_ids, body.confirmed)
+        task = asyncio.create_task(manager.run(job['id']))
+        tasks.add(task)
+        task.add_done_callback(tasks.discard)
+        return job
+
+    @app.get('/api/v1/workspaces/{identifier}/graph/jobs/{job_id}')
+    def graph_get_job(identifier: str, job_id: str, request: Request):
+        service = graph_service(request, identifier)
+        return graph_result(lambda: current(request).graph_jobs.get(job_id, service))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/jobs/{job_id}/cancel')
+    def graph_cancel_job(identifier: str, job_id: str, body: Body, request: Request):
+        service = graph_service(request, identifier)
+        return graph_result(lambda: current(request).graph_jobs.cancel(job_id, service))
+
+    @app.get('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}/evidence')
+    def graph_evidence(identifier: str, relation_id: str, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).evidence(relation_id))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/relations')
+    def graph_add_relation(identifier: str, body: GraphRelationBody, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).add(**body.model_dump()))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}/dismiss')
+    def graph_dismiss(identifier: str, relation_id: str, body: GraphRevision, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).dismiss(relation_id, body.revision))
+
+    @app.delete('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}')
+    def graph_delete_relation(identifier: str, relation_id: str, body: GraphRevision, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).delete(relation_id, body.revision))
+
+    @app.delete('/api/v1/workspaces/{identifier}/graph/index')
+    def graph_clear(identifier: str, body: GraphRevision, request: Request):
+        return graph_service(request, identifier).clear(body.revision)
 
     @app.post("/api/v1/workspaces/{identifier}/transactions/{transaction_id}/acknowledge")
     def acknowledge(identifier: str, transaction_id: str, body: Confirmation, request: Request):

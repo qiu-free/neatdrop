@@ -51,7 +51,7 @@ class GraphService:
     def read(self, identifier, *, local=True, cancelled=None):
         try:
             with protect_workspace(self.ws):
-                return self.library.read(identifier, local=local, cancelled=cancelled, reject_hardlinks=True)
+                return self.library.read(identifier, local=local, cancelled=cancelled, reject_hardlinks=True, use_vision=False)
         except SafetyError as exc:
             if exc.code.startswith('LIBRARY_ENTRY_'):
                 raise SafetyError(exc.code.replace('LIBRARY_', 'GRAPH_')) from exc

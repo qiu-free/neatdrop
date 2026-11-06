@@ -127,12 +127,14 @@ class ArchiveLibrary:
             return entry, item, identity
         raise SafetyError('LIBRARY_ENTRY_NOT_FOUND')
 
-    def read(self, identifier, *, local=False, cancelled=None, reject_hardlinks=False):
+    def read(self, identifier, *, local=False, cancelled=None, reject_hardlinks=False, use_vision=True):
         entry, item, identity = self.descriptor(identifier)
         try:
             record = {'name': item['target'], 'extension': PurePosixPath(item['target']).suffix,
                       'sha256': item['sha256'], 'size': item['size']}
             kwargs = {'reject_hardlinks': True} if reject_hardlinks else {}
+            if not use_vision:
+                kwargs['use_vision'] = False
             return prepare_input(self.ws, record, local=local, cancelled=cancelled, expected_identity=identity, **kwargs)
         except FileNotFoundError as exc:
             raise SafetyError('LIBRARY_ENTRY_MISSING') from exc

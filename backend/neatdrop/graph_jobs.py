@@ -31,7 +31,9 @@ class GraphJobs:
         descriptors = {key: service.descriptor(key) for key in entry_ids}
         if sum(item['size'] for _, item, _ in descriptors.values()) > 200 * 1024 * 1024 or any(item['size'] > 20 * 1024 * 1024 for _, item, _ in descriptors.values()):
             raise SafetyError('GRAPH_BATCH_LIMIT')
-        if len(set(state['features']) | set(entry_ids)) > 1000:
+        records, _ = service.records()
+        trusted = {key for key, (_, _, identity) in records.items() if identity is not None}
+        if len((set(state['features']) & trusted) | set(entry_ids)) > 1000:
             raise SafetyError('GRAPH_STORE_LIMIT')
         with _LOCK, self.lock:
             if service.store.key in _ACTIVE:
@@ -128,7 +130,8 @@ class GraphJobs:
                 records, _ = service.records()
                 if any(key not in records or records[key][2] != features[key]['identity'] for key in features):
                     raise SafetyError('GRAPH_ENTRY_CHANGED')
-                state['features'] = {key: f for key, f in state['features'].items() if key in records}
+                state['features'] = {key: f for key, f in state['features'].items()
+                                     if key in records and records[key][2] is not None}
                 state['features'].update(features)
                 state['relations'] = [r for r in state['relations'] if r['source'] in records and r['target'] in records]
             # Serialize cancellation against final commit; a completed publish

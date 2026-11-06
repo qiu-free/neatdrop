@@ -28,16 +28,16 @@ from .content_quality import assess_content, apply_content_quality
 PREPROCESS_SLOTS = BoundedSemaphore(2)
 
 
-def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False):
+def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False, use_vision=True):
     if not PREPROCESS_SLOTS.acquire(blocking=False):
         raise SafetyError('PARSER_BUSY')
     try:
-        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity, reject_hardlinks=reject_hardlinks)
+        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity, reject_hardlinks=reject_hardlinks, use_vision=use_vision)
     finally:
         PREPROCESS_SLOTS.release()
 
 
-def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False):
+def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False, use_vision=True):
     with protect_workspace(ws):
         path = checked_path(ws.root, record["name"])
         with locked_reader(path) as stream:
@@ -59,10 +59,10 @@ def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity
                 raise SafetyError('LIBRARY_ENTRY_CHANGED')
     if len(data) > MAX_FILE or hashlib.sha256(data).hexdigest() != record["sha256"]:
         raise SafetyError('LIBRARY_ENTRY_CHANGED' if expected_identity is not None else 'SOURCE_CHANGED')
-    return decode_input(data, record['extension'], local, cancelled)
+    return decode_input(data, record['extension'], local, cancelled, use_vision=use_vision)
 
 
-def decode_input(data, extension, local=False, cancelled=None):
+def decode_input(data, extension, local=False, cancelled=None, *, use_vision=True):
     """Decode already bounded, verified bytes without opening another file."""
     ext = extension.lower()
     if ext in {".png", ".jpg", ".jpeg", ".webp"}:
@@ -77,7 +77,8 @@ def decode_input(data, extension, local=False, cancelled=None):
                     image = ImageOps.exif_transpose(original)
                     if local:
                         from .offline import analyze_image_bounded
-                        extracted = analyze_image_bounded(image, cancelled=cancelled)
+                        vision_option = {'use_vision': False} if not use_vision else {}
+                        extracted = analyze_image_bounded(image, cancelled=cancelled, **vision_option)
                         return {**extracted, 'sample': extracted.get('sampling', {}).get('summary', '本地 OCR + 视觉候选；未联网'), 'local_image': True}
                     image.thumbnail((1024, 1024))
                     image = image.convert("RGB")

@@ -65,3 +65,64 @@ def test_archive_hardlink_cannot_supply_graph_evidence(archived, tmp_path):
     item = next(i for i in data['items'] if i['id'] == relation['source'])
     os.link(executor.ws.root / item['target'], tmp_path / 'alias.md')
     assert client.get(prefix + '/relations/' + relation['id'] + '/evidence').status_code == 409
+
+def test_full_historical_index_allows_replacement_after_withdrawal(archived):
+    import copy
+    from neatdrop.graph import GraphService
+    from neatdrop.graph_matching import text_features
+    from neatdrop.journal import stamp
+    from test_graph_api_v9 import wait_job
+    client, prefix, executor, plan = archived
+    service = GraphService(executor)
+    old_id = client.get(prefix).json()['items'][0]['id']
+    _, item, identity = service.descriptor(old_id)
+    feature = text_features('quantum photon polarization experiment')
+    feature.update(sha256=item['sha256'], identity=identity, updated=stamp())
+    historical = {f'{i:064x}': copy.deepcopy(feature) for i in range(999)}
+    historical[old_id] = feature
+    service.store.commit(0, lambda state: state['features'].update(historical))
+    assert len(service.store.load()[0]['features']) == 1000
+    assert executor.undo(plan['id'])['status'] == 'undone'
+    (executor.ws.root / 'replacement.md').write_text('Forest habitat migration seasonal bird population survey', encoding='utf-8')
+    record = next(r for r in executor.ws.scan() if r['name'] == 'replacement.md')
+    replacement = executor.plan([{'file_id': record['id'], 'name': 'replacement.md', 'category': 'study', 'subcategory': 'notes'}])
+    assert executor.execute(replacement['id'], replacement['digest'], True)['status'] == 'completed'
+    new_id = client.get(prefix).json()['items'][0]['id']
+    response = client.post(prefix + '/jobs', json={'entry_ids': [new_id], 'confirmed': True})
+    assert response.status_code == 200
+    assert wait_job(client, prefix, response.json())['status'] == 'completed'
+    state, available = service.store.load()
+    assert available
+    assert set(state['features']) == {new_id}
+    assert state['revision'] == 2
+
+
+def test_graph_image_reads_skip_vision_but_keep_ocr_cancellation_and_classifier_default(archived, monkeypatch):
+    from PIL import Image
+    from neatdrop import offline
+    from neatdrop.analysis import decode_input
+    from neatdrop.graph import GraphService
+    _, _, executor, _ = archived
+    image_path = executor.ws.root / 'diagram.png'
+    Image.new('RGB', (64, 64), 'white').save(image_path)
+    record = next(r for r in executor.ws.scan() if r['name'] == 'diagram.png')
+    plan = executor.plan([{'file_id': record['id'], 'name': 'diagram.png', 'category': 'study', 'subcategory': 'notes'}])
+    assert executor.execute(plan['id'], plan['digest'], True)['status'] == 'completed'
+    service = GraphService(executor)
+    entry = next(i for i in service.listing()['items'] if i['name'] == 'diagram.png')
+    calls = []
+    cancelled = lambda: False
+    def bounded(image, *, cancelled=None, use_ocr=True, use_vision=True):
+        calls.append((use_ocr, use_vision, cancelled))
+        return {'text': 'Quantum photon diagram labels', 'warnings': [], 'visual': []}
+    monkeypatch.setattr(offline, 'analyze_image_bounded', bounded)
+    payload = service.read(entry['id'], cancelled=cancelled)
+    assert payload['text'] == 'Quantum photon diagram labels'
+    assert calls == [(True, False, cancelled)]
+    # The normal classification path still enables visual inference by default;
+    # preview must not invoke offline OCR/vision at all.
+    decode_input(image_path.read_bytes(), '.png', local=True)
+    assert calls[-1] == (True, True, None)
+    before = len(calls)
+    assert 'image' in executor.library_preview(entry['id'])
+    assert len(calls) == before

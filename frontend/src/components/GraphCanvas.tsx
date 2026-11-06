@@ -12,7 +12,7 @@ export function GraphCanvas({ nodes, edges, onOpen, onRelation, view, viewport, 
     let live = true, instance: cytoscape.Core | null = null, observer: ResizeObserver | null = null
     import('cytoscape').then(({ default: cytoscape }) => {
       if (!live || !host.current) return
-      instance = cytoscape({ container: host.current, elements: [], minZoom: .2, maxZoom: 2.8, wheelSensitivity: .2, style: [
+      instance = cytoscape({ container: host.current, elements: [], minZoom: .2, maxZoom: 2.8, style: [
         { selector: 'node', style: { label: 'data(label)', color: '#e6eaf8', 'font-size': 13, 'font-family': 'system-ui, sans-serif', 'text-wrap': 'wrap', 'text-max-width': '170px', width: 'data(size)', height: 'data(size)', padding: 4, 'background-color': 'data(color)', 'border-color': '#ffffff', 'border-opacity': .34, 'border-width': 1, shape: 'ellipse', 'text-valign': 'center', 'text-halign': 'center', 'text-background-color': '#0d0d16', 'text-background-opacity': .82, 'text-background-padding': 3 } },
         { selector: 'node[type="category"]', style: { color: '#ffffff', 'font-size': 16, 'font-weight': 'bold', 'border-width': 2, 'border-color': 'data(color)', 'text-valign': 'bottom', 'text-margin-y': 9, 'text-background-opacity': .95 } },
         { selector: 'node[type="subcategory"]', style: { color: '#f2f3fb', 'font-size': 14, 'border-width': 2, 'border-color': 'data(color)', 'text-valign': 'bottom', 'text-margin-y': 7, opacity: .9 } },

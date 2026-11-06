@@ -199,6 +199,7 @@ it('uses conservative duplicate label and enables clearing unavailable zero-coun
   const clear = screen.getByRole('button', { name: '清除本机索引' })
   expect(clear).toBeEnabled()
   fireEvent.click(clear)
+  expect(screen.getByText(/重建将替换不可读取的索引/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: '确认清除索引' }))
   await waitFor(() => expect(calls.some(call => call.url.endsWith('/index') && call.method === 'DELETE')).toBe(true))
 })

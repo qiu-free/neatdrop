@@ -24,7 +24,7 @@
 .graph-mode button[aria-pressed="true"] { color: #fff; background: #464668; box-shadow: 0 1px 4px #0006; }
 .graph-main { min-width: 0; background: #0d0d16; color: #e9e9f1; border: 0; border-radius: 0; }
 .graph-canvas-wrap { position: relative; min-height: 470px; overflow: hidden; }
-.graph-canvas { width: 100%; height: 500px; background-color: #0d0d16; background-image: radial-gradient(#34344b 1px, transparent 1px); background-size: 22px 22px; }
+.graph-canvas { position: relative; width: 100%; height: 500px; background-color: #0d0d16; background-image: radial-gradient(#34344b 1px, transparent 1px); background-size: 22px 22px; }
 .graph-canvas-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #ffffffa8; color: var(--muted); pointer-events: none; }
 .graph-hover-status { position: absolute; z-index: 2; left: 16px; bottom: 14px; max-width: calc(100% - 32px); margin: 0; padding: 7px 10px; overflow-wrap: anywhere; color: #f4f4fb; background: #171725e8; border: 1px solid #525271; border-radius: 5px; font-size: 12px; }
 .graph-canvas-tools { display: flex; position: absolute; z-index: 2; right: 12px; top: 12px; gap: 6px; }

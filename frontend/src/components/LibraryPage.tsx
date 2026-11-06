@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import type { ReactNode } from 'react'
 import { Archive, ChevronLeft, ChevronRight, CircleAlert, Eye, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, X } from 'lucide-react'
 import { api, bytes } from '../api'
 import { requestPreview } from '../previewRequests'
@@ -22,19 +23,20 @@ function displayDate(created: string) {
   return Number.isNaN(date.getTime()) ? '日期不可用' : date.toLocaleString('zh-CN')
 }
 
-export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session, onContentReady }: {
+export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session, onContentReady, onGraph }: {
   workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void; session?: LibrarySession
   onContentReady?: (workspaceId: string) => void
+  onGraph?: (entryId: string) => void
 }) {
   return <TaxonomyProvider taxonomy={taxonomy}>
     <section className="page-intro"><div><span className="intro-label">已生成的本机归档副本</span><h1>资料有序，随时查阅<span>。</span></h1><p>{workspace ? workspace.path : '选择资料所在的本机目录，查看净匣曾生成的归档副本。'}</p></div></section>
-    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} onContentReady={onContentReady} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
+    {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} onContentReady={onContentReady} onGraph={onGraph} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
     <p className="library-local-note"><ShieldCheck size={17} />文件保存在本机；预览由本地服务核验后读取，不上传云端。</p>
   </TaxonomyProvider>
 }
 
-function LibraryContent({ workspace, history, session, onContentReady }: {
-  workspace: Workspace; history: Transaction[]; session?: LibrarySession; onContentReady?: (workspaceId: string) => void
+function LibraryContent({ workspace, history, session, onContentReady, onGraph }: {
+  workspace: Workspace; history: Transaction[]; session?: LibrarySession; onContentReady?: (workspaceId: string) => void; onGraph?: (entryId: string) => void
 }) {
   const { categories, subcategories } = useTaxonomy()
   const [listing, setListing] = useState<LibraryListing | null>(null)
@@ -43,7 +45,8 @@ function LibraryContent({ workspace, history, session, onContentReady }: {
   // A different authorized workspace gets a fresh filter. Same-workspace page
   // revisits retain the filter, without retaining a mounted preview drawer.
   const [pageSession] = useState(() => {
-    if (session && session.workspace !== workspace.id) Object.assign(session, { workspace: workspace.id, category: 'all', query: '' })
+    if (session && session.workspace !== workspace.id) Object.assign(session, { workspace: workspace.id, category: 'all', query: '', focus: null })
+    if (session?.focus) Object.assign(session, { category: 'all', query: '' })
     return session
   })
   const [category, setCategory] = useSessionState(pageSession, 'category', 'all')
@@ -57,7 +60,7 @@ function LibraryContent({ workspace, history, session, onContentReady }: {
     setError('')
     setActiveId(null)
     api<LibraryListing>(`/workspaces/${encodeURIComponent(workspace.id)}/library`, undefined, controller.signal)
-      .then(value => { if (!controller.signal.aborted) setListing(value) })
+      .then(value => { if (!controller.signal.aborted) { setListing(value); if (pageSession?.focus) { const intent = pageSession.focus; pageSession.focus = null; if (value.items.some(item => item.id === intent)) setActiveId(intent) } } })
       .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : '无法读取资料库，请重试。') })
     return () => controller.abort()
   }, [workspace.id, workspace.path, history, reload])
@@ -80,13 +83,13 @@ function LibraryContent({ workspace, history, session, onContentReady }: {
       <dl className="library-paths"><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际路径</dt><dd>{item.target}</dd></div></dl>
     </li>)}</ul>}
     {listing?.truncated ? <p className="library-truncated"><CircleAlert size={17} />资料较多，仅显示最近的 1000 项。可在本机按实际路径查找其他归档副本。</p> : null}
-    {active ? <LibraryDrawer workspaceId={workspace.id} item={active} categoryLabel={categories[active.category] ?? '其他'} onClose={close} trigger={trigger.current} position={position} total={visible.length} onPrevious={position > 0 ? () => setActiveId(visible[position - 1].id) : undefined} onNext={position >= 0 && position < visible.length - 1 ? () => setActiveId(visible[position + 1].id) : undefined} /> : null}
+    {active ? <LibraryDrawer workspaceId={workspace.id} item={active} categoryLabel={categories[active.category] ?? '其他'} onClose={close} onGraph={onGraph ? () => { close(); onGraph(active.id) } : undefined} trigger={trigger.current} position={position} total={visible.length} onPrevious={position > 0 ? () => setActiveId(visible[position - 1].id) : undefined} onNext={position >= 0 && position < visible.length - 1 ? () => setActiveId(visible[position + 1].id) : undefined} /> : null}
   </section>
 }
 
-function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, trigger, position, total, onPrevious, onNext }: {
-  workspaceId: string; item: LibraryItem; categoryLabel: string; onClose: () => void; trigger: HTMLElement | null
-  position: number; total: number; onPrevious?: () => void; onNext?: () => void
+export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGraph, footer, content, trigger, position, total, onPrevious, onNext }: {
+  workspaceId: string; item: LibraryItem; categoryLabel: string; onClose: () => void; onGraph?: () => void; trigger: HTMLElement | null
+  footer?: ReactNode; content?: ReactNode; position: number; total: number; onPrevious?: () => void; onNext?: () => void
 }) {
   const panel = useRef<HTMLElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
@@ -145,8 +148,8 @@ function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, trigger, pos
       </section>
       {preview?.truncated ? <p className="library-preview-note">为控制本地读取量，当前显示部分内容。</p> : null}
       {preview?.sampling?.summary ? <p className="library-preview-note">{preview.sampling.summary}</p> : null}
-      <dl className="library-detail-metadata"><div><dt>生成日期</dt><dd>{displayDate(item.created)}</dd></div><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际相对路径</dt><dd>{item.target}</dd></div></dl>
-    </div><footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div><button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
+      <dl className="library-detail-metadata"><div><dt>生成日期</dt><dd>{displayDate(item.created)}</dd></div><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际相对路径</dt><dd>{item.target}</dd></div></dl>{content}
+    </div>{footer ? <div className="graph-drawer-actions">{footer}</div> : null}<footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div>{onGraph ? <button className="button secondary" onClick={onGraph}>在图谱中查看</button> : null}<button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
       // Move focus before React disables the boundary control; browsers may
       // otherwise leave focus on a disabled button or drop it to the body.
       if (position === 1 && document.activeElement === event.currentTarget) closeButton.current?.focus({ preventScroll: true })

@@ -245,3 +245,15 @@ it('removes pending input listeners after restoration so a later visit can resto
   await library.resolve()
   expect(window.scrollY).toBe(1600)
 })
+it('opens knowledge graph lazily from navigation and focuses its loaded heading', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: '知识图谱' }))
+  expect(screen.getByRole('button', { name: '知识图谱' })).toHaveAttribute('aria-current', 'page')
+  const heading = await screen.findByRole('heading', { name: /知识图谱/ })
+  await waitFor(() => expect(heading).toHaveFocus())
+  expect(screen.getByRole('button', { name: '返回工作台选择目录' })).toBeInTheDocument()
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/graph'))).toBe(false)
+})
+

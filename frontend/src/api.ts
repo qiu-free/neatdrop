@@ -107,6 +107,8 @@ export const errorMessages: Record<string, string> = {
   UNDO_CONFLICT: '无法安全撤回副本，可能被占用。现有文件保持不变。',
   UNDO_UNSUPPORTED: '当前平台未验证安全撤回，请手动管理归档副本。',
   ANALYSIS_BUSY: '已有分析任务运行，请先取消或等待完成。',
+  GRAPH_INDEX_HISTORICAL: '这项索引属于历史快照，文件状态需重新核验。', GRAPH_READ_FAILED: '无法安全读取此归档副本，请检查文件状态后重试。',
+  GRAPH_CONFIRMATION_REQUIRED: '请先确认只在本机读取与保存图谱特征。', GRAPH_BATCH_INVALID: '请选择 1 至 50 个可用归档副本。', GRAPH_BATCH_LIMIT: '所选资料总大小超出本地分析上限。', GRAPH_STORE_UNAVAILABLE: '本机图谱索引暂不可用。', GRAPH_STORE_LIMIT: '本机图谱索引已达到容量限制。', GRAPH_JOB_BUSY: '已有图谱分析任务运行，请先取消或等待完成。', GRAPH_JOB_LIMIT: '本机图谱任务数量已达上限。', GRAPH_JOB_NOT_FOUND: '图谱分析任务已不存在，请刷新后重试。', GRAPH_RELATION_NOT_FOUND: '这条关系已不存在，请刷新后重试。', GRAPH_ENTRY_NOT_FOUND: '归档副本已不存在或不属于当前目录。', GRAPH_ENTRY_CHANGED: '归档副本已变化或不能安全读取，未使用旧内容。', GRAPH_CONTENT_LIMITED: '文件内容提取受限，请结合归档副本人工核对。', GRAPH_INDEX_STALE: '索引版本已变化，请刷新关系图谱后重试。', GRAPH_REVISION_CONFLICT: '图谱已被其他操作更新，请刷新后重试。', GRAPH_SELF_LINK: '不能把文件关联到自身。', GRAPH_CANDIDATE_INVALID: '此候选已失效，请刷新后查看当前关系。', GRAPH_RELATION_IMMUTABLE: '归档事实关系不能手动删除。', GRAPH_CANCELLED: '图谱分析已取消。', GRAPH_NO_READABLE_FILES: '本次没有可安全读取的归档副本。', GRAPH_JOB_FAILED: '本机图谱分析未完成，请检查文件状态后重试。',
 }
 export function explain(code: string) { return errorMessages[code] ?? `操作未完成（${code}）` }
 export async function initSession() {
@@ -114,10 +116,11 @@ export async function initSession() {
   if (!response.ok) throw new Error('无法建立本地会话，请检查服务是否运行。')
   csrf = (await response.json()).csrf
 }
-export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: 'GET' | 'POST' | 'DELETE'): Promise<T> {
+  const requestMethod = method ?? (body === undefined ? 'GET' : 'POST')
   const response = await fetch('/api/v1' + path, {
-    method: body === undefined ? 'GET' : 'POST',
-    headers: body === undefined ? {} : { 'Content-Type': 'application/json', 'X-NeatDrop-CSRF': csrf },
+    method: requestMethod,
+    headers: requestMethod === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-NeatDrop-CSRF': csrf },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal,
   })
@@ -130,3 +133,4 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal)
 export function bytes(size: number) {
   return size < 1024 ? `${size} B` : size < 1024 ** 2 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 ** 2).toFixed(1)} MB`
 }
+

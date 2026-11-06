@@ -196,3 +196,19 @@ it('reports truncation and allows retry after a list error', async () => {
   expect(await screen.findByRole('button', { name: '查看 报销账单.txt' })).toBeInTheDocument()
   expect(screen.getByText(/仅显示最近的 1000 项/)).toBeInTheDocument()
 })
+it('opens the library in the graph-selected file, clearing old filters while preserving preview security', async () => {
+  setup(); const session = { workspace: 'ws-one', category: 'finance', query: '账单', focus: 'opaque-study' }
+  render(<LibraryPage workspace={workspace} history={history} session={session} onWorkbench={vi.fn()} />)
+  const drawer = await screen.findByRole('dialog')
+  expect(await within(drawer).findByText('本机安全预览')).toBeInTheDocument()
+  expect(within(drawer).getByRole('heading', { name: '研究笔记.txt' })).toBeInTheDocument()
+  expect(session.focus).toBeNull()
+})
+it('closes preview before invoking graph navigation by ID', async () => {
+  setup(); const navigate = vi.fn()
+  render(<LibraryPage workspace={workspace} history={history} onWorkbench={vi.fn()} onGraph={navigate} />)
+  fireEvent.click(await screen.findByRole('button', { name: '查看 研究笔记.txt' }))
+  fireEvent.click(screen.getByRole('button', { name: '在图谱中查看' }))
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  expect(navigate).toHaveBeenCalledWith('opaque-study')
+})

@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import type { Category, Filter, Page } from './types'
+import { createGraphSession, type GraphSession } from './graphTypes'
 
 export type WorkbenchStage = 'choose' | 'analyze' | 'review' | 'results'
 export interface WorkbenchSession {
@@ -7,14 +8,16 @@ export interface WorkbenchSession {
   viewChoice: { workspace: string; view: 'grid' | 'list' } | null
   bulkCategory: Category; listScroll: number
 }
-export interface LibrarySession { workspace: string | null; category: string; query: string }
+export interface LibrarySession { workspace: string | null; category: string; query: string; focus?: string | null }
 export interface HelpSession { query: string }
+export interface PageSessions { workbench: WorkbenchSession; library: LibrarySession; help: HelpSession; graph: GraphSession; scroll: Record<Page, number> }
 export function createPageSession() {
   return {
     workbench: { path: '', workspace: null, stage: 'choose', filter: 'all', query: '', viewChoice: null, bulkCategory: 'other', listScroll: 0 } as WorkbenchSession,
     library: { workspace: null, category: 'all', query: '' } as LibrarySession,
     help: { query: '' } as HelpSession,
-    scroll: { workbench: 0, library: 0, history: 0, help: 0 } as Record<Page, number>,
+    graph: createGraphSession(),
+    scroll: { workbench: 0, library: 0, graph: 0, history: 0, help: 0 } as Record<Page, number>,
   }
 }
 

@@ -31,6 +31,13 @@ it('opens file and relation taps through current callbacks and provides explicit
   fireEvent.click(screen.getByRole('button', { name: '放大画布' }))
   expect(mock.zoom).toHaveBeenCalledWith({ level: 1.2, renderedPosition: { x: 400, y: 250 } })
 })
+it('shows the full hovered file name for graph focus', async () => {
+  render(<GraphCanvas nodes={[{ ...nodes[0], data: { ...nodes[0].data, label: '一个很长的完整文件名.txt' } }]} edges={[]} onOpen={vi.fn()} view="categories" viewport={null} onViewport={vi.fn()} onExpand={vi.fn()} expanded={{}} />)
+  await waitFor(() => expect(mock.on).toHaveBeenCalled())
+  const hover = mock.on.mock.calls.find(call => call[0] === 'mouseover' && call[1] === 'node')![2]
+  act(() => hover({ target: { data: () => ({ entry: 'one', label: '一个很长的完整文件名.txt' }) } }))
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('一个很长的完整文件名.txt')
+})
 it('keeps fitted labels at a readable minimum and uses the same fit for reset', async () => {
   const fit = mock.fit
   mock.fitZoom = .2

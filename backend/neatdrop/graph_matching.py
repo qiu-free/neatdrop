@@ -57,7 +57,8 @@ def image_fingerprint(image):
     if ImageStat.Stat(image).stddev[0] < 5:
         return None
     small = image.resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = list(small.getdata())
+    flattened = getattr(small, 'get_flattened_data', None)
+    pixels = list(flattened()) if flattened is not None else list(small.getdata())
     value = 0
     for y in range(8):
         for x in range(8):
@@ -76,7 +77,7 @@ def match_features(features: dict[str, dict]) -> list[dict]:
         for term, locations in usable[key].items():
             # Very common corpus vocabulary provides no subject evidence. Two
             # document corpora retain shared terms; static template words still go.
-            if term in STOP or (len(usable) >= 4 and frequency[term] > max(3, len(usable) * .8) and len(frequency) > 16):
+            if term in STOP or (term.isascii() and len(usable) >= 4 and frequency[term] > max(3, len(usable) * .8) and len(frequency) > 16):
                 continue
             vector[term] = (1 + math.log(max(1, len(locations)))) * (1 + math.log((1 + len(usable)) / (1 + frequency[term])))
             inverted[term].append(key)

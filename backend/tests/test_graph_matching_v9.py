@@ -61,3 +61,12 @@ def test_many_shared_markdown_headings_are_not_subject_evidence():
     headings = '# Objectives\n## Methodology\n## Deliverables\n## Implementation\n## Evaluation\n## Timeline\n## Resources\n## Governance\n'
     assert not match_features({'a': text_features(headings + 'Kitchen sanitation exhaust filters'),
                                'b': text_features(headings + 'Forest migration nesting habitat')})
+
+def test_homogeneous_cjk_subject_keeps_shared_bigrams():
+    subject = '线性代数课程学习矩阵特征值课堂复习要点。'
+    features = {name: text_features(subject + suffix) for name, suffix in {
+        'plain': '课堂笔记', 'docx': '课程讲义', 'pptx': '课程幻灯片', 'xlsx': '课程表格', 'csv': '课程数据'
+    }.items()}
+    edges = match_features(features)
+    covered = {key for edge in edges for key in (edge['source'], edge['target'])}
+    assert covered == set(features)

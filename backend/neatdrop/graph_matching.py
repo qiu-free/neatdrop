@@ -10,6 +10,10 @@ from .content_quality import assess_content
 ALGORITHM = 'sparse-v9-1'
 STOP = set('the and for with from this that are was were have has not into of to in on at by is as an a project report summary introduction conclusion contents document file notes date title author section results discussion abstract references template meeting minutes agenda overview purpose background status update details information description 项目 报告 总结 内容 日期 标题 作者 目录 引言 结论 背景 目的 概述 结果 讨论 备注 参考 文档 工作 计划 会议 记录 模板 情况 分析 说明'.split())
 STOP.update('objectives objective methodology deliverables implementation evaluation timeline resources governance scope responsibilities requirements appendix approval prepared revised version'.split())
+# Reusable procedural boilerplate contributes no subject evidence. These are
+# common Chinese process terms, removed before corpus-frequency weighting so
+# genuine subject bigrams shared across a homogeneous collection remain usable.
+STOP.update('采用 标准 方法 系统 进行 并记 记录 确保 过程 质量 和数 数据 完整 整性'.split())
 
 
 def text_features(text: str) -> dict:

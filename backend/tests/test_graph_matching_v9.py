@@ -70,3 +70,25 @@ def test_homogeneous_cjk_subject_keeps_shared_bigrams():
     edges = match_features(features)
     covered = {key for edge in edges for key in (edge['source'], edge['target'])}
     assert covered == set(features)
+
+def test_common_chinese_process_boilerplate_does_not_connect_unrelated_files():
+    boilerplate = '本项目采用标准方法进行系统分析并记录实验结果确保过程质量和数据完整性。'
+    subjects = [
+        '厨房设备巡检清洗油烟过滤网，检查通风管路。',
+        '森林样地鸟类调查，记录迁徙路线与筑巢地点。',
+        '财务报销审核发票税额，核对季度预算支出。',
+        '古典音乐排练弦乐声部，调整协奏曲演奏速度。',
+    ]
+    features = {str(i): text_features(boilerplate + subject) for i, subject in enumerate(subjects)}
+    assert not match_features(features)
+
+
+def test_homogeneous_english_subject_terms_survive_corpus_frequency_pruning():
+    subject = 'quantum photon entanglement polarization correlation experiment measurement'
+    features = {name: text_features(subject + suffix) for name, suffix in {
+        'plain': ' laboratory notebook', 'docx': ' course handout', 'pptx': ' lecture slides',
+        'xlsx': ' data worksheet', 'csv': ' measurement table'
+    }.items()}
+    edges = match_features(features)
+    covered = {key for edge in edges for key in (edge['source'], edge['target'])}
+    assert covered == set(features)

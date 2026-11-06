@@ -16,3 +16,9 @@ export function transitionGraphView(session: GraphSession, current: GraphSession
   session.viewport = session.viewports[next]
   return session.viewport
 }
+/** Retain hidden positions for filter/collapse round trips, with a hard per-view bound. */
+export function rememberGraphPositions(session: GraphSession, view: GraphSession['view'], incoming: Record<string, GraphPosition>) {
+  session.positions ??= { categories: {}, relations: {} }
+  const prior = Object.entries(session.positions[view]).filter(([id]) => !(id in incoming))
+  session.positions[view] = Object.fromEntries([...prior, ...Object.entries(incoming)].slice(-400))
+}

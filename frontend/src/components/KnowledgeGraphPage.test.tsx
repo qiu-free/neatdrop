@@ -210,6 +210,21 @@ it('resets target and evidence when moving the active preview to another file', 
   expect(screen.getByLabelText('关系目标文件')).toHaveValue('')
   expect(screen.queryByText('共同词段落')).not.toBeInTheDocument()
 })
+it('cancels pending evidence when another file is opened and ignores its late content', async () => {
+  setup(); const original = vi.mocked(fetch).getMockImplementation()!
+  let finish!: (value: Response) => void
+  let evidenceSignal: AbortSignal | null | undefined
+  vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => {
+    if (url.endsWith('/evidence')) { evidenceSignal = init?.signal; return new Promise<Response>(resolve => { finish = resolve }) }
+    return original(url, init)
+  }))
+  render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.click(await screen.findByRole('button', { name: '查看关系依据' }))
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: '预览 研究附件.txt' })))
+  expect(evidenceSignal?.aborted).toBe(true)
+  await act(async () => finish(json({ relation: data.relations[0], files: [{ id: 'one', name: '研究笔记.txt', excerpts: ['迟到的其他文件证据'], summary: '' }], explanation: '旧关系' })))
+  expect(screen.queryByText('迟到的其他文件证据')).not.toBeInTheDocument()
+})
 it('switches to saved relation viewport before selecting or opening relation evidence', async () => {
   setup(); const p = props(); p.session.workspace = workspace.id; p.session.viewport = { zoom: .7, pan: { x: 900, y: 800 } }; p.session.viewports = { categories: p.session.viewport, relations: null }
   render(<KnowledgeGraphPage {...p} />)

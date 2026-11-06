@@ -103,10 +103,10 @@ it('filters relationship list with relation kind and keeps memory session on rev
   expect(await screen.findByLabelText('搜索图谱文件名')).toHaveValue('笔记')
   expect(screen.getByLabelText('关系类型')).toHaveValue('reference')
 })
-it('does not re-fetch or discard canvas on category expansion and provides collapse action', async () => {
+it('does not re-fetch when the default group already shows every file and keeps collapse available', async () => {
   const calls = setup(); render(<KnowledgeGraphPage {...props()} />)
-  const expand = await screen.findByRole('button', { name: '展开 学习科研 / 课程笔记' })
-  fireEvent.click(expand)
+  const more = await screen.findByRole('button', { name: '继续展开 学习科研 / 课程笔记' })
+  expect(more).toBeDisabled()
   expect(screen.getByRole('button', { name: '收起 学习科研 / 课程笔记' })).toBeInTheDocument()
   expect(calls.filter(call => call.url.endsWith('/graph'))).toHaveLength(1)
 })

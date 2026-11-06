@@ -1,4 +1,4 @@
-import { projectGraph } from './graphProjection'
+import { layoutGraph, projectGraph } from './graphProjection'
 import type { LibraryItem } from './types'
 import type { GraphListing } from './graphTypes'
 const item = (id: string, category = 'study', subcategory: string | null = 'notes'): LibraryItem => ({ id, name: `笔记${id}.txt`, category: category as LibraryItem['category'], subcategory, transaction_id: 'tx', source: id, target: id, created: '', size: 10, availability: 'available' })
@@ -60,4 +60,39 @@ it('projects a 1000-record archive within the 200-node bound', () => {
   expect(result.files).toHaveLength(1000)
   expect(result.hiddenFileCount).toBeGreaterThan(0)
   expect(elapsed).toBeLessThan(1000)
+})
+
+it('uses a finite force layout with deterministic, separated positions', () => {
+  const data = listing(Array.from({ length: 12 }, (_, i) => item(`${i}`)))
+  const result = projectGraph(data, { expanded: { 'study/notes': 50 } })
+  const laidOut = layoutGraph(result.nodes, result.edges)
+  expect(laidOut).toEqual(layoutGraph(result.nodes, result.edges))
+  expect(laidOut.some((node, index) => node.position.x !== result.nodes[index].position.x || node.position.y !== result.nodes[index].position.y)).toBe(true)
+  const filePositions = laidOut.filter(node => node.data.type === 'file').map(node => node.position)
+  for (let index = 0; index < filePositions.length; index++) for (let other = index + 1; other < filePositions.length; other++) {
+    const dx = filePositions[index].x - filePositions[other].x, dy = filePositions[index].y - filePositions[other].y
+    expect(Math.hypot(dx, dy)).toBeGreaterThan(8)
+  }
+})
+
+it('uses runtime taxonomy labels and keeps category colors stable across filters', () => {
+  const data = listing([item('one', 'study'), item('two', 'finance')])
+  const taxonomy = { categories: { study: '自定义研究', finance: '自定义财务' }, subcategories: { study: { notes: '自定义笔记' }, finance: { notes: '自定义账目' } } }
+  const all = projectGraph(data, { taxonomy })
+  const filtered = projectGraph(data, { category: 'finance', taxonomy })
+  expect(all.nodes.find(node => node.data.id === 'category:study')?.data.label).toBe('自定义研究')
+  expect(all.nodes.find(node => node.data.id === 'subcategory:study/notes')?.data.label).toBe('自定义笔记')
+  expect(filtered.nodes.find(node => node.data.id === 'category:finance')?.data.color).toBe(all.nodes.find(node => node.data.id === 'category:finance')?.data.color)
+  expect(filtered.categoryColors.finance).toBe(all.categoryColors.finance)
+})
+
+it('preserves relation origin and directional metadata for evidence styling', () => {
+  const data = listing([item('one'), item('two')])
+  data.relations = [
+    { id: 'r1', source: 'one', target: 'two', kind: 'reference', status: 'confirmed', origin: 'manual', created: '' },
+    { id: 'r2', source: 'two', target: 'one', kind: 'duplicate', status: 'fact', origin: 'archive', created: '' },
+  ]
+  const result = projectGraph(data, { expanded: { 'study/notes': 50 } })
+  expect(result.edges.find(edge => edge.data.relation === 'r1')?.data).toMatchObject({ origin: 'manual', directed: true })
+  expect(result.edges.find(edge => edge.data.relation === 'r2')?.data).toMatchObject({ origin: 'archive', directed: false })
 })

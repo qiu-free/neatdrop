@@ -2,16 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import type cytoscape from 'cytoscape'
 import type { GraphEdge, GraphNode } from '../graphProjection'
 import './graph.css'
-export function GraphCanvas({ nodes, edges, onOpen, onRelation, viewport, onViewport, onExpand, expanded }: { nodes: GraphNode[]; edges: GraphEdge[]; onOpen: (entry: string, relation?: string) => void; onRelation?: (relation: string) => void; viewport: { zoom: number; pan: { x: number; y: number } } | null; onViewport: (value: { zoom: number; pan: { x: number; y: number } }) => void; onExpand: (group: string) => void; expanded: Record<string, number> }) {
+export function GraphCanvas({ nodes, edges, onOpen, onRelation, view, viewport, onViewport, onExpand, expanded }: { nodes: GraphNode[]; edges: GraphEdge[]; onOpen: (entry: string, relation?: string) => void; onRelation?: (relation: string) => void; view: 'categories' | 'relations'; viewport: { zoom: number; pan: { x: number; y: number } } | null; onViewport: (value: { zoom: number; pan: { x: number; y: number } }) => void; onExpand: (group: string) => void; expanded: Record<string, number> }) {
   const host = useRef<HTMLDivElement>(null), graph = useRef<cytoscape.Core | null>(null), latest = useRef({ onOpen, onRelation, onViewport, onExpand, expanded })
   const positioned = useRef(false)
+  const previousView = useRef(view)
   const [error, setError] = useState(''), [ready, setReady] = useState(false)
   latest.current = { onOpen, onRelation, onViewport, onExpand, expanded }
   useEffect(() => {
     let live = true, instance: cytoscape.Core | null = null, observer: ResizeObserver | null = null
     import('cytoscape').then(({ default: cytoscape }) => {
       if (!live || !host.current) return
-      instance = cytoscape({ container: host.current, elements: [], minZoom: .2, maxZoom: 2.5, wheelSensitivity: .2, style: [
+      instance = cytoscape({ container: host.current, elements: [], minZoom: 1, maxZoom: 2.5, wheelSensitivity: .2, style: [
         { selector: 'node', style: { label: 'data(label)', color: '#18352a', 'font-size': 13, 'font-family': 'system-ui, sans-serif', 'text-wrap': 'wrap', 'text-max-width': '150px', width: 'label', height: 'label', padding: '13px', 'background-color': '#edf4ee', 'border-color': '#73917f', 'border-width': 1, shape: 'round-rectangle', 'text-valign': 'center', 'text-halign': 'center' } },
         { selector: 'node[type="root"]', style: { shape: 'ellipse', 'background-color': '#286346', color: 'white', 'font-weight': 'bold' } },
         { selector: 'node[type="category"]', style: { shape: 'round-rectangle', 'background-color': '#dcebe0', 'border-width': 2, 'font-weight': 'bold' } },
@@ -46,14 +47,21 @@ export function GraphCanvas({ nodes, edges, onOpen, onRelation, viewport, onView
       }
       for (const edge of edges) if (!instance!.getElementById(edge.data.id).length) instance!.add({ group: 'edges', data: edge.data })
     })
+    const viewChanged = previousView.current !== view
+    previousView.current = view
     if (viewport) { instance.zoom(viewport.zoom); instance.pan(viewport.pan) }
+    else if (viewChanged) fitReadable(instance)
     if (!positioned.current && nodes.length) {
       positioned.current = true
-      if (!viewport) instance.fit(undefined, 45)
+      if (!viewport) fitReadable(instance)
     }
-  }, [nodes, edges, viewport, ready])
-  const zoom = (factor: number) => { const current = graph.current; if (current) current.zoom({ level: current.zoom() * factor, renderedPosition: { x: current.width() / 2, y: current.height() / 2 } }) }
-  return <section className="graph-canvas-wrap" aria-label="关系画布"><div className="graph-canvas-tools"><button className="button secondary" onClick={() => zoom(1.2)} aria-label="放大画布">+</button><button className="button secondary" onClick={() => zoom(.83)} aria-label="缩小画布">−</button><button className="button secondary" onClick={() => { if (graph.current) { graph.current.fit(undefined, 45); const current = graph.current; onViewport({ zoom: current.zoom(), pan: current.pan() }) } }}>适合画布</button><button className="button secondary" onClick={() => { graph.current?.reset(); graph.current?.fit(undefined, 45); onViewport({ zoom: graph.current?.zoom() ?? 1, pan: graph.current?.pan() ?? { x: 0, y: 0 } }) }}>重置视图</button></div><div ref={host} className="graph-canvas" role="img" aria-label="归档分类和资料关系图" />{error ? <p role="status">{error}</p> : !ready ? <p className="graph-canvas-loading" role="status">正在加载本机关系画布…</p> : null}</section>
+  }, [nodes, edges, view, viewport, ready])
+  const zoom = (factor: number) => { const current = graph.current; if (current) current.zoom({ level: Math.max(1, current.zoom() * factor), renderedPosition: { x: current.width() / 2, y: current.height() / 2 } }) }
+  return <section className="graph-canvas-wrap" aria-label="关系画布"><div className="graph-canvas-tools"><button className="button secondary" onClick={() => zoom(1.2)} aria-label="放大画布">+</button><button className="button secondary" onClick={() => zoom(.83)} aria-label="缩小画布">−</button><button className="button secondary" onClick={() => { const current = graph.current; if (current) { fitReadable(current); onViewport({ zoom: current.zoom(), pan: current.pan() }) } }}>适合画布</button><button className="button secondary" onClick={() => { const current = graph.current; if (current) { current.reset(); fitReadable(current); onViewport({ zoom: current.zoom(), pan: current.pan() }) } }}>重置视图</button></div><div ref={host} className="graph-canvas" role="img" aria-label="归档分类和资料关系图" />{error ? <p role="status">{error}</p> : !ready ? <p className="graph-canvas-loading" role="status">正在加载本机关系画布…</p> : null}</section>
+}
+function fitReadable(instance: cytoscape.Core) {
+  instance.fit(undefined, 45)
+  if (instance.zoom() < 1) instance.zoom(1)
 }
 
 

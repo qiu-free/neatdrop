@@ -50,7 +50,7 @@ it('keeps query in memory, opens verified preview and closes before library navi
 })
 it('shows evidence and confirms only after review; submits manual direction with current revision', async () => {
   const calls = setup(); render(<KnowledgeGraphPage {...props()} />)
-  fireEvent.click(await screen.findByRole('button', { name: '关系 研究笔记.txt' }))
+  fireEvent.click(await screen.findByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' }))
   fireEvent.click(screen.getByRole('button', { name: '查看关系依据' }))
   expect(await screen.findByText('共同词段落')).toBeInTheDocument()
   expect(screen.getByText('抽样文字，质量受限')).toBeInTheDocument()
@@ -94,9 +94,9 @@ it('aborts old workspace requests and discards responses that ignore cancellatio
 })
 it('filters relationship list with relation kind and keeps memory session on revisit', async () => {
   setup(); const p = props(); const view = render(<KnowledgeGraphPage {...p} />)
-  await screen.findByRole('button', { name: '关系 研究笔记.txt' })
+  await screen.findByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' })
   fireEvent.change(screen.getByLabelText('关系类型'), { target: { value: 'reference' } })
-  expect(screen.queryByRole('button', { name: '关系 研究笔记.txt' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' })).not.toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('搜索图谱文件名'), { target: { value: '笔记' } })
   view.unmount()
   render(<KnowledgeGraphPage {...p} />)
@@ -177,7 +177,7 @@ it('deletes only manual relations and sends DELETE revision', async () => {
   const calls = setup(), original = vi.mocked(fetch).getMockImplementation()!
   vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => url.endsWith('/graph') ? Promise.resolve(json({ ...data, relations: [{ ...data.relations[0], kind: 'reference', status: 'confirmed', origin: 'manual' }] })) : original(url, init)))
   render(<KnowledgeGraphPage {...props()} />)
-  fireEvent.click(await screen.findByRole('button', { name: '关系 研究笔记.txt' }))
+  fireEvent.click(await screen.findByRole('button', { name: '研究笔记.txt 引用 研究附件.txt' }))
   fireEvent.click(screen.getByRole('button', { name: '删除人工关系' }))
   await waitFor(() => expect(calls.some(call => call.url.endsWith('/relations/r1') && call.method === 'DELETE' && call.body?.revision === 7)).toBe(true))
 })
@@ -209,4 +209,36 @@ it('resets target and evidence when moving the active preview to another file', 
   fireEvent.click(screen.getByRole('button', { name: '预览 研究附件.txt' }))
   expect(screen.getByLabelText('关系目标文件')).toHaveValue('')
   expect(screen.queryByText('共同词段落')).not.toBeInTheDocument()
+})
+it('switches to saved relation viewport before selecting or opening relation evidence', async () => {
+  setup(); const p = props(); p.session.workspace = workspace.id; p.session.viewport = { zoom: .7, pan: { x: 900, y: 800 } }; p.session.viewports = { categories: p.session.viewport, relations: null }
+  render(<KnowledgeGraphPage {...p} />)
+  fireEvent.click(await screen.findByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' }))
+  expect(p.session.view).toBe('relations')
+  expect(p.session.viewport).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: '查看关系依据' }))
+  expect(await screen.findByText('共同词段落')).toBeInTheDocument()
+  expect(p.session.viewport).toBeNull()
+})
+it('moves analysis and index panels ahead of long result lists and focuses the opened panel', async () => {
+  setup(); render(<KnowledgeGraphPage {...props()} />)
+  await screen.findByRole('button', { name: '分析关联' })
+  fireEvent.click(screen.getByRole('button', { name: '分析关联' }))
+  expect(screen.getByRole('heading', { name: '选择本机分析资料' })).toHaveFocus()
+  expect(screen.getByRole('region', { name: '本机分析设置' }).compareDocumentPosition(screen.getByRole('region', { name: '可访问文件列表' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '管理本机索引' }))
+  expect(screen.getByRole('heading', { name: '本机索引管理' })).toHaveFocus()
+})
+
+
+it('uses the central viewport transition when opening evidence directly from the category view', async () => {
+  setup(); const p = props(); p.session.workspace = workspace.id
+  p.session.viewport = { zoom: 1.4, pan: { x: 900, y: 800 } }
+  p.session.viewports = { categories: p.session.viewport, relations: { zoom: 1.1, pan: { x: 50, y: 60 } } }
+  render(<KnowledgeGraphPage {...p} />)
+  fireEvent.click(await screen.findByRole('button', { name: '查看关系依据' }))
+  expect(await screen.findByText('共同词段落')).toBeInTheDocument()
+  expect(p.session.view).toBe('relations')
+  expect(p.session.viewport).toEqual({ zoom: 1.1, pan: { x: 50, y: 60 } })
+  expect(p.session.viewports.categories).toEqual({ zoom: 1.4, pan: { x: 900, y: 800 } })
 })

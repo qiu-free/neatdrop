@@ -8,3 +8,10 @@ export interface GraphViewport { zoom: number; pan: { x: number; y: number } }
 export interface GraphSession { workspace: string | null; query: string; category: string; kind: GraphKind | 'all'; view: 'categories' | 'relations'; focus: string | null; expanded: Record<string, number>; viewport: GraphViewport | null; viewports?: { categories: GraphViewport | null; relations: GraphViewport | null }; job?: GraphJob | null }
 export const graphKindLabels: Record<GraphKind, string> = { duplicate: '归档时内容相同', text_similar: '文本相似候选', visual_similar: '图像相似候选', related: '相关资料', reference: '引用', attachment: '配套说明', version: '后续版本' }
 export function createGraphSession(workspace: string | null = null): GraphSession { return { workspace, query: '', category: 'all', kind: 'all', view: 'categories', focus: null, expanded: {}, viewport: null, viewports: { categories: null, relations: null }, job: null } }
+export function transitionGraphView(session: GraphSession, current: GraphSession['view'], next: GraphSession['view']) {
+  session.viewports ??= { categories: null, relations: null }
+  session.viewports[current] = session.viewport
+  session.view = next
+  session.viewport = session.viewports[next]
+  return session.viewport
+}

@@ -57,3 +57,4 @@
 .graph-manual > button { justify-self: start; }
 .graph-list > li > span { color: var(--muted); font-size: 12px; }
 @media (max-width: 600px) { .graph-list > li { flex-wrap: wrap; } .graph-list > li > span { flex-basis: 100%; padding-left: 6px; } .graph-canvas-tools { right: 8px; left: 8px; justify-content: end; flex-wrap: wrap; } .graph-main .graph-mode { flex-wrap: wrap; } }
+

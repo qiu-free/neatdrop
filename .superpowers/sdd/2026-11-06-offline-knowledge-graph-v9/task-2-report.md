@@ -25,3 +25,11 @@ Parent task will perform real browser QA against the local service. Pay attentio
 - The UI relies on the existing local preview drawer for decoded previews; no archive paths or remote image URLs are exposed to the browser.
 - The list remains authoritative when the 200-node canvas cap is reached; category/file counts may exceed visible canvas nodes.
 - Canvas layout uses deterministic preset positions rather than an animated force layout to preserve selection and viewport stability.
+
+## Review round 1 follow-up
+
+- Routed relation list selection, evidence opening, and canvas edge activation through the same viewport-aware mode transition; added a regression proving a direct evidence action restores the saved relation viewport and retains the category viewport independently.
+- Expanded each accessible relationship button name to include source, relation label, and target.
+- Kept canvas labels at the 13px base size by enforcing a 1.0 minimum zoom. Initial fit, mode fit, fit-to-content and reset share the readable-fit helper; larger graphs remain pannable and node density is intentionally not auto-shrunk below readable labels.
+- Moved analysis and index-management panels before the long file/relationship lists in document order, and focus/scroll their heading when opened.
+- Follow-up verification: 5 test files, 50 tests passed; `npm run build` passed. The viewport regression was briefly run with the central transition bypassed and failed with category viewport (zoom 1.4, pan 900/800) instead of the saved relation viewport (zoom 1.1, pan 50/60), then passed with the fix.

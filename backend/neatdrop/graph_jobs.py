@@ -9,6 +9,7 @@ from .files import SafetyError
 from .graph_matching import text_features, image_fingerprint
 from .content_quality import assess_content
 from .journal import stamp
+from .graph_store import store_key
 
 _LOCK = threading.RLock()
 _ACTIVE = set()
@@ -57,9 +58,20 @@ class GraphJobs:
     def get(self, identifier, service):
         with self.lock:
             job = self.jobs.get(identifier)
-            if not job or job['service'].ws.id != service.ws.id:
+            if not job or job['service'].store.key != service.store.key:
                 raise SafetyError('GRAPH_JOB_NOT_FOUND')
             return {**job['data'], 'errors': list(job['data']['errors'])}
+
+    def cancel_for_root(self, workspace):
+        key = store_key(workspace)
+        with self.lock:
+            for job in self.jobs.values():
+                if job['service'].store.key != key:
+                    continue
+                if job['data']['status'] in {'queued', 'running'}:
+                    job['cancel'].set()
+                    job['data']['status'] = 'cancelled'
+                    job['data']['current_file'] = None
 
     def cancel(self, identifier, service):
         with self.lock:
@@ -91,9 +103,10 @@ class GraphJobs:
         service, data, cancelled = job['service'], job['data'], job['cancel']
         features = {}
         try:
-            if cancelled.is_set():
-                return
-            data['status'] = 'running'
+            with self.lock:
+                if cancelled.is_set() or data['status'] not in {'queued', 'running'}:
+                    return
+                data['status'] = 'running'
             for key, (entry, item, identity) in job['descriptors'].items():
                 if cancelled.is_set():
                     return

@@ -216,7 +216,11 @@ def create_app():
                 raise SafetyError("WORKSPACE_LIMIT")
             ws = Workspace(body.path)
             files = ws.scan()
-            session.workspaces[ws.id] = (ws, Executor(ws))
+            executor = Executor(ws)
+            # Reauthorizing this physical root replaces the UI's graph session.
+            # Cancel its prior jobs while leaving worker cleanup to the worker.
+            session.graph_jobs.cancel_for_root(ws)
+            session.workspaces[ws.id] = (ws, executor)
         return {"id": ws.id, "path": str(ws.root), "name": ws.root.name, "files": files}
 
     @app.get("/api/v1/workspaces/{identifier}/files")

@@ -13,6 +13,10 @@ LIMIT = 16 * 1024 * 1024
 RELATION_LIMIT = 2 * 1024 * 1024
 
 
+def store_key(workspace):
+    return hashlib.sha256(json.dumps(root_key(workspace), sort_keys=True).encode()).hexdigest()
+
+
 def empty_state():
     return {'version': 1, 'revision': 0, 'updated': None, 'features': {}, 'relations': [], 'dismissed': []}
 
@@ -61,7 +65,7 @@ def validate(state):
 
 class GraphStore:
     def __init__(self, executor):
-        self.key = hashlib.sha256(json.dumps(root_key(executor.ws), sort_keys=True).encode()).hexdigest()
+        self.key = store_key(executor.ws)
         self.guard = TrustStore(executor.trust.path / 'knowledge-graph')
         self.path = self.guard.path / (self.key + '.json')
         self.lock = _LOCK

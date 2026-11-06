@@ -140,6 +140,88 @@ def test_cancel_during_decode_never_publishes_partial_batch(archived, monkeypatc
     assert client.get(prefix).json()['index']['count'] == 0
 
 
+def test_reauthorizing_same_root_cancels_prior_job_and_allows_retry(archived, monkeypatch):
+    import threading
+    from neatdrop.graph import GraphService
+
+    client, prefix, executor, _ = archived
+    entered, release = threading.Event(), threading.Event()
+    original = GraphService.read
+
+    def blocked(self, *args, **kwargs):
+        if kwargs.get('local', True):
+            entered.set()
+            assert release.wait(5)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(GraphService, 'read', blocked)
+    ids = [i['id'] for i in client.get(prefix).json()['items']]
+    old_job = client.post(prefix + '/jobs', json={'entry_ids': ids, 'confirmed': True}).json()
+    assert entered.wait(3)
+
+    failed_reopen = client.post('/api/v1/workspaces', json={'path': str(executor.ws.root / 'missing')})
+    assert failed_reopen.status_code == 409
+    assert failed_reopen.json()['code'] == 'DIRECTORY_NOT_FOUND'
+    assert client.get(prefix + '/jobs/' + old_job['id']).json()['status'] == 'running'
+
+    unrelated_root = executor.ws.root.parent / 'unrelated-root'
+    unrelated_root.mkdir()
+    unrelated = client.post('/api/v1/workspaces', json={'path': str(unrelated_root)})
+    assert unrelated.status_code == 200
+    unrelated_prefix = '/api/v1/workspaces/' + unrelated.json()['id'] + '/graph'
+    assert client.get(unrelated_prefix + '/jobs/' + old_job['id']).status_code == 404
+
+    from neatdrop.security import Session
+    import secrets
+    other_session = Session()
+    other_token = secrets.token_urlsafe(32)
+    client.app.state.sessions[other_token] = other_session
+    original_cookie = client.cookies.get('neatdrop_session')
+    original_csrf = client.headers['x-neatdrop-csrf']
+    client.cookies.clear()
+    client.cookies.set('neatdrop_session', other_token, domain='127.0.0.1', path='/')
+    client.headers['x-neatdrop-csrf'] = other_session.csrf
+    try:
+        assert client.get(prefix + '/jobs/' + old_job['id']).status_code == 404
+    finally:
+        client.cookies.clear()
+        client.cookies.set('neatdrop_session', original_cookie, domain='127.0.0.1', path='/')
+        client.headers['x-neatdrop-csrf'] = original_csrf
+
+    reopened = client.post('/api/v1/workspaces', json={'path': str(executor.ws.root)})
+    assert reopened.status_code == 200
+    new_id = reopened.json()['id']
+    # This fixture keeps receipts in a temporary trust store; use the same
+    # store for the newly authorized executor so the API can index its archive.
+    session = next(iter(client.app.state.sessions.values()))
+    session.workspaces[new_id] = (session.workspaces[new_id][0], Executor(session.workspaces[new_id][0], executor.trust))
+    new_prefix = '/api/v1/workspaces/' + new_id + '/graph'
+    cancelled = client.get(new_prefix + '/jobs/' + old_job['id'])
+    assert cancelled.status_code == 200
+    assert cancelled.json()['status'] == 'cancelled'
+    assert client.get(new_prefix).json()['index']['count'] == 0
+
+    busy = client.post(new_prefix + '/jobs', json={'entry_ids': ids, 'confirmed': True})
+    assert busy.status_code == 409
+    assert busy.json()['code'] == 'GRAPH_JOB_BUSY'
+
+    release.set()
+    settled = wait_job(client, new_prefix, old_job)
+    assert settled['status'] == 'cancelled'
+    retried = None
+    for _ in range(150):
+        response = client.post(new_prefix + '/jobs', json={'entry_ids': ids, 'confirmed': True})
+        if response.status_code == 200:
+            retried = response.json()
+            break
+        assert response.status_code == 409
+        assert response.json()['code'] == 'GRAPH_JOB_BUSY'
+        time.sleep(.02)
+    assert retried is not None
+    assert wait_job(client, new_prefix, retried)['status'] == 'completed'
+    assert client.get(new_prefix).json()['index']['count'] == 3
+
+
 def test_job_revision_conflict_does_not_overwrite_manual_edit(archived, monkeypatch):
     import threading
     from neatdrop.graph import GraphService

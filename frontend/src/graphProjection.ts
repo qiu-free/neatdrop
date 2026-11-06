@@ -6,7 +6,7 @@ export interface GraphTaxonomy { categories?: Record<string, string>; subcategor
 export interface GraphNode { data: { id: string; label: string; type: 'root' | 'category' | 'subcategory' | 'file'; entry?: string; group?: string; category?: string; color?: string; count?: number; degree?: number; size?: number; tooltip?: string; focused?: boolean }; position: GraphPosition }
 export interface GraphEdge { data: { id: string; source: string; target: string; kind: string; label?: string; status?: string; relation?: string; origin?: string; directed?: boolean; color?: string } }
 
-const CATEGORY_COLORS = ['#5ea8ff', '#f39a35', '#ed5c64', '#78c4bb', '#6dbb52', '#f5ce45', '#bd85b1', '#f69eaa', '#ac8a6f', '#b7b5c0']
+const CATEGORY_COLORS = ['#728eae', '#bc9471', '#c08088', '#609e92', '#8b9d6d', '#b49d56', '#9b84ab', '#bb8c9f', '#a3907b', '#8c95a4']
 const DEFAULT_GROUP_FILES = 8
 const MAX_NODES = 200
 function circlePoint(index: number, total: number, radius: number, center: GraphPosition) { const angle = -Math.PI / 2 + (index * Math.PI * 2) / Math.max(total, 1); return { x: Math.round(center.x + Math.cos(angle) * radius), y: Math.round(center.y + Math.sin(angle) * radius) } }
@@ -18,14 +18,14 @@ export function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], saved: Recor
   const anchored = new Set(Object.keys(saved))
   if (nodes.every(node => anchored.has(node.data.id))) return nodes.map(node => ({ ...node, position: { ...saved[node.data.id] } }))
   const edgePairs = edges.map(edge => [edge.data.source, edge.data.target] as const).filter(([source, target]) => positions.has(source) && positions.has(target))
-  const radius = (node: GraphNode) => Math.max(12, node.data.size ?? 14) / 2 + 8
+  const radius = (node: GraphNode) => Math.max(12, node.data.size ?? 14) / 2 + 26
   for (let iteration = 0; iteration < 72; iteration++) {
     const forces = new Map(nodes.map(node => [node.data.id, { x: 0, y: 0 }]))
     for (let first = 0; first < nodes.length; first++) for (let second = first + 1; second < nodes.length; second++) {
       const a = nodes[first], b = nodes[second], pa = positions.get(a.data.id)!, pb = positions.get(b.data.id)!
       let dx = pb.x - pa.x, dy = pb.y - pa.y, distance = Math.hypot(dx, dy)
       if (distance < .01) { dx = (first + 1) * .73; dy = (second + 1) * .41; distance = Math.hypot(dx, dy) }
-      const minDistance = radius(a) + radius(b), repulsion = Math.max(0, 1600 / (distance * distance)) + Math.max(0, minDistance - distance) * .18
+      const minDistance = radius(a) + radius(b), repulsion = Math.max(0, 6500 / (distance * distance)) + Math.max(0, minDistance - distance) * .18
       const fx = dx / distance * repulsion, fy = dy / distance * repulsion
       forces.get(a.data.id)!.x -= fx; forces.get(a.data.id)!.y -= fy; forces.get(b.data.id)!.x += fx; forces.get(b.data.id)!.y += fy
     }
@@ -58,9 +58,9 @@ export function projectGraph(listing: GraphListing, options: Partial<GraphSessio
   const taxonomySubcategories: Record<string, Record<string, string>> = options.taxonomy?.subcategories ?? (subcategories as Record<string, Record<string, string>>)
   const colorCategories = [...new Set([...Object.keys(categories), ...Object.keys(taxonomyCategories), ...files.map(file => file.category)])].sort()
   colorCategories.forEach((category, index) => colors.set(category, CATEGORY_COLORS[index % CATEGORY_COLORS.length]))
-  const fileNode = (id: string, position: { x: number; y: number }): GraphNode => { const file = fileById.get(id)!; return { data: { id: `file:${id}`, label: file.name, tooltip: file.name, type: 'file', entry: id, group: `${file.category}/${file.subcategory ?? ''}`, category: file.category, color: colors.get(file.category), degree: degree.get(id) ?? 0, size: 13 + Math.min(12, (degree.get(id) ?? 0) * 2), focused: id === focus }, position } }
-  const categoryNode = (category: string, count: number, position: GraphPosition): GraphNode => ({ data: { id: `category:${category}`, label: taxonomyCategories[category] ?? category, type: 'category', group: category, category, color: colors.get(category), count, size: 48 + Math.min(18, count) }, position })
-  const subcategoryNode = (category: string, subcategory: string, count: number, position: GraphPosition): GraphNode => ({ data: { id: `subcategory:${category}/${subcategory}`, label: taxonomySubcategories[category]?.[subcategory] ?? (subcategory || '未分子类'), type: 'subcategory', group: `${category}/${subcategory}`, category, color: colors.get(category), count, size: 34 + Math.min(14, count) }, position })
+  const fileNode = (id: string, position: { x: number; y: number }): GraphNode => { const file = fileById.get(id)!; return { data: { id: `file:${id}`, label: file.name, tooltip: file.name, type: 'file', entry: id, group: `${file.category}/${file.subcategory ?? ''}`, category: file.category, color: colors.get(file.category), degree: degree.get(id) ?? 0, size: 8 + Math.min(4, (degree.get(id) ?? 0)), focused: id === focus }, position } }
+  const categoryNode = (category: string, count: number, position: GraphPosition): GraphNode => ({ data: { id: `category:${category}`, label: taxonomyCategories[category] ?? category, type: 'category', group: category, category, color: colors.get(category), count, size: 13 }, position })
+  const subcategoryNode = (category: string, subcategory: string, count: number, position: GraphPosition): GraphNode => ({ data: { id: `subcategory:${category}/${subcategory}`, label: taxonomySubcategories[category]?.[subcategory] ?? (subcategory || '未分子类'), type: 'subcategory', group: `${category}/${subcategory}`, category, color: colors.get(category), count, size: 10 }, position })
   if (options.view === 'relations' && focus) {
     const neighborIds = [...new Set(relations.filter(edge => edge.source === focus || edge.target === focus).map(edge => edge.source === focus ? edge.target : edge.source))].sort().slice(0, 20)
     nodes.push(fileNode(focus, { x: 0, y: 0 })); nodes[0].data.focused = true

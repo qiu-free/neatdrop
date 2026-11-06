@@ -88,7 +88,7 @@ function LibraryContent({ workspace, history, session, onContentReady, onGraph }
 }
 
 export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGraph, footer, content, trigger, position, total, onPrevious, onNext }: {
-  workspaceId: string; item: LibraryItem; categoryLabel: string; onClose: () => void; onGraph?: () => void; trigger: HTMLElement | null
+  workspaceId: string; item: LibraryItem; categoryLabel: string; onClose: () => void; onGraph?: () => void; trigger: HTMLElement | SVGElement | null
   footer?: ReactNode; content?: ReactNode; position: number; total: number; onPrevious?: () => void; onNext?: () => void
 }) {
   const panel = useRef<HTMLElement>(null)

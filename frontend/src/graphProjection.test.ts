@@ -11,6 +11,7 @@ it('projects a rootless clustered network with immediately visible files and det
   expect(result.nodes.filter(node => node.data.type === 'file')).toHaveLength(2)
   expect(result.nodes.find(node => node.data.id === 'category:study')?.data).toMatchObject({ category: 'study', color: expect.any(String), count: 2 })
   expect(result.nodes.find(node => node.data.id === 'file:one')?.data.size).toBeGreaterThan(0)
+  expect(result.nodes.every(node => (node.data.size ?? 0) <= 16)).toBe(true)
   expect(projectGraph({ ...data, items: [...data.items].reverse() }).nodes).toEqual(result.nodes)
 })
 it('keeps all search results outside the canvas limit and expands only 50 files per step', () => {

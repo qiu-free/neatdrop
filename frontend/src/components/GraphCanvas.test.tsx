@@ -1,84 +1,189 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { GraphCanvas } from './GraphCanvas'
-const mock = vi.hoisted(() => ({ create: vi.fn(), fit: vi.fn(), destroy: vi.fn(), resize: vi.fn(), pan: vi.fn(() => ({ x: 42, y: 24 })), zoom: vi.fn(() => 1), add: vi.fn(), on: vi.fn(), disconnect: vi.fn(), observe: vi.fn(), reset: vi.fn(), fitZoom: 1, position: vi.fn(), data: vi.fn(), elements: new Map<string, any>() }))
-vi.mock('cytoscape', () => ({ default: (...args: unknown[]) => {
-  mock.create(...args)
-  const collection = () => ({ map: (callback: (element: any) => unknown) => [...mock.elements.values()].map(callback), forEach: (callback: (element: any) => void) => [...mock.elements.values()].forEach(callback), removeClass: vi.fn(), addClass: vi.fn(), difference: () => ({ addClass: vi.fn() }) })
-  const add = (value: any) => { mock.add(value); const element = { length: 1, id: () => value.data.id, data: (next?: unknown) => { if (typeof next === 'string') return value.data[next]; if (next) { mock.data(next); value.data = next } return value.data }, position: (next?: any) => { if (next) { mock.position(next); value.position = next } return value.position }, remove: () => mock.elements.delete(value.data.id), addClass: vi.fn(), neighborhood: () => ({ addClass: vi.fn() }), union: () => ({}) }; mock.elements.set(value.data.id, element) }
-  return { fit: mock.fit, reset: mock.reset, destroy: mock.destroy, resize: mock.resize, pan: mock.pan, zoom: mock.zoom.mockImplementation(() => mock.fitZoom), add, on: mock.on, nodes: () => ({ map: (callback: (element: any) => unknown) => [...mock.elements.values()].filter(element => element.data('type')).map(callback) }), elements: collection, $: () => ({ nodes: () => ({ first: () => ({ length: 0 }) }) }), getElementById: (id: string) => mock.elements.get(id) ?? ({ length: 0 }), batch: (callback: () => void) => callback(), width: () => 800, height: () => 500 }
-} }))
-const nodes = [{ data: { id: 'file:one', label: '笔记', type: 'file' as const, entry: 'one' }, position: { x: 0, y: 0 } }]
-beforeEach(() => { vi.clearAllMocks(); mock.elements.clear(); mock.fitZoom = 1; vi.stubGlobal('ResizeObserver', class { observe = mock.observe; disconnect = mock.disconnect }) })
+import type { GraphEdge, GraphNode } from '../graphProjection'
+import type { GraphViewport } from '../graphTypes'
+
+const nodes: GraphNode[] = [
+  { data: { id: 'file:one', label: '研究笔记.txt', type: 'file', entry: 'one', size: 9, color: '#609e92' }, position: { x: -120, y: -40 } },
+  { data: { id: 'file:two', label: '研究附件.txt', type: 'file', entry: 'two', size: 9, color: '#7792ba' }, position: { x: 120, y: 40 } },
+]
+const edges: GraphEdge[] = [{ data: { id: 'relation:r1', source: 'file:one', target: 'file:two', kind: 'reference', relation: 'r1', origin: 'manual', directed: true, label: '引用' } }]
+const props = () => ({ nodes, edges, onOpen: vi.fn(), onRelation: vi.fn(), view: 'categories' as const, viewport: null as GraphViewport | null, onViewport: vi.fn(), onExpand: vi.fn(), expanded: {}, onPositions: vi.fn() })
+
+beforeEach(() => {
+  // jsdom does not implement PointerEvent or element dimensions.
+  vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId = 1; pointerType = 'mouse' })
+  vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
+})
 afterEach(() => vi.unstubAllGlobals())
-it('fits once after lazy creation, observes resizing, preserves viewport on updates and disposes resources', async () => {
-  const props = { nodes, edges: [], onOpen: vi.fn(), view: 'categories' as const, viewport: null, onViewport: vi.fn(), onExpand: vi.fn(), expanded: {} }
-  const view = render(<GraphCanvas {...props} />)
-  await waitFor(() => expect(screen.queryByText('正在加载本机关系画布…')).not.toBeInTheDocument())
-  expect(mock.fit).toHaveBeenCalledOnce()
-  expect(mock.observe).toHaveBeenCalledOnce()
-  view.rerender(<GraphCanvas {...props} nodes={[...nodes]} viewport={{ zoom: 1, pan: { x: 42, y: 24 } }} />)
-  expect(mock.create).toHaveBeenCalledOnce()
-  expect(mock.fit).toHaveBeenCalledOnce()
-  expect(mock.pan).toHaveBeenCalledWith({ x: 42, y: 24 })
-  view.unmount()
-  expect(mock.destroy).toHaveBeenCalledOnce()
-  expect(mock.disconnect).toHaveBeenCalledOnce()
+
+it('shows node labels only on selection and opens files and relation evidence with mouse or keyboard', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  fireEvent.mouseEnter(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  expect(screen.getByText('研究笔记.txt', { selector: 'tspan' })).toBeVisible()
+  expect(p.onOpen).toHaveBeenLastCalledWith('one')
+  fireEvent.keyDown(screen.getByRole('button', { name: '预览 研究附件.txt' }), { key: 'Enter' })
+  expect(screen.getByText('研究附件.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  expect(p.onOpen).toHaveBeenLastCalledWith('two')
+  fireEvent.click(screen.getByRole('button', { name: '查看 引用 关系依据' }))
+  expect(p.onOpen).toHaveBeenLastCalledWith('one', 'r1')
+  expect(p.onRelation).toHaveBeenLastCalledWith('r1')
+  fireEvent.click(screen.getByLabelText('归档分类和资料关系图'))
+  expect(screen.queryByText('研究附件.txt', { selector: 'tspan' })).not.toBeInTheDocument()
 })
-it('opens file and relation taps through current callbacks and provides explicit zoom controls', async () => {
-  const open = vi.fn(), expand = vi.fn(), viewport = vi.fn()
-  render(<GraphCanvas nodes={nodes} edges={[]} onOpen={open} view="categories" viewport={null} onViewport={viewport} onExpand={expand} expanded={{}} />)
-  await waitFor(() => expect(mock.on).toHaveBeenCalled())
-  const tap = mock.on.mock.calls.find(call => call[0] === 'tap' && call[1] === 'node')![2]
-  act(() => tap({ target: { data: () => ({ entry: 'one' }) } }))
-  expect(open).toHaveBeenCalledWith('one')
-  act(() => tap({ target: { data: () => ({ group: 'study/notes' }) } }))
-  expect(expand).toHaveBeenCalledWith('study/notes')
-  fireEvent.click(screen.getByRole('button', { name: '放大画布' }))
-  expect(mock.zoom).toHaveBeenCalledWith({ level: 1.2, renderedPosition: { x: 400, y: 250 } })
+
+it('rotates the scene with depth on drag without opening a file, and allows the next real click', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  const before = screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')
+  fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 190, clientY: 140, buttons: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 190, clientY: 140 })
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).not.toBe(0)
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).not.toBe(before)
+  fireEvent.click(canvas)
+  expect(p.onOpen).not.toHaveBeenCalled()
+  fireEvent.pointerDown(screen.getByRole('button', { name: '预览 研究笔记.txt' }), { clientX: 150, clientY: 120, button: 0 })
+  fireEvent.pointerUp(screen.getByRole('button', { name: '预览 研究笔记.txt' }), { clientX: 150, clientY: 120 })
+  fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  expect(p.onOpen).toHaveBeenCalledWith('one')
 })
-it('shows the full hovered file name for graph focus', async () => {
-  render(<GraphCanvas nodes={[{ ...nodes[0], data: { ...nodes[0].data, label: '一个很长的完整文件名.txt' } }]} edges={[]} onOpen={vi.fn()} view="categories" viewport={null} onViewport={vi.fn()} onExpand={vi.fn()} expanded={{}} />)
-  await waitFor(() => expect(mock.on).toHaveBeenCalled())
-  const hover = mock.on.mock.calls.find(call => call[0] === 'mouseover' && call[1] === 'node')![2]
-  act(() => hover({ target: { data: (key: string) => key === 'type' ? 'file' : '一个很长的完整文件名.txt', addClass: vi.fn(), neighborhood: () => ({ addClass: vi.fn() }), union: () => ({}) } }))
-  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('一个很长的完整文件名.txt')
+
+it('retains dragged node coordinates through metadata changes and filter round trips', () => {
+  const p = props(), view = render(<GraphCanvas {...p} />)
+  const node = screen.getByRole('button', { name: '预览 研究笔记.txt' })
+  fireEvent.pointerDown(node, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(screen.getByLabelText('归档分类和资料关系图'), { clientX: 180, clientY: 140, buttons: 1 })
+  fireEvent.pointerUp(screen.getByLabelText('归档分类和资料关系图'), { clientX: 180, clientY: 140 })
+  const saved = p.onPositions.mock.lastCall?.[0]['file:one']
+  expect(saved.x).not.toBe(-120)
+  expect(Number.isFinite(saved.z)).toBe(true)
+  const transform = node.getAttribute('transform')
+  view.rerender(<GraphCanvas {...p} nodes={[nodes[1]]} edges={[]} />)
+  view.rerender(<GraphCanvas {...p} nodes={nodes.map(value => ({ ...value, data: { ...value.data, focused: true } }))} />)
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).toBe(transform)
 })
-it('keeps true fit at its bounded minimum and uses the same fit for reset', async () => {
-  const fit = mock.fit
-  mock.fitZoom = .2
-  mock.zoom.mockClear()
-  render(<GraphCanvas nodes={nodes} edges={[]} onOpen={vi.fn()} view="categories" viewport={null} onViewport={vi.fn()} onExpand={vi.fn()} expanded={{}} />)
-  await waitFor(() => expect(fit).toHaveBeenCalledOnce())
-  await waitFor(() => expect(fit).toHaveBeenCalledOnce())
-  expect(mock.zoom).not.toHaveBeenCalledWith(1)
+
+it('restores independent mode cameras and resets rotation with keyboard or explicit controls', () => {
+  const p = props(), saved = { zoom: 1.2, pan: { x: 90, y: 40 }, rotation: { yaw: .7, pitch: -.2 } }
+  const view = render(<GraphCanvas {...p} viewport={saved} />)
+  fireEvent.keyDown(screen.getByLabelText('归档分类和资料关系图'), { key: 'ArrowRight' })
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeGreaterThan(.7)
+  view.rerender(<GraphCanvas {...p} view="relations" viewport={null} />)
+  expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
+  view.rerender(<GraphCanvas {...p} viewport={saved} />)
+  expect(p.onViewport.mock.lastCall?.[0]).toEqual(saved)
   fireEvent.click(screen.getByRole('button', { name: '重置视图' }))
-  expect(fit).toHaveBeenCalledTimes(2)
-  expect(mock.zoom.mock.calls.filter(call => call.length)).toEqual([])
+  expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
 })
 
-it('saves dragged coordinates and does not overwrite them on data-only updates', async () => {
-  const save = vi.fn(), props = { nodes, edges: [], onOpen: vi.fn(), view: 'categories' as const, viewport: null, onViewport: vi.fn(), onExpand: vi.fn(), expanded: {}, onPositions: save }
-  const view = render(<GraphCanvas {...props} />)
-  await waitFor(() => expect(mock.on).toHaveBeenCalled())
-  const drag = mock.on.mock.calls.find(call => call[0] === 'dragfree')![2]
-  act(() => drag({ target: { id: () => 'file:one', position: (key: string) => key === 'x' ? 300 : 220 } }))
-  expect(save).toHaveBeenCalledWith(expect.objectContaining({ 'file:one': { x: 300, y: 220 } }))
-  const calls = mock.position.mock.calls.length
-  view.rerender(<GraphCanvas {...props} nodes={[{ ...nodes[0], data: { ...nodes[0].data, focused: true } }]} />)
-  expect(mock.position.mock.calls.length).toBe(calls)
+it('shows the full selected name, cancels interrupted drags, and leaves normal wheel scrolling available', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const node = screen.getByRole('button', { name: '预览 研究笔记.txt' }), canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.mouseEnter(node)
+  expect(screen.queryByRole('status', { name: '当前聚焦文件' })).not.toBeInTheDocument()
+  fireEvent.focus(node)
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
+  fireEvent.pointerDown(node, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 180, clientY: 140, buttons: 1 })
+  fireEvent.pointerCancel(canvas)
+  fireEvent.click(node)
+  expect(p.onOpen).toHaveBeenCalledOnce()
+  const last = p.onViewport.mock.calls.length
+  fireEvent.wheel(canvas, { deltaY: 100 })
+  expect(p.onViewport.mock.calls).toHaveLength(last)
+  act(() => { fireEvent.wheel(canvas, { deltaY: -100, ctrlKey: true }) })
+  expect(p.onViewport.mock.lastCall?.[0].zoom).toBeGreaterThan(p.onViewport.mock.calls[last - 1][0].zoom)
 })
 
+it('ends a gesture released outside the graph and never drags with the mouse button up', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(canvas, { clientX: 790, clientY: 100, button: 0 })
+  fireEvent.pointerUp(window, { clientX: 900, clientY: 100 })
+  const initial = screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')
+  fireEvent.pointerMove(canvas, { clientX: 500, clientY: 200, buttons: 0 })
+  fireEvent.pointerUp(canvas, { clientX: 500, clientY: 200 })
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).toBe(initial)
+  fireEvent.pointerDown(canvas, { clientX: 300, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 400, clientY: 100, buttons: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 400, clientY: 100 })
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).not.toBe(0)
+})
 
+it('keeps every relation between the same files separately clickable in both directions', () => {
+  const p = props()
+  const second = { data: { ...edges[0].data, id: 'relation:r2', relation: 'r2', source: 'file:two', target: 'file:one', label: '配套说明' } }
+  render(<GraphCanvas {...p} edges={[...edges, second]} />)
+  const reference = screen.getByRole('button', { name: '查看 引用 关系依据' }), attachment = screen.getByRole('button', { name: '查看 配套说明 关系依据' })
+  expect(reference.getAttribute('d')).toMatch(/^M.*Q/)
+  expect(attachment.getAttribute('d')).not.toBe(reference.getAttribute('d'))
+  fireEvent.click(reference)
+  expect(p.onOpen).toHaveBeenLastCalledWith('one', 'r1')
+  fireEvent.click(attachment)
+  expect(p.onOpen).toHaveBeenLastCalledWith('two', 'r2')
+})
 
+it('saves an interrupted node drag before filtering and ignores another pointer ending', () => {
+  const p = props(), view = render(<GraphCanvas {...p} />)
+  const original = p.onPositions.mock.lastCall?.[0]['file:one']
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(screen.getByRole('button', { name: '预览 研究笔记.txt' }), { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 180, clientY: 140, buttons: 1 })
+  fireEvent(window, new Event('blur'))
+  const saved = p.onPositions.mock.lastCall?.[0]['file:one']
+  expect(saved.x).not.toBe(original.x)
+  view.rerender(<GraphCanvas {...p} nodes={[nodes[1]]} edges={[]} />)
+  view.rerender(<GraphCanvas {...p} />)
+  expect(p.onPositions.mock.lastCall?.[0]['file:one']).toEqual(saved)
+  vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId: number; pointerType = 'touch'; constructor(type: string, init: PointerEventInit) { super(type, init); this.pointerId = init.pointerId ?? 1 } })
+  fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, pointerId: 1, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 150, clientY: 100, pointerId: 1 })
+  fireEvent.pointerUp(window, { clientX: 150, clientY: 100, pointerId: 2 })
+  fireEvent.pointerMove(canvas, { clientX: 200, clientY: 100, pointerId: 1 })
+  fireEvent.pointerUp(canvas, { clientX: 200, clientY: 100, pointerId: 1 })
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeCloseTo(.7)
+})
 
-it('fits a mode without a saved viewport and restores a saved destination without fitting again', async () => {
-  const props = { nodes, edges: [], onOpen: vi.fn(), view: 'categories' as const, viewport: { zoom: 1, pan: { x: 900, y: 800 } }, onViewport: vi.fn(), onExpand: vi.fn(), expanded: {} }
-  const view = render(<GraphCanvas {...props} />)
-  await waitFor(() => expect(screen.queryByText('正在加载本机关系画布…')).not.toBeInTheDocument())
-  expect(mock.fit).not.toHaveBeenCalled()
-  view.rerender(<GraphCanvas {...props} view="relations" viewport={null} />)
-  expect(mock.fit).toHaveBeenCalledOnce()
-  view.rerender(<GraphCanvas {...props} view="categories" />)
-  expect(mock.fit).toHaveBeenCalledOnce()
-  expect(mock.pan).toHaveBeenCalledWith({ x: 900, y: 800 })
+it('lets a vertical touch scroll leave graph positions and camera unchanged', () => {
+  vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId = 1; pointerType = 'touch' })
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图'), node = screen.getByRole('button', { name: '预览 研究笔记.txt' })
+  const before = node.getAttribute('transform'), positionCalls = p.onPositions.mock.calls.length
+  fireEvent.pointerDown(node, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 102, clientY: 160, buttons: 1 })
+  fireEvent.pointerCancel(canvas)
+  expect(node.getAttribute('transform')).toBe(before)
+  expect(p.onPositions.mock.calls).toHaveLength(positionCalls)
+})
+
+it('follows a file chosen outside the canvas after a previous node selection or deselection', () => {
+  const p = props(), view = render(<GraphCanvas {...p} />)
+  fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  view.rerender(<GraphCanvas {...p} nodes={nodes.map(node => ({ ...node, data: { ...node.data, focused: node.data.entry === 'two' } }))} />)
+  expect(screen.getByText('研究附件.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByLabelText('归档分类和资料关系图'))
+  expect(screen.queryByText('研究附件.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  view.rerender(<GraphCanvas {...p} nodes={nodes.map(node => ({ ...node, data: { ...node.data, focused: node.data.entry === 'one' } }))} />)
+  expect(screen.getByText('研究笔记.txt', { selector: 'tspan' })).toBeVisible()
+})
+
+it('keeps the live camera during drag when a parent refresh supplies an earlier viewport', () => {
+  const p = props(), view = render(<GraphCanvas {...p} />)
+  const stale = p.onViewport.mock.lastCall?.[0], canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 200, clientY: 100, buttons: 1 })
+  view.rerender(<GraphCanvas {...p} viewport={stale} />)
+  fireEvent.pointerUp(canvas, { clientX: 200, clientY: 100 })
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeCloseTo(.7)
 })

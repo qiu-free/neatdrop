@@ -14,14 +14,15 @@ body {
 }
 .app-shell .brand, .app-shell h1, .app-shell h2, .app-shell h3 { color: var(--ink); }
 .app-shell .brand-mark {
-  background: linear-gradient(145deg, #3c7960, #285b48 72%);
-  box-shadow: inset 0 1px 0 #ffffff42, 0 2px 4px #233f3012;
+  color: var(--accent-ink);
+  background: linear-gradient(145deg, #d5ebdc, var(--accent-fill) 72%);
+  box-shadow: inset 0 1px 0 #ffffff9c, 0 2px 4px #233f300c;
 }
 .app-shell .topbar, .app-shell .page-bottom, .app-shell .safety-note, .app-shell .local-status { border-color: var(--line); }
 .app-shell .sidebar nav button:hover { background: #eeeee6; }
 .app-shell .sidebar nav button.nav-active {
-  color: #254f3e;
-  background: linear-gradient(100deg, #e4ebe0, #edf0e8);
+  color: #456b55;
+  background: linear-gradient(100deg, #eaf4eb, #f1f6ed);
   box-shadow: inset 3px 0 var(--green), inset 0 1px 0 #ffffff80;
 }
 .app-shell .practice-nav-badge, .practice-badge, .exercise-mode-badge { background: #e6ecdf; color: #34583f; border-color: #d4ddcc; }
@@ -32,16 +33,16 @@ body {
   transition: background-color 160ms var(--theme-ease), border-color 160ms var(--theme-ease), color 160ms var(--theme-ease), box-shadow 180ms var(--theme-ease);
 }
 .app-shell .button.primary, .library-overlay .button.primary {
-  color: #fffefb;
-  background: linear-gradient(160deg, #36745a, var(--green) 70%, #234e3e);
-  border-color: #285b48;
-  box-shadow: inset 0 1px 0 #ffffff36, 0 2px 4px #27453217;
-  text-shadow: 0 1px 1px #173d2b30;
+  color: var(--accent-ink);
+  background: linear-gradient(160deg, #d5ebdb, var(--accent-fill) 75%);
+  border-color: #96bca5;
+  box-shadow: inset 0 1px 0 #ffffff9c, 0 2px 4px #2745320d;
+  text-shadow: none;
 }
 .app-shell .button.primary:hover:not(:disabled), .library-overlay .button.primary:hover:not(:disabled) {
-  background: linear-gradient(150deg, #3d8063, #275a45 65%, #214b39);
-  border-color: #356f54;
-  box-shadow: inset 0 1px 0 #ffffff50, 0 3px 10px #2b543a25;
+  background: linear-gradient(150deg, #c9e5d3, var(--accent-hover) 75%);
+  border-color: #7ea98f;
+  box-shadow: inset 0 1px 0 #ffffff80, 0 3px 10px #2b543a15;
 }
 .app-shell .button.primary:active:not(:disabled), .library-overlay .button.primary:active:not(:disabled) {
   box-shadow: inset 0 2px 4px #173e3438, 0 1px 2px #233e2810;
@@ -93,6 +94,9 @@ body {
 .app-shell .alert.error, .app-shell .settings-message.error { background: var(--error-surface); color: var(--error-ink); border-color: #e8c9c0; }
 .app-shell .green { color: #315f3f !important; }
 .app-shell .warning { color: var(--warning-ink) !important; }
+.app-shell .current .step-number, .app-shell .done .step-number, .app-shell .viewing-label { color: var(--accent-ink); background: var(--accent-fill); border-color: #96bca5; }
+.app-shell .legend-active { background: #96bca5; }
+.app-shell .file-table tbody tr.active-row td:first-child { box-shadow: inset 4px 0 #96bca5; }
 
 .app-shell :is(.library-filters,.file-table th,.file-grid-preview,.preview,.content-quality,.settings-preferences,.settings-test-panel) { background-color: #f5f4ed; border-color: var(--line); }
 .app-shell :is(.file-grid-card,.help-topic,.help-steps article) { background-color: var(--surface); border-color: var(--line); box-shadow: 0 1px 3px #4c472509; }
@@ -107,7 +111,7 @@ body {
   }
   .app-shell .library-item:hover { background: #f5f6ee; }
 }
-.app-shell .file-grid-card.is-active { border-color: #4d8060; box-shadow: inset 0 0 0 1px #4d8060; }
+.app-shell .file-grid-card.is-active { border-color: #85b49a; box-shadow: inset 0 0 0 1px #85b49a; }
 .app-shell .file-grid-card.is-selected, .app-shell .library-item.is-active, .app-shell .file-table tr.active-row { background-color: #eaf0e3; border-color: #88a47c; }
 .app-shell .file-table tr.checked-row { background: #f1f4e9; }
 .app-shell .file-table tbody tr:hover { background: #f6f7ef; }
@@ -129,28 +133,28 @@ body {
 .workbench-detail-layer.app-shell { background-image: none; }
 .app-shell .modal-backdrop { background: #252d2859; }
 
-/* Graphify keeps its layout and category colors; only the workspace material is
-   warmed to graphite so it belongs beside the paper surfaces. */
-.app-shell .graph-workspace { background: #171b18; border-color: #383f36; box-shadow: var(--theme-shadow); }
-.app-shell .graph-main { background: #171b18; color: #eceee6; }
-.app-shell .graph-toolbar { background: #1c211c; border-color: #373f33; }
-.app-shell .graph-mode { background: #2a3228; }
-.app-shell .graph-mode button { color: #b4bfad; }
-.app-shell .graph-mode button[aria-pressed=true] { background: #43563f; color: #f7faee; }
-.app-shell .graph-tools { background: #22281f; border-color: #3e4739; }
-.app-shell .graph-canvas { background-color: #171b18; background-image: radial-gradient(#4b5740 1px, transparent 1px); }
-.app-shell .graph-summary, .app-shell .graph-legend { color: #c1cbb5; border-color: #3b4435; }
-.app-shell .graph-toolbar > span, .app-shell .graph-tools label, .app-shell .graph-group-row { color: #e0e5d7; }
-.app-shell .graph-tools-heading > span:last-child, .app-shell .graph-group-count, .app-shell .graph-subgroup-row { color: #bfcab2; }
-.app-shell .graph-kicker { color: #aebca0; }
-.app-shell .graph-workspace .graph-tools :is(input,select), .app-shell .graph-tools .library-search { color: #edf0e5; background-color: #2b3328; border-color: #57644d; box-shadow: none; }
-.app-shell .graph-tools input::placeholder { color: #a4b297; }
+/* A paper-light network, matching the selected small-node reference. */
+.app-shell .graph-workspace { background: #fffefc; border-color: var(--line); box-shadow: var(--theme-shadow); }
+.app-shell .graph-main { background: #fffefc; color: var(--ink); }
+.app-shell .graph-toolbar { background: #fcfcf8; border-color: #e1e5dc; }
+.app-shell .graph-mode { background: #edf1e9; }
+.app-shell .graph-mode button { color: #626d60; }
+.app-shell .graph-mode button[aria-pressed=true] { background: #dcecdc; color: #395d44; box-shadow: 0 1px 3px #394c3020; }
+.app-shell .graph-tools { background: #f6f8f1; color: var(--ink); border-color: #dfe5d8; }
+.app-shell .graph-canvas { background-color: #fffefc; background-image: none; }
+.app-shell .graph-summary, .app-shell .graph-legend { color: #646e60; border-color: #e1e6dc; }
+.app-shell .graph-toolbar > span, .app-shell .graph-tools label, .app-shell .graph-group-row { color: #4c5949; }
+.app-shell .graph-tools-heading > span:last-child, .app-shell .graph-group-count, .app-shell .graph-subgroup-row { color: #677360; }
+.app-shell .graph-kicker { color: #75836c; }
+.app-shell .graph-workspace .graph-tools :is(input,select), .app-shell .graph-tools .library-search { color: #384532; background-color: #fffefb; border-color: #b7c4ad; box-shadow: inset 0 1px 2px #4b452706; }
+.app-shell .graph-tools input::placeholder { color: #788472; }
 .app-shell .graph-tools .library-search input { background: transparent; }
-.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary, .app-shell .graph-icon-button { background: #303c2b; color: #e8eede; border-color: #627054; box-shadow: inset 0 1px 0 #ffffff0c; }
-.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary:hover:not(:disabled) { background: #415239; border-color: #92a57c; }
-.app-shell .graph-tools-heading, .app-shell .graph-subgroup-panel { border-color: #3c4735; }
-.app-shell .graph-hover-status { background: #252f21f0; border-color: #728361; color: #f0f5e4; }
-.app-shell .graph-limit-notice { background: #343524; color: #e7d3a0; border-color: #5b5637; }
+.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary, .app-shell .graph-icon-button { background: #fffefb; color: #4b6040; border-color: #b9c7ad; box-shadow: inset 0 1px 0 white, 0 1px 2px #394c3008; }
+.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary:hover:not(:disabled) { background: #edf5e6; border-color: #8fac7c; }
+.app-shell .graph-tools .button.secondary:disabled { color: #687662; }
+.app-shell .graph-tools-heading, .app-shell .graph-subgroup-panel { border-color: #dce4d4; }
+.app-shell .graph-hover-status { background: #fffffff5; border-color: #b6cbb8; color: #42513d; }
+.app-shell .graph-limit-notice { background: #faf5e8; color: #78633c; border-color: #e5dbbf; }
 
 /* React Bits Fade Content / Specular Button cues, adapted to established timing.
    Content is present immediately. No delayed lists, layout shift or idle loops. */

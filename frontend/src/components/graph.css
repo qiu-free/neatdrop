@@ -30,6 +30,34 @@
 .graph-canvas-tools { display: flex; position: absolute; z-index: 2; right: 12px; top: 12px; gap: 6px; }
 .graph-canvas-tools .button { min-height: 36px; padding: 5px 9px; }
 .graph-canvas-tools .button.secondary:hover { background: #393952; color: white; }
+.graph-spatial-canvas { display: block; cursor: grab; touch-action: pan-y; user-select: none; }
+.graph-spatial-canvas:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+.graph-spatial-canvas:focus:not(:focus-visible) { outline: none; }
+.graph-spatial-canvas.is-dragging { cursor: grabbing; }
+.graph-spatial-node { cursor: pointer; }
+.graph-spatial-node .graph-node-hit { fill: transparent; }
+.graph-spatial-node .graph-node-halo { fill: #e1ece2; opacity: 0; }
+.graph-spatial-node .graph-node-dot { stroke: #fffefc; stroke-width: 1.2px; }
+.graph-spatial-node.is-category .graph-node-dot { stroke: #8fa58a; stroke-width: 1.5px; }
+.graph-spatial-node text { fill: #424b44; font-family: var(--font-ui); font-size: 12px; font-weight: 500; paint-order: stroke; stroke: #fffefc; stroke-width: 4px; stroke-linejoin: round; pointer-events: bounding-box; }
+.graph-spatial-node.is-category text, .graph-spatial-node.is-subcategory text { fill: #63715b; font-weight: 600; }
+.graph-spatial-node:hover .graph-node-halo, .graph-spatial-node:focus .graph-node-halo, .graph-spatial-node.is-focused .graph-node-halo { opacity: 1; }
+.graph-spatial-node:focus { outline: none; }
+.graph-spatial-node:focus-visible .graph-node-halo { stroke: var(--focus); stroke-width: 2px; }
+.graph-spatial-node.is-focused text, .graph-spatial-node:focus text { fill: #263d30; font-weight: 650; }
+.graph-spatial-edge > path { fill: none; stroke: #b5bdba; stroke-width: .9px; }
+.graph-spatial-edge.is-category > path { stroke: #d5dad5; stroke-width: .8px; }
+.graph-spatial-edge.is-manual > path { stroke: #84a99d; stroke-width: 1.2px; }
+.graph-spatial-edge.is-automatic > path { stroke: #b8a17b; stroke-dasharray: 4 5; }
+.graph-spatial-edge.is-neighbor > path { stroke-width: 1.6px; }
+.graph-spatial-edge > path.graph-edge-hit { stroke: transparent; stroke-width: 14px; stroke-dasharray: none; cursor: pointer; pointer-events: stroke; }
+.graph-spatial-edge > path.graph-edge-hit:focus-visible { outline: none; stroke: #84a99d60; stroke-width: 5px; }
+.graph-interaction-hint { position: absolute; left: 16px; right: 16px; bottom: 12px; margin: 0; pointer-events: none; color: #667362; font-size: 12px; line-height: 1.7; text-align: center; }
+.graph-depth-badge { display: inline-block; margin-right: 7px; padding: 0 5px; color: #4d705b; background: #edf4e9; border: 1px solid #d6e4cd; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.graph-canvas-wrap:has(.graph-hover-status) .graph-interaction-hint { visibility: hidden; }
+.graph-canvas-wrap:has(.graph-spatial-canvas) .graph-canvas-loading { inset: 70px 12px 70px; text-align: center; padding: 24px; }
+.graph-keyboard-hint { display: none; }
+.graph-canvas-wrap:has(.graph-spatial-canvas:focus-visible) .graph-keyboard-hint { display: inline; }
 .graph-summary { display: flex; flex-wrap: wrap; gap: 7px 20px; color: #bfc1d3; font-size: 13px; padding: 12px 18px; border-bottom: 1px solid #303046; }
 .graph-toolbar > span { color: #c4c5d8; font-size: 13px; }
 .graph-tools .button.secondary, .graph-canvas-tools .button.secondary, .graph-toolbar > .button.secondary { color: #e6e8f5; background: #24243a; border-color: #55556d; }

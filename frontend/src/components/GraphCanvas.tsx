@@ -48,7 +48,7 @@ export function GraphCanvas(props: Props) {
   useLayoutEffect(() => {
     const saved = { ...latest.current.positions, ...cache.current[view] }
     const laidOut = layoutGraph(latest.current.nodes, latest.current.edges, saved)
-    const next = Object.fromEntries(laidOut.map(node => [node.data.id, { ...node.position, x: saved[node.data.id]?.x ?? node.position.x * 1.7, z: saved[node.data.id]?.z ?? seedGraphDepth(node.data.id) }]))
+    const next = Object.fromEntries(laidOut.map(node => [node.data.id, { ...node.position, z: saved[node.data.id]?.z ?? seedGraphDepth(node.data.id) }]))
     cache.current[view] = Object.fromEntries([...Object.entries(cache.current[view]).filter(([id]) => !(id in next)), ...Object.entries(next)].slice(-400))
     pointsRef.current = next; setPoints(next); latest.current.onPositions?.(next)
     if (previousView.current !== view) {

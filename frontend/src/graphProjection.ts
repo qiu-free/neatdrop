@@ -16,39 +16,7 @@ function scatterPoint(index: number, total: number): GraphPosition {
 }
 const directedKinds = new Set(['reference', 'attachment', 'version'])
 
-/** A bounded, seeded spring layout. Saved positions act as anchors so selection/filter updates do not move dragged nodes. */
-export function layoutGraph(nodes: GraphNode[], edges: GraphEdge[], saved: Record<string, GraphPosition> = {}) {
-  const positions = new Map(nodes.map(node => [node.data.id, { ...(saved[node.data.id] ?? node.position) }]))
-  const anchored = new Set(Object.keys(saved))
-  if (nodes.every(node => anchored.has(node.data.id))) return nodes.map(node => ({ ...node, position: { ...saved[node.data.id] } }))
-  const edgePairs = edges.map(edge => [edge.data.source, edge.data.target] as const).filter(([source, target]) => positions.has(source) && positions.has(target))
-  const radius = (node: GraphNode) => Math.max(12, node.data.size ?? 14) / 2 + 26
-  for (let iteration = 0; iteration < 72; iteration++) {
-    const forces = new Map(nodes.map(node => [node.data.id, { x: 0, y: 0 }]))
-    for (let first = 0; first < nodes.length; first++) for (let second = first + 1; second < nodes.length; second++) {
-      const a = nodes[first], b = nodes[second], pa = positions.get(a.data.id)!, pb = positions.get(b.data.id)!
-      let dx = pb.x - pa.x, dy = pb.y - pa.y, distance = Math.hypot(dx, dy)
-      if (distance < .01) { dx = (first + 1) * .73; dy = (second + 1) * .41; distance = Math.hypot(dx, dy) }
-      const minDistance = radius(a) + radius(b), repulsion = Math.max(0, 6500 / (distance * distance)) + Math.max(0, minDistance - distance) * .18
-      const fx = dx / distance * repulsion, fy = dy / distance * repulsion
-      forces.get(a.data.id)!.x -= fx; forces.get(a.data.id)!.y -= fy; forces.get(b.data.id)!.x += fx; forces.get(b.data.id)!.y += fy
-    }
-    edgePairs.forEach(([source, target]) => {
-      const a = positions.get(source)!, b = positions.get(target)!, dx = b.x - a.x, dy = b.y - a.y, distance = Math.max(.1, Math.hypot(dx, dy)), desired = 150
-      const force = (distance - desired) * .012, fx = dx / distance * force, fy = dy / distance * force
-      forces.get(source)!.x += fx; forces.get(source)!.y += fy; forces.get(target)!.x -= fx; forces.get(target)!.y -= fy
-    })
-    nodes.forEach(node => {
-      if (anchored.has(node.data.id)) return
-      const force = forces.get(node.data.id)!, point = positions.get(node.data.id)!
-      // A weak center force keeps disconnected groups within the same overview.
-      force.x -= point.x * .004
-      force.y -= point.y * .004
-      point.x = Math.max(-900, Math.min(900, point.x + force.x * .7)); point.y = Math.max(-650, Math.min(650, point.y + force.y * .7))
-    })
-  }
-  return nodes.map(node => ({ ...node, position: { x: Math.round(positions.get(node.data.id)!.x), y: Math.round(positions.get(node.data.id)!.y) } }))
-}
+export { layoutGraph } from './graphLayout'
 
 export function projectGraph(listing: GraphListing, options: Partial<GraphSession> & { selected?: string; taxonomy?: GraphTaxonomy } = {}) {
   const query = options.query?.trim().toLocaleLowerCase() ?? ''

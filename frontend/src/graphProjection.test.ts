@@ -65,7 +65,7 @@ it('projects a 1000-record archive within the 200-node bound', () => {
   expect(elapsed).toBeLessThan(1000)
 })
 
-it('uses a finite force layout with deterministic, separated positions', () => {
+it('uses a finite branch layout with deterministic, separated positions', () => {
   const data = listing(Array.from({ length: 12 }, (_, i) => item(`${i}`)))
   const result = projectGraph(data, { expanded: { 'study/notes': 50 } })
   const laidOut = layoutGraph(result.nodes, result.edges)

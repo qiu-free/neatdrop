@@ -212,3 +212,13 @@ it('keeps the live camera during drag when a parent refresh supplies an earlier 
   fireEvent.pointerUp(canvas, { clientX: 200, clientY: 100 })
   expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeCloseTo(.7)
 })
+
+it('adds an expanded branch next to its remembered node in the same world coordinate space', () => {
+  const p = props(), view = render(<GraphCanvas {...p} nodes={[nodes[0]]} edges={[]} positions={{ 'file:one': { x: -200, y: 0, z: 0 } }} />)
+  view.rerender(<GraphCanvas {...p} positions={{ 'file:one': { x: -200, y: 0, z: 0 } }} />)
+  const points = p.onPositions.mock.lastCall?.[0]
+  expect(points['file:one']).toEqual({ x: -200, y: 0, z: 0 })
+  const distance = Math.hypot(points['file:one'].x - points['file:two'].x, points['file:one'].y - points['file:two'].y)
+  expect(distance).toBeGreaterThan(55)
+  expect(distance).toBeLessThan(180)
+})

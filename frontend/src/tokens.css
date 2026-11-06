@@ -1,20 +1,20 @@
 :root {
-  --canvas: #f5f7f8;
-  --sidebar: #ffffff;
-  --surface: #ffffff;
-  --surface-soft: #f1f5f3;
-  --ink: #182620;
-  --muted: #52625a;
-  --green: #236448;
-  --green-hover: #194e37;
-  --green-soft: #e8f3ec;
-  --line: #dce4df;
-  --control-line: #a5b5ab;
+  --canvas: #f7f5f0;
+  --sidebar: #fbfaf7;
+  --surface: #fffefb;
+  --surface-soft: #f0f0e8;
+  --ink: #262d29;
+  --muted: #606961;
+  --green: #285b48;
+  --green-hover: #204b3b;
+  --green-soft: #e8eee5;
+  --line: #deddd3;
+  --control-line: #b4b9ac;
   --warning-ink: #805013;
   --warning-surface: #fff6e8;
   --error-ink: #a4362c;
   --error-surface: #fff0ed;
-  --focus: #236448;
+  --focus: #3e735d;
   --font-ui: "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
   --font-display: var(--font-ui);
   --text-body: 15px;
@@ -24,5 +24,8 @@
   --radius-control: 8px;
   --radius-panel: 12px;
   --motion-state: 160ms;
+  --theme-highlight: #91ad9620;
+  --theme-ease: cubic-bezier(.2, .75, .3, 1);
+  --theme-shadow: 0 2px 4px #3b382706, 0 8px 24px #3b382707;
   color-scheme: light;
 }

@@ -13,10 +13,12 @@ import { TutorialPractice } from './components/TutorialPractice'
 import { loadPreferences, savePreferences } from './preferences'
 import type { Page } from './types'
 import { createPageSession } from './pageSession'
+import { useThemeEffects } from './useThemeEffects'
 import './navigation.css'
 const KnowledgeGraphPage = lazy(() => import('./components/KnowledgeGraphPage').then(module => ({ default: module.KnowledgeGraphPage })))
 
 export default function App() {
+  useThemeEffects()
   const state = useWorkspace()
   const session = useRef(createPageSession()).current
   const pageContent = useRef<HTMLDivElement>(null)

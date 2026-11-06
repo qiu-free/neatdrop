@@ -1,0 +1,163 @@
+/* Craft-inspired visual skin. Geometry, type sizes, content and state rules live
+   in the existing stylesheets. This layer changes only paint and motion. */
+body {
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.app-shell {
+  background: radial-gradient(ellipse at 80% 0, #efece15c, transparent 60%), var(--canvas);
+}
+.app-shell .sidebar {
+  background: linear-gradient(160deg, #fffefb, var(--sidebar) 55%, #f5f4ee);
+  border-color: var(--line);
+}
+.app-shell .brand, .app-shell h1, .app-shell h2, .app-shell h3 { color: var(--ink); }
+.app-shell .brand-mark {
+  background: linear-gradient(145deg, #3c7960, #285b48 72%);
+  box-shadow: inset 0 1px 0 #ffffff42, 0 2px 4px #233f3012;
+}
+.app-shell .topbar, .app-shell .page-bottom, .app-shell .safety-note, .app-shell .local-status { border-color: var(--line); }
+.app-shell .sidebar nav button:hover { background: #eeeee6; }
+.app-shell .sidebar nav button.nav-active {
+  color: #254f3e;
+  background: linear-gradient(100deg, #e4ebe0, #edf0e8);
+  box-shadow: inset 3px 0 var(--green), inset 0 1px 0 #ffffff80;
+}
+.app-shell .practice-nav-badge, .practice-badge, .exercise-mode-badge { background: #e6ecdf; color: #34583f; border-color: #d4ddcc; }
+.app-shell .intro-label, .app-shell .page-intro p, .app-shell .breadcrumb { color: var(--muted); }
+.app-shell input::placeholder, .library-overlay input::placeholder { color: #70786d; }
+
+.app-shell .button, .library-overlay .button {
+  transition: background-color 160ms var(--theme-ease), border-color 160ms var(--theme-ease), color 160ms var(--theme-ease), box-shadow 180ms var(--theme-ease);
+}
+.app-shell .button.primary, .library-overlay .button.primary {
+  color: #fffefb;
+  background: linear-gradient(160deg, #36745a, var(--green) 70%, #234e3e);
+  border-color: #285b48;
+  box-shadow: inset 0 1px 0 #ffffff36, 0 2px 4px #27453217;
+  text-shadow: 0 1px 1px #173d2b30;
+}
+.app-shell .button.primary:hover:not(:disabled), .library-overlay .button.primary:hover:not(:disabled) {
+  background: linear-gradient(150deg, #3d8063, #275a45 65%, #214b39);
+  border-color: #356f54;
+  box-shadow: inset 0 1px 0 #ffffff50, 0 3px 10px #2b543a25;
+}
+.app-shell .button.primary:active:not(:disabled), .library-overlay .button.primary:active:not(:disabled) {
+  box-shadow: inset 0 2px 4px #173e3438, 0 1px 2px #233e2810;
+}
+.app-shell .button.secondary, .library-overlay .button.secondary {
+  color: #303a32;
+  background: linear-gradient(#fffefb, #faf8f2);
+  border-color: #d0d2c5;
+  box-shadow: inset 0 1px 0 #fff, 0 1px 3px #44412b08;
+}
+.app-shell .button.secondary:hover:not(:disabled), .library-overlay .button.secondary:hover:not(:disabled) {
+  color: #254f3e;
+  background: linear-gradient(#fffefb, #eef0e6);
+  border-color: #8eaa92;
+  box-shadow: inset 0 1px 0 white, 0 2px 7px #35583b14;
+}
+.app-shell .button:disabled, .library-overlay .button:disabled { box-shadow: none; text-shadow: none; }
+.app-shell .icon-button:hover:not(:disabled), .library-overlay .icon-button:hover:not(:disabled) { color: var(--green); background: #e8ede2; }
+.app-shell :is(input:not([type=checkbox]):not([type=radio]), select, textarea), .library-overlay select {
+  border-color: var(--control-line);
+  background-color: var(--surface);
+  box-shadow: inset 0 1px 2px #4b452708;
+  color: var(--ink);
+  transition: border-color 160ms var(--theme-ease), box-shadow 160ms var(--theme-ease), background-color 160ms var(--theme-ease);
+}
+.app-shell :is(input,select,textarea):focus-visible, .library-overlay :is(input,select,textarea):focus-visible { border-color: #678f73; box-shadow: 0 0 0 3px #6f97741c; }
+.app-shell .library-search input, .app-shell .search-field input, .app-shell .help-search input { background: transparent; box-shadow: none; }
+.app-shell :is(.path-form input,.settings-field input,.inspector-fields input):disabled { background: #efefe7; }
+
+.app-shell :is(.directory-panel,.file-panel,.empty-landing,.library-panel,.transaction,.execution-results),
+.app-shell .help-content, .app-shell .modal, .library-drawer {
+  background-color: var(--surface);
+  border-color: var(--line);
+  box-shadow: var(--theme-shadow), inset 0 1px 0 #ffffffb3;
+}
+.app-shell :is(.directory-panel,.empty-landing,.help-practice-card) {
+  background-image: radial-gradient(circle at var(--theme-pointer-x, 12%) var(--theme-pointer-y, 0%), var(--theme-highlight), transparent 300px), linear-gradient(135deg, #ffffff70, #faf7ef40);
+}
+.app-shell .directory-icon { background: linear-gradient(145deg, #e8eee2, #eff0e8); color: #376b51; box-shadow: inset 0 1px 0 #ffffffb3; }
+.app-shell .empty-landing > svg, .app-shell .empty-landing-icon { color: #7b8251; background: #f1edda; }
+.app-shell .small-badge, .app-shell .file-panel-heading h2 > span { background: #efefe6; color: #616c5e; border-color: #dcded0; }
+.app-shell .workflow-overview li { background: #fffdf8; border-color: #e0dfd5; box-shadow: 0 1px 3px #3b382706; }
+.app-shell .workflow-overview li[aria-current=step] { background: linear-gradient(130deg, #e8eee3, #f0f2e9); border-color: #789b81; color: #285b48; }
+.app-shell .workflow-overview li > span, .app-shell .workflow-overview button > span { background: #f2f3ec; }
+.app-shell :is(.workspace-summary,.safe-banner,.notice,.copy-destination) { background: #eef1e6; color: #425e45; border-color: #d6dfca; }
+.app-shell .notice strong, .app-shell .copy-destination strong { color: #294d36; }
+.app-shell .notice.warning, .app-shell .review-task, .app-shell .decision-badge.candidate { color: var(--warning-ink); background: var(--warning-surface); border-color: #e5d0aa; }
+.app-shell .alert.success, .app-shell .settings-message.success { background: #e9efe2; color: #315f3f; border-color: #cfddc6; }
+.app-shell .alert.error, .app-shell .settings-message.error { background: var(--error-surface); color: var(--error-ink); border-color: #e8c9c0; }
+.app-shell .green { color: #315f3f !important; }
+.app-shell .warning { color: var(--warning-ink) !important; }
+
+.app-shell :is(.library-filters,.file-table th,.file-grid-preview,.preview,.content-quality,.settings-preferences,.settings-test-panel) { background-color: #f5f4ed; border-color: var(--line); }
+.app-shell :is(.file-grid-card,.help-topic,.help-steps article) { background-color: var(--surface); border-color: var(--line); box-shadow: 0 1px 3px #4c472509; }
+.app-shell :is(.file-grid-card,.library-item,.help-topic,.help-practice-card,.settings-preferences) {
+  transition: border-color 160ms var(--theme-ease), box-shadow 200ms var(--theme-ease), background-color 160ms var(--theme-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-shell :is(.file-grid-card,.help-topic,.help-practice-card,.settings-preferences):hover {
+    border-color: #a1b59b;
+    box-shadow: 0 0 0 1px #91ad9617, 0 5px 15px #4b513715;
+    background-image: radial-gradient(circle at var(--theme-pointer-x, 50%) var(--theme-pointer-y, 0%), #b2c2a61f, transparent 250px);
+  }
+  .app-shell .library-item:hover { background: #f5f6ee; }
+}
+.app-shell .file-grid-card.is-active { border-color: #4d8060; box-shadow: inset 0 0 0 1px #4d8060; }
+.app-shell .file-grid-card.is-selected, .app-shell .library-item.is-active, .app-shell .file-table tr.active-row { background-color: #eaf0e3; border-color: #88a47c; }
+.app-shell .file-table tr.checked-row { background: #f1f4e9; }
+.app-shell .file-table tbody tr:hover { background: #f6f7ef; }
+.app-shell .file-table :is(td,th), .app-shell .table-note, .app-shell .table-toolbar { border-color: var(--line); }
+.app-shell .category-tag { background: #e9efdf; color: #3b6140; border-color: #d4ddc5; }
+.app-shell .category-tag.finance { background: #f7eee1; color: #805d37; border-color: #e8d8be; }
+.app-shell .category-tag.activity { background: #e9edf4; color: #4d627f; border-color: #d5dcea; }
+.app-shell .category-tag.none { background: transparent; color: var(--muted); }
+.app-shell :is(.help-search,.search-field,.library-filters .library-search) { background: var(--surface); border-color: var(--control-line); }
+.app-shell .help-practice-card { border-color: #d5deca; }
+.app-shell .help-topic-directory a { background: #f7f7ef; color: #4e6850; border-color: #dedfd1; }
+.app-shell .help-topic-directory a:hover { background: #eaf0e0; border-color: #99b08d; }
+.app-shell .inspector, .app-shell .inspector .inspector-heading, .library-drawer-heading, .library-drawer-footer { background: var(--surface); border-color: var(--line); }
+.app-shell .inspector, .library-drawer { box-shadow: -12px 0 40px #292f211c; }
+.app-shell .preview-controls, .app-shell .inspector-fields select, .app-shell .inspector-fields input { background-color: var(--surface); }
+.app-shell .classification-form strong, .app-shell .decision-badge { background: #e8eedf; color: #3a6040; border-color: #cad8bf; }
+.library-preview, .graph-evidence, .graph-evidence-image > div { background: #f2f2e9; }
+.library-backdrop, .workbench-detail-layer { background-color: #252d284b; }
+.workbench-detail-layer.app-shell { background-image: none; }
+.app-shell .modal-backdrop { background: #252d2859; }
+
+/* Graphify keeps its layout and category colors; only the workspace material is
+   warmed to graphite so it belongs beside the paper surfaces. */
+.app-shell .graph-workspace { background: #171b18; border-color: #383f36; box-shadow: var(--theme-shadow); }
+.app-shell .graph-main { background: #171b18; color: #eceee6; }
+.app-shell .graph-toolbar { background: #1c211c; border-color: #373f33; }
+.app-shell .graph-mode { background: #2a3228; }
+.app-shell .graph-mode button { color: #b4bfad; }
+.app-shell .graph-mode button[aria-pressed=true] { background: #43563f; color: #f7faee; }
+.app-shell .graph-tools { background: #22281f; border-color: #3e4739; }
+.app-shell .graph-canvas { background-color: #171b18; background-image: radial-gradient(#4b5740 1px, transparent 1px); }
+.app-shell .graph-summary, .app-shell .graph-legend { color: #c1cbb5; border-color: #3b4435; }
+.app-shell .graph-toolbar > span, .app-shell .graph-tools label, .app-shell .graph-group-row { color: #e0e5d7; }
+.app-shell .graph-tools-heading > span:last-child, .app-shell .graph-group-count, .app-shell .graph-subgroup-row { color: #bfcab2; }
+.app-shell .graph-kicker { color: #aebca0; }
+.app-shell .graph-workspace .graph-tools :is(input,select), .app-shell .graph-tools .library-search { color: #edf0e5; background-color: #2b3328; border-color: #57644d; box-shadow: none; }
+.app-shell .graph-tools input::placeholder { color: #a4b297; }
+.app-shell .graph-tools .library-search input { background: transparent; }
+.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary, .app-shell .graph-icon-button { background: #303c2b; color: #e8eede; border-color: #627054; box-shadow: inset 0 1px 0 #ffffff0c; }
+.app-shell :is(.graph-tools,.graph-canvas-tools,.graph-toolbar) .button.secondary:hover:not(:disabled) { background: #415239; border-color: #92a57c; }
+.app-shell .graph-tools-heading, .app-shell .graph-subgroup-panel { border-color: #3c4735; }
+.app-shell .graph-hover-status { background: #252f21f0; border-color: #728361; color: #f0f5e4; }
+.app-shell .graph-limit-notice { background: #343524; color: #e7d3a0; border-color: #5b5637; }
+
+/* React Bits Fade Content / Specular Button cues, adapted to established timing.
+   Content is present immediately. No delayed lists, layout shift or idle loops. */
+@keyframes paper-page-arrive { from { opacity: .82; } to { opacity: 1; } }
+@keyframes paper-drawer-arrive { from { opacity: .82; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+.page-transition, .stage-transition { animation: paper-page-arrive 180ms var(--theme-ease); }
+.workbench-detail-layer:not([hidden]) .inspector, .library-overlay .library-drawer { animation: paper-drawer-arrive 160ms var(--theme-ease); }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .library-overlay *, .app-shell *::before, .app-shell *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

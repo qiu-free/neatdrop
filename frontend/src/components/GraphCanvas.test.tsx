@@ -17,17 +17,19 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-it('shows node labels only on selection and opens files and relation evidence with mouse or keyboard', () => {
+it('keeps dots unlabelled even on selection and opens preview and evidence by mouse or keyboard', () => {
   const p = props()
   render(<GraphCanvas {...p} />)
   expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
   fireEvent.mouseEnter(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
   expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
-  expect(screen.getByText('研究笔记.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
   expect(p.onOpen).toHaveBeenLastCalledWith('one')
   fireEvent.keyDown(screen.getByRole('button', { name: '预览 研究附件.txt' }), { key: 'Enter' })
-  expect(screen.getByText('研究附件.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.queryByText('研究附件.txt', { selector: 'tspan' })).not.toBeInTheDocument()
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究附件.txt')
   expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
   expect(p.onOpen).toHaveBeenLastCalledWith('two')
   fireEvent.click(screen.getByRole('button', { name: '查看 引用 关系依据' }))
@@ -132,6 +134,27 @@ it('keeps every relation between the same files separately clickable in both dir
   expect(p.onOpen).toHaveBeenLastCalledWith('two', 'r2')
 })
 
+it('draws a single connection as a curved path with the same hit geometry', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const target = screen.getByRole('button', { name: '查看 引用 关系依据' })
+  expect(target.getAttribute('d')).toMatch(/^M.*Q/)
+  expect(target.previousElementSibling?.getAttribute('d')).toBe(target.getAttribute('d'))
+})
+
+it.each([3, 5])('separates all %i parallel curves enough to expose their clickable centers', count => {
+  const p = props()
+  render(<GraphCanvas {...p} edges={Array.from({ length: count }, (_, index) => ({ data: { ...edges[0].data, id: `relation:r${index}`, relation: `r${index}`, source: index % 2 ? 'file:two' : 'file:one', target: index % 2 ? 'file:one' : 'file:two', label: `关系${index}` } }))} />)
+  const centers = Array.from({ length: count }, (_, index) => {
+    const path = screen.getByRole('button', { name: `查看 关系${index} 关系依据` }).getAttribute('d')!
+    const [x1, y1, cx, cy, x2, y2] = path.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
+    return { x: (x1 + x2) / 4 + cx / 2, y: (y1 + y2) / 4 + cy / 2 }
+  })
+  for (let first = 0; first < count; first++) for (let second = first + 1; second < count; second++) {
+    expect(Math.hypot(centers[first].x - centers[second].x, centers[first].y - centers[second].y)).toBeGreaterThan(14)
+  }
+})
+
 it('saves an interrupted node drag before filtering and ignores another pointer ending', () => {
   const p = props(), view = render(<GraphCanvas {...p} />)
   const original = p.onPositions.mock.lastCall?.[0]['file:one']
@@ -170,12 +193,14 @@ it('follows a file chosen outside the canvas after a previous node selection or 
   const p = props(), view = render(<GraphCanvas {...p} />)
   fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
   view.rerender(<GraphCanvas {...p} nodes={nodes.map(node => ({ ...node, data: { ...node.data, focused: node.data.entry === 'two' } }))} />)
-  expect(screen.getByText('研究附件.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.getByRole('button', { name: '预览 研究附件.txt' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究附件.txt')
   expect(screen.queryByText('研究笔记.txt', { selector: 'tspan' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByLabelText('归档分类和资料关系图'))
   expect(screen.queryByText('研究附件.txt', { selector: 'tspan' })).not.toBeInTheDocument()
   view.rerender(<GraphCanvas {...p} nodes={nodes.map(node => ({ ...node, data: { ...node.data, focused: node.data.entry === 'one' } }))} />)
-  expect(screen.getByText('研究笔记.txt', { selector: 'tspan' })).toBeVisible()
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
 })
 
 it('keeps the live camera during drag when a parent refresh supplies an earlier viewport', () => {

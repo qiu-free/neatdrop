@@ -141,7 +141,7 @@ body {
 .app-shell .graph-mode button { color: #626d60; }
 .app-shell .graph-mode button[aria-pressed=true] { background: #dcecdc; color: #395d44; box-shadow: 0 1px 3px #394c3020; }
 .app-shell .graph-tools { background: #f6f8f1; color: var(--ink); border-color: #dfe5d8; }
-.app-shell .graph-canvas { background-color: #fffefc; background-image: none; }
+.app-shell .graph-canvas { background-color: #ffffff; background-image: none; }
 .app-shell .graph-summary, .app-shell .graph-legend { color: #646e60; border-color: #e1e6dc; }
 .app-shell .graph-toolbar > span, .app-shell .graph-tools label, .app-shell .graph-group-row { color: #4c5949; }
 .app-shell .graph-tools-heading > span:last-child, .app-shell .graph-group-count, .app-shell .graph-subgroup-row { color: #677360; }

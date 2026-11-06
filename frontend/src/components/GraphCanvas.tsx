@@ -145,7 +145,12 @@ export function GraphCanvas(props: Props) {
     const pairs = new Map<string, GraphEdge[]>()
     edges.forEach(edge => { const key = [edge.data.source, edge.data.target].sort().join('|'); const pair = pairs.get(key) ?? []; pair.push(edge); pairs.set(key, pair) })
     const offsets = new Map<string, number>()
-    pairs.forEach(pair => pair.sort((a, b) => a.data.id.localeCompare(b.data.id)).forEach((edge, index) => offsets.set(edge.data.id, (index - (pair.length - 1) / 2) * 54)))
+    pairs.forEach(pair => pair.sort((a, b) => a.data.id.localeCompare(b.data.id)).forEach((edge, index) => {
+      if (pair.length === 1) return
+      const slot = index - (pair.length - 1) / 2
+      // Keep odd middle lanes curved and at least 54 control pixels apart.
+      offsets.set(edge.data.id, (slot + (pair.length % 2 ? .5 : 0)) * 54)
+    }))
     return offsets
   }, [edges])
   const selectedId = selected === undefined ? nodes.find(node => node.data.focused)?.data.id : selected
@@ -162,23 +167,21 @@ export function GraphCanvas(props: Props) {
         if (!source || !target) return null
         const active = focused && (data.source === focused || data.target === focused), action = () => { if (data.relation) { props.onOpen(data.source.replace(/^file:/, ''), data.relation); props.onRelation?.(data.relation) } }
         const x1 = source.x, y1 = source.y, x2 = target.x, y2 = target.y
-        const offset = edgeOffsets.get(data.id) ?? 0, direction = data.source.localeCompare(data.target) <= 0 ? 1 : -1, distance = Math.max(1, Math.hypot(x2 - x1, y2 - y1))
-        const path = offset ? `M ${x1} ${y1} Q ${(x1 + x2) / 2 - (y2 - y1) / distance * offset * direction} ${(y1 + y2) / 2 + (x2 - x1) / distance * offset * direction} ${x2} ${y2}` : `M ${x1} ${y1} L ${x2} ${y2}`
+        const direction = data.source.localeCompare(data.target) <= 0 ? 1 : -1, distance = Math.max(1, Math.hypot(x2 - x1, y2 - y1))
+        const offset = edgeOffsets.get(data.id) ?? Math.max(16, Math.min(44, distance * .12))
+        const path = `M ${x1} ${y1} Q ${(x1 + x2) / 2 - (y2 - y1) / distance * offset * direction} ${(y1 + y2) / 2 + (x2 - x1) / distance * offset * direction} ${x2} ${y2}`
         return <g key={data.id} className={`graph-spatial-edge ${data.kind === 'category' ? 'is-category' : `is-${data.origin ?? 'archive'}`}${active ? ' is-neighbor' : ''}`} opacity={focused && !active ? .18 : 1}>
           <path d={path} markerEnd={data.directed ? `url(#${markerId})` : undefined} />
           {data.relation ? <path className="graph-edge-hit" d={path} role="button" tabIndex={0} aria-label={`查看 ${data.label ?? '资料'} 关系依据`} onClick={event => { event.stopPropagation(); activate(action) }} onKeyDown={event => keyboardActivate(event, action)}><title>{data.label} · 点击查看依据</title></path> : <title>分类归属</title>}
         </g>
       })}</g>
       <g className="graph-nodes">{[...projected.values()].sort((a, b) => a.depth - b.depth).map(({ node: { data }, x, y, scale, depth }) => {
-        const radius = (data.size ?? 9) / 2 * Math.max(.75, Math.min(1.5, scale)), active = data.id === focused
+        const radius = 7 * Math.max(.88, Math.min(1.28, scale)), active = data.id === focused
         const action = () => { setSelected(data.id); if (data.entry) props.onOpen(data.entry); else if (data.group) props.onExpand(data.group) }
-        const label = data.label.length > 36 ? `${data.label.slice(0, 35)}…` : data.label
-        const lines = label.match(/.{1,16}/gu) ?? ['']
-        return <g key={data.id} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} className={`graph-spatial-node is-${data.type}${active ? ' is-focused' : ''}`} role="button" tabIndex={0} aria-label={data.entry ? `预览 ${data.label}` : `展开 ${data.label}`} aria-pressed={selectedId === data.id} data-graph-node={data.id} data-depth={depth.toFixed(2)} opacity={focused && !neighbors.has(data.id) ? .28 : .82 + Math.max(-.12, Math.min(.18, depth / 1800))} onClick={event => { event.stopPropagation(); activate(action) }} onKeyDown={event => keyboardActivate(event, action)} onMouseEnter={() => { if (!drag.current) setHovered(data.id) }} onMouseLeave={() => setHovered(null)} onFocus={() => { setHovered(data.id); setSelected(data.id) }} onBlur={() => setHovered(null)}>
+        return <g key={data.id} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} className={`graph-spatial-node is-${data.type}${active ? ' is-focused' : ''}`} role="button" tabIndex={0} aria-label={data.entry ? `预览 ${data.label}` : `展开 ${data.label}`} aria-pressed={selectedId === data.id} data-graph-node={data.id} data-depth={depth.toFixed(2)} opacity={focused && !neighbors.has(data.id) ? .5 : 1} onClick={event => { event.stopPropagation(); activate(action) }} onKeyDown={event => keyboardActivate(event, action)} onMouseEnter={() => { if (!drag.current) setHovered(data.id) }} onMouseLeave={() => setHovered(null)} onFocus={() => { setHovered(data.id); setSelected(data.id) }} onBlur={() => setHovered(null)}>
           <circle className="graph-node-hit" r={12} />
           <circle className="graph-node-halo" r={radius + 5} />
-          <circle className="graph-node-dot" r={radius} fill={data.color ?? '#729d91'} />
-          {selectedId === data.id ? <text y={radius + 16} textAnchor="middle">{lines.map((line, index) => <tspan key={index} x={0} dy={index ? '1.25em' : 0}>{line}</tspan>)}</text> : null}
+          <circle className="graph-node-dot" r={radius} fill={depth >= 0 ? '#151515' : '#818181'} />
         </g>
       })}</g>
     </svg>

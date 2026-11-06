@@ -3,13 +3,13 @@ import type { LibraryItem } from './types'
 import type { GraphListing } from './graphTypes'
 const item = (id: string, category = 'study', subcategory: string | null = 'notes'): LibraryItem => ({ id, name: `笔记${id}.txt`, category: category as LibraryItem['category'], subcategory, transaction_id: 'tx', source: id, target: id, created: '', size: 10, availability: 'available' })
 const listing = (items: LibraryItem[]): GraphListing => ({ items, relations: [], truncated: false, index: { count: 0, revision: 0, updated: null, state: 'empty', issues: [] } })
-it('projects a rootless clustered network with immediately visible files and deterministic positions', () => {
+it('projects only file dots, keeping unrelated files visible without inventing category links', () => {
   const data = listing([item('one'), item('two')])
   const result = projectGraph(data)
-  expect(result.nodes.map(node => node.data.id)).toEqual(expect.arrayContaining(['category:study', 'subcategory:study/notes', 'file:one', 'file:two']))
-  expect(result.nodes.some(node => node.data.type === 'root')).toBe(false)
+  expect(result.nodes.map(node => node.data.id)).toEqual(['file:one', 'file:two'])
+  expect(result.edges).toHaveLength(0)
   expect(result.nodes.filter(node => node.data.type === 'file')).toHaveLength(2)
-  expect(result.nodes.find(node => node.data.id === 'category:study')?.data).toMatchObject({ category: 'study', color: expect.any(String), count: 2 })
+  expect(result.nodes[0].data).toMatchObject({ category: 'study', group: 'study/notes' })
   expect(result.nodes.find(node => node.data.id === 'file:one')?.data.size).toBeGreaterThan(0)
   expect(result.nodes.every(node => (node.data.size ?? 0) <= 16)).toBe(true)
   expect(projectGraph({ ...data, items: [...data.items].reverse() }).nodes).toEqual(result.nodes)
@@ -37,6 +37,8 @@ it('caps related view to 20 neighbors, keeps focused file and applies relation f
   data.relations = data.items.slice(1).map((file, i) => ({ id: `r${i}`, source: '0', target: file.id, kind: i ? 'related' : 'reference', status: 'confirmed', origin: 'manual', created: '' }))
   expect(projectGraph(data, { view: 'relations', focus: '0' }).nodes).toHaveLength(21)
   expect(projectGraph(data, { view: 'relations', focus: '0', kind: 'reference' }).edges).toHaveLength(1)
+  const local = projectGraph(data, { view: 'relations', focus: '0' })
+  expect(new Set(local.nodes.slice(1).map(node => Math.round(Math.hypot(node.position.x, node.position.y)))).size).toBeGreaterThan(3)
 })
 it('keeps positions stable when selection changes and exits hidden focus', () => {
   const data = listing([item('one'), item('two', 'finance')])
@@ -76,15 +78,25 @@ it('uses a finite force layout with deterministic, separated positions', () => {
   }
 })
 
-it('uses runtime taxonomy labels and keeps category colors stable across filters', () => {
+it('retains taxonomy grouping and category colors across filters without rendering hubs', () => {
   const data = listing([item('one', 'study'), item('two', 'finance')])
   const taxonomy = { categories: { study: '自定义研究', finance: '自定义财务' }, subcategories: { study: { notes: '自定义笔记' }, finance: { notes: '自定义账目' } } }
   const all = projectGraph(data, { taxonomy })
   const filtered = projectGraph(data, { category: 'finance', taxonomy })
-  expect(all.nodes.find(node => node.data.id === 'category:study')?.data.label).toBe('自定义研究')
-  expect(all.nodes.find(node => node.data.id === 'subcategory:study/notes')?.data.label).toBe('自定义笔记')
-  expect(filtered.nodes.find(node => node.data.id === 'category:finance')?.data.color).toBe(all.nodes.find(node => node.data.id === 'category:finance')?.data.color)
+  expect(all.nodes.every(node => node.data.type === 'file')).toBe(true)
+  expect(filtered.nodes[0].data.group).toBe('finance/notes')
+  expect(filtered.nodes[0].data.color).toBe(all.nodes.find(node => node.data.id === 'file:two')?.data.color)
   expect(filtered.categoryColors.finance).toBe(all.categoryColors.finance)
+})
+
+it('scatters files independent of category boundaries and keeps seeds stable through filtering', () => {
+  const files = Array.from({ length: 12 }, (_, i) => item(`${i}`, i % 2 ? 'study' : 'finance'))
+  const all = projectGraph(listing(files))
+  const regrouped = projectGraph(listing(files.map(file => ({ ...file, category: 'office', subcategory: 'contract' }))), { expanded: { 'office/contract': 50 } })
+  expect(regrouped.nodes.map(node => node.position)).toEqual(all.nodes.map(node => node.position))
+  const filtered = projectGraph(listing(files), { query: '笔记1' })
+  expect(filtered.nodes.map(node => node.position)).toEqual(all.nodes.filter(node => ['file:1', 'file:10', 'file:11'].includes(node.data.id)).map(node => node.position))
+  expect(projectGraph(listing(files), { expanded: { finance: 0 } }).nodes.every(node => node.data.category !== 'finance')).toBe(true)
 })
 
 it('preserves relation origin and directional metadata for evidence styling', () => {

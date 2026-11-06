@@ -36,8 +36,8 @@
 .graph-spatial-canvas.is-dragging { cursor: grabbing; }
 .graph-spatial-node { cursor: pointer; }
 .graph-spatial-node .graph-node-hit { fill: transparent; }
-.graph-spatial-node .graph-node-halo { fill: #e1ece2; opacity: 0; }
-.graph-spatial-node .graph-node-dot { stroke: #fffefc; stroke-width: 1.2px; }
+.graph-spatial-node .graph-node-halo { fill: #dfe3df; opacity: 0; }
+.graph-spatial-node .graph-node-dot { stroke: #ffffff; stroke-width: .8px; }
 .graph-spatial-node.is-category .graph-node-dot { stroke: #8fa58a; stroke-width: 1.5px; }
 .graph-spatial-node text { fill: #424b44; font-family: var(--font-ui); font-size: 12px; font-weight: 500; paint-order: stroke; stroke: #fffefc; stroke-width: 4px; stroke-linejoin: round; pointer-events: bounding-box; }
 .graph-spatial-node.is-category text, .graph-spatial-node.is-subcategory text { fill: #63715b; font-weight: 600; }
@@ -45,10 +45,10 @@
 .graph-spatial-node:focus { outline: none; }
 .graph-spatial-node:focus-visible .graph-node-halo { stroke: var(--focus); stroke-width: 2px; }
 .graph-spatial-node.is-focused text, .graph-spatial-node:focus text { fill: #263d30; font-weight: 650; }
-.graph-spatial-edge > path { fill: none; stroke: #b5bdba; stroke-width: .9px; }
+.graph-spatial-edge > path { fill: none; stroke: #a4a7a6; stroke-width: 1.1px; }
 .graph-spatial-edge.is-category > path { stroke: #d5dad5; stroke-width: .8px; }
-.graph-spatial-edge.is-manual > path { stroke: #84a99d; stroke-width: 1.2px; }
-.graph-spatial-edge.is-automatic > path { stroke: #b8a17b; stroke-dasharray: 4 5; }
+.graph-spatial-edge.is-manual > path { stroke: #979d9a; stroke-width: 1.1px; }
+.graph-spatial-edge.is-automatic > path { stroke: #858c89; stroke-dasharray: 4 5; }
 .graph-spatial-edge.is-neighbor > path { stroke-width: 1.6px; }
 .graph-spatial-edge > path.graph-edge-hit { stroke: transparent; stroke-width: 14px; stroke-dasharray: none; cursor: pointer; pointer-events: stroke; }
 .graph-spatial-edge > path.graph-edge-hit:focus-visible { outline: none; stroke: #84a99d60; stroke-width: 5px; }

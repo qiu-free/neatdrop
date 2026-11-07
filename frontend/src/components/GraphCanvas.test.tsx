@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { GraphCanvas } from './GraphCanvas'
 import type { GraphEdge, GraphNode } from '../graphProjection'
 import type { GraphViewport } from '../graphTypes'
+import { defaultGraphVisualSettings } from '../graphSettings'
 
 const nodes: GraphNode[] = [
   { data: { id: 'file:one', label: '研究笔记.txt', type: 'file', entry: 'one', size: 9, color: '#609e92' }, position: { x: -120, y: -40 } },
@@ -39,7 +40,7 @@ it('keeps dots unlabelled even on selection and opens preview and evidence by mo
   expect(screen.queryByText('研究附件.txt', { selector: 'tspan' })).not.toBeInTheDocument()
 })
 
-it('rotates the scene with depth on drag without opening a file, and allows the next real click', () => {
+it('pans the default 2D scene on background drag without opening a file, and allows the next real click', () => {
   const p = props()
   render(<GraphCanvas {...p} />)
   const canvas = screen.getByLabelText('归档分类和资料关系图')
@@ -47,7 +48,8 @@ it('rotates the scene with depth on drag without opening a file, and allows the 
   fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 })
   fireEvent.pointerMove(canvas, { clientX: 190, clientY: 140, buttons: 1 })
   fireEvent.pointerUp(canvas, { clientX: 190, clientY: 140 })
-  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).not.toBe(0)
+  expect(p.onViewport.mock.lastCall?.[0].pan.x).toBeGreaterThan(0)
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBe(0)
   expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).not.toBe(before)
   fireEvent.click(canvas)
   expect(p.onOpen).not.toHaveBeenCalled()
@@ -72,14 +74,14 @@ it('retains dragged node coordinates through metadata changes and filter round t
   expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).toBe(transform)
 })
 
-it('restores independent mode cameras and resets rotation with keyboard or explicit controls', () => {
+it('restores external view cameras and resets rotation with keyboard or explicit controls', () => {
   const p = props(), saved = { zoom: 1.2, pan: { x: 90, y: 40 }, rotation: { yaw: .7, pitch: -.2 } }
-  const view = render(<GraphCanvas {...p} viewport={saved} />)
+  const view = render(<GraphCanvas {...p} viewport={saved} dimension="3d" />)
   fireEvent.keyDown(screen.getByLabelText('归档分类和资料关系图'), { key: 'ArrowRight' })
   expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeGreaterThan(.7)
-  view.rerender(<GraphCanvas {...p} view="relations" viewport={null} />)
+  view.rerender(<GraphCanvas {...p} view="relations" viewport={null} dimension="3d" />)
   expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
-  view.rerender(<GraphCanvas {...p} viewport={saved} />)
+  view.rerender(<GraphCanvas {...p} viewport={saved} dimension="3d" />)
   expect(p.onViewport.mock.lastCall?.[0]).toEqual(saved)
   fireEvent.click(screen.getByRole('button', { name: '重置视图' }))
   expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
@@ -90,7 +92,7 @@ it('shows the full selected name, cancels interrupted drags, and leaves normal w
   render(<GraphCanvas {...p} />)
   const node = screen.getByRole('button', { name: '预览 研究笔记.txt' }), canvas = screen.getByLabelText('归档分类和资料关系图')
   fireEvent.mouseEnter(node)
-  expect(screen.queryByRole('status', { name: '当前聚焦文件' })).not.toBeInTheDocument()
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
   fireEvent.focus(node)
   expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
   fireEvent.pointerDown(node, { clientX: 100, clientY: 100, button: 0 })
@@ -118,7 +120,7 @@ it('ends a gesture released outside the graph and never drags with the mouse but
   fireEvent.pointerDown(canvas, { clientX: 300, clientY: 100, button: 0 })
   fireEvent.pointerMove(canvas, { clientX: 400, clientY: 100, buttons: 1 })
   fireEvent.pointerUp(canvas, { clientX: 400, clientY: 100 })
-  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).not.toBe(0)
+  expect(p.onViewport.mock.lastCall?.[0].pan.x).not.toBe(0)
 })
 
 it('keeps every relation between the same files separately clickable in both directions', () => {
@@ -168,12 +170,13 @@ it('saves an interrupted node drag before filtering and ignores another pointer 
   view.rerender(<GraphCanvas {...p} />)
   expect(p.onPositions.mock.lastCall?.[0]['file:one']).toEqual(saved)
   vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId: number; pointerType = 'touch'; constructor(type: string, init: PointerEventInit) { super(type, init); this.pointerId = init.pointerId ?? 1 } })
+  fireEvent.click(screen.getByRole('button', { name: '操作图谱' }))
   fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, pointerId: 1, button: 0 })
   fireEvent.pointerMove(canvas, { clientX: 150, clientY: 100, pointerId: 1 })
   fireEvent.pointerUp(window, { clientX: 150, clientY: 100, pointerId: 2 })
   fireEvent.pointerMove(canvas, { clientX: 200, clientY: 100, pointerId: 1 })
   fireEvent.pointerUp(canvas, { clientX: 200, clientY: 100, pointerId: 1 })
-  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeCloseTo(.7)
+  expect(p.onViewport.mock.lastCall?.[0].pan.x).toBeGreaterThan(0)
 })
 
 it('lets a vertical touch scroll leave graph positions and camera unchanged', () => {
@@ -210,7 +213,136 @@ it('keeps the live camera during drag when a parent refresh supplies an earlier 
   fireEvent.pointerMove(canvas, { clientX: 200, clientY: 100, buttons: 1 })
   view.rerender(<GraphCanvas {...p} viewport={stale} />)
   fireEvent.pointerUp(canvas, { clientX: 200, clientY: 100 })
-  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).toBeCloseTo(.7)
+  expect(p.onViewport.mock.lastCall?.[0].pan.x).toBeGreaterThan(stale.pan.x)
+})
+
+it('rotates in optional 3D and projects identical 2D coordinates regardless of saved depth', () => {
+  const p = props(), view = render(<GraphCanvas {...p} dimension="3d" positions={{ 'file:one': { x: -120, y: -40, z: 120 } }} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 190, clientY: 140, buttons: 1 })
+  fireEvent.pointerUp(canvas)
+  expect(p.onViewport.mock.lastCall?.[0].rotation.yaw).not.toBe(0)
+  view.unmount()
+  const fixed = { zoom: 1, pan: { x: 0, y: 0 }, rotation: { yaw: .7, pitch: .3 } }
+  const firstView = render(<GraphCanvas {...p} dimension="2d" viewport={fixed} positions={{ 'file:one': { x: -120, y: -40, z: 120 } }} />)
+  const first = screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')
+  firstView.unmount()
+  render(<GraphCanvas {...p} dimension="2d" viewport={fixed} positions={{ 'file:one': { x: -120, y: -40, z: -120 } }} />)
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' }).getAttribute('transform')).toBe(first)
+  expect(screen.getByText('2D')).toBeInTheDocument()
+})
+
+it('uses projected diameters, stable neutral or category colors, and adequate hit targets', () => {
+  const p = props(), varied = nodes.map((node, index) => ({ ...node, data: { ...node.data, degree: index ? 15 : 0, size: index ? 22 : 7 } }))
+  const view = render(<GraphCanvas {...p} nodes={varied} dimension="3d" />)
+  const small = screen.getByRole('button', { name: '预览 研究笔记.txt' }), large = screen.getByRole('button', { name: '预览 研究附件.txt' })
+  const dot = (element: Element) => element.querySelector('.graph-node-dot')!
+  expect(Number(dot(large).getAttribute('r'))).toBeGreaterThan(Number(dot(small).getAttribute('r')) * 2)
+  expect(Number(small.querySelector('.graph-node-hit')!.getAttribute('r'))).toBeGreaterThanOrEqual(12)
+  const color = dot(large).getAttribute('fill')
+  fireEvent.pointerDown(screen.getByLabelText('归档分类和资料关系图'), { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(screen.getByLabelText('归档分类和资料关系图'), { clientX: 180, clientY: 100, buttons: 1 })
+  fireEvent.pointerUp(screen.getByLabelText('归档分类和资料关系图'))
+  expect(dot(large).getAttribute('fill')).toBe(color)
+  view.rerender(<GraphCanvas {...p} nodes={varied} visual={{ ...defaultGraphVisualSettings, colorMode: 'category' }} />)
+  expect(dot(large).getAttribute('fill')).toBe('#7792ba')
+})
+
+it('shows hovered identity, category and unique neighbor count while arrows stay off until focused', () => {
+  const p = props()
+  render(<GraphCanvas {...p} nodes={nodes.map(node => ({ ...node, data: { ...node.data, categoryLabel: '文献' } }))} edges={[edges[0], { data: { ...edges[0].data, id: 'relation:r2', relation: 'r2' } }]} />)
+  expect(document.querySelector('marker')).toBeInTheDocument()
+  expect(document.querySelector('.graph-spatial-edge > path')?.getAttribute('marker-end')).toBeNull()
+  fireEvent.mouseEnter(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('研究笔记.txt')
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('文献')
+  expect(screen.getByRole('status', { name: '当前聚焦文件' })).toHaveTextContent('1 个相邻文件')
+  expect(document.querySelector('.graph-spatial-edge > path')?.getAttribute('marker-end')).toMatch(/^url/)
+  expect(document.querySelector('.graph-nodes text')).toBeNull()
+})
+
+it('captures ordinary wheel only while the SVG itself has focus, and lets touch capture be deliberate', () => {
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  const initial = p.onViewport.mock.calls.length
+  fireEvent.wheel(canvas, { deltaY: -100 })
+  expect(p.onViewport.mock.calls).toHaveLength(initial)
+  canvas.focus()
+  fireEvent.wheel(canvas, { deltaY: -100 })
+  expect(p.onViewport.mock.calls).toHaveLength(initial + 1)
+  expect(canvas).not.toHaveClass('is-operating')
+  fireEvent.click(screen.getByRole('button', { name: '操作图谱' }))
+  expect(canvas).toHaveClass('is-operating')
+  fireEvent.click(screen.getByRole('button', { name: '退出操作' }))
+  expect(canvas).not.toHaveClass('is-operating')
+})
+
+it('rearranges for force settings and explicit revisions while display changes retain anchors', () => {
+  const p = props(), view = render(<GraphCanvas {...p} />)
+  const first = p.onPositions.mock.lastCall?.[0]
+  const initialCalls = p.onPositions.mock.calls.length
+  view.rerender(<GraphCanvas {...p} visual={{ ...defaultGraphVisualSettings, colorMode: 'category', edgeWidth: 2 }} />)
+  expect(p.onPositions.mock.calls).toHaveLength(initialCalls)
+  view.rerender(<GraphCanvas {...p} visual={{ ...defaultGraphVisualSettings, layout: { ...defaultGraphVisualSettings.layout, linkDistance: 200 } }} />)
+  const changed = p.onPositions.mock.lastCall?.[0]
+  expect(changed['file:one'].x).not.toBe(first['file:one'].x)
+  view.rerender(<GraphCanvas {...p} visual={{ ...defaultGraphVisualSettings, layout: { ...defaultGraphVisualSettings.layout, linkDistance: 200 } }} layoutRevision={1} />)
+  expect(p.onPositions.mock.calls.length).toBeGreaterThan(initialCalls + 1)
+})
+
+it('switches dimensions without another layout pass and fits 2D with a flat camera', () => {
+  const p = props(), view = render(<GraphCanvas {...p} dimension="3d" viewport={{ zoom: 1, pan: { x: 0, y: 0 }, rotation: { yaw: .5, pitch: .3 } }} />)
+  const calls = p.onPositions.mock.calls.length
+  view.rerender(<GraphCanvas {...p} dimension="2d" viewport={null} />)
+  expect(p.onPositions.mock.calls).toHaveLength(calls)
+  expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
+  expect(screen.getByRole('button', { name: '预览 研究笔记.txt' })).toHaveAttribute('data-depth', '0.00')
+})
+
+it('shows explicit directed arrows and distinguishes suggested from confirmed automatic evidence', () => {
+  const p = props(), candidates: GraphEdge[] = [
+    { data: { ...edges[0].data, id: 'relation:s', relation: 's', origin: 'automatic', status: 'suggested' } },
+    { data: { ...edges[0].data, id: 'relation:c', relation: 'c', origin: 'automatic', status: 'confirmed' } },
+  ]
+  render(<GraphCanvas {...p} edges={candidates} visual={{ ...defaultGraphVisualSettings, showDirections: true, edgeWidth: 2.5 }} />)
+  const evidence = screen.getAllByRole('button', { name: '查看 引用 关系依据' })
+  const paths = [...document.querySelectorAll('.graph-spatial-edge > path:first-child')]
+  expect(paths).toHaveLength(2)
+  expect(paths[0]).toHaveStyle('stroke-dasharray: 5 5')
+  expect(paths[1]).toHaveStyle('stroke-dasharray: none')
+  expect(paths[0]).toHaveStyle('stroke-width: 2.5')
+  expect(paths[0].getAttribute('marker-end')).toMatch(/^url/)
+  expect(evidence).toHaveLength(2)
+})
+
+it('ends an active 3D gesture when switching to 2D without restoring the stale camera', () => {
+  const p = props(), view = render(<GraphCanvas {...p} dimension="3d" />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(canvas, { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 180, clientY: 120, buttons: 1 })
+  view.rerender(<GraphCanvas {...p} dimension="2d" viewport={null} />)
+  expect(p.onViewport.mock.lastCall?.[0].rotation).toEqual({ yaw: 0, pitch: 0 })
+  const calls = p.onViewport.mock.calls.length
+  fireEvent.pointerUp(canvas, { clientX: 180, clientY: 120 })
+  expect(p.onViewport.mock.calls).toHaveLength(calls)
+  expect(screen.getByText('2D')).toBeInTheDocument()
+})
+
+it('clears a pinch when its second pointer ends outside the SVG', () => {
+  vi.stubGlobal('PointerEvent', class extends MouseEvent { pointerId: number; pointerType = 'touch'; constructor(type: string, init: PointerEventInit) { super(type, init); this.pointerId = init.pointerId ?? 1 } })
+  const p = props()
+  render(<GraphCanvas {...p} />)
+  fireEvent.click(screen.getByRole('button', { name: '操作图谱' }))
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerDown(canvas, { pointerId: 2, clientX: 200, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { pointerId: 2, clientX: 240, clientY: 100 })
+  const calls = p.onViewport.mock.calls.length
+  fireEvent.pointerUp(window, { pointerId: 2 })
+  fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 80, clientY: 100 })
+  expect(p.onViewport.mock.calls).toHaveLength(calls)
 })
 
 it('adds an expanded branch next to its remembered node in the same world coordinate space', () => {

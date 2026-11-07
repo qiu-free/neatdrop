@@ -61,7 +61,11 @@ export function forceLayoutGraph(nodes: GraphNode[], edges: GraphEdge[], saved: 
     }
     for (const [a, b] of links) {
       const p = point.get(a)!, q = point.get(b)!, dx = q.x - p.x, dy = q.y - p.y, length = Math.max(1, Math.hypot(dx, dy))
-      const pull = Math.max(-10, Math.min(10, (length - settings.linkDistance) * settings.attraction))
+      // A bridge between real hubs spans their surrounding leaves. Parallel
+      // records still contribute only this one spring; no category edge is added.
+      const sharedHubDegree = Math.min(neighbors.get(a)!.size, neighbors.get(b)!.size)
+      const bridgeScale = sharedHubDegree >= 3 ? Math.min(3.2, 1 + Math.log2(sharedHubDegree) * .65) : 1
+      const pull = Math.max(-10, Math.min(10, (length - settings.linkDistance * bridgeScale) * settings.attraction))
       delta.get(a)!.x += dx / length * pull; delta.get(a)!.y += dy / length * pull
       delta.get(b)!.x -= dx / length * pull; delta.get(b)!.y -= dy / length * pull
     }

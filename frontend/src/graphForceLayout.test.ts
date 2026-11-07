@@ -44,12 +44,18 @@ it('forms three legible seven-leaf hubs connected by bridge edges', () => {
   const pairs: [string, string][] = [...hubs.flatMap(hub => Array.from({ length: 7 }, (_, i) => [hub, `${hub}-leaf-${i}`] as [string, string])), ['hub-a', 'hub-b'], ['hub-b', 'hub-c']]
   const { nodes, edges } = fixture([...hubs, ...leaves], pairs)
   const result = positions(forceLayoutGraph(nodes, edges))
-  expect(distance(result['hub-a'], result['hub-b'])).toBeLessThan(300)
-  expect(distance(result['hub-b'], result['hub-c'])).toBeLessThan(300)
+  expect(distance(result['hub-a'], result['hub-b'])).toBeLessThan(600)
+  expect(distance(result['hub-b'], result['hub-c'])).toBeLessThan(600)
   for (const hub of hubs) {
     const own = Array.from({ length: 7 }, (_, i) => `${hub}-leaf-${i}`)
     expect(own.every(id => distance(result[hub], result[id]) < 250)).toBe(true)
     expect(own.some(id => distance(result[hub], result[id]) < 130)).toBe(true)
+    // Centers joined by a real bridge need more space than their leaf radius,
+    // otherwise neighboring stars collapse into one row of indistinct points.
+    const leafRadius = own.reduce((sum, id) => sum + distance(result[hub], result[id]), 0) / own.length
+    for (const other of hubs.filter(id => id !== hub)) {
+      expect(distance(result[hub], result[other])).toBeGreaterThan(leafRadius * 1.6)
+    }
   }
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     expect(distance(result[nodes[i].data.id], result[nodes[j].data.id])).toBeGreaterThan(24)

@@ -354,3 +354,36 @@ it('adds an expanded branch next to its remembered node in the same world coordi
   expect(distance).toBeGreaterThan(55)
   expect(distance).toBeLessThan(180)
 })
+
+it('does not send an interrupted categories node drag into relations positions', () => {
+  const p = props(), categoryPositions = vi.fn(), relationPositions = vi.fn()
+  const view = render(<GraphCanvas {...p} onPositions={categoryPositions} positions={{ 'file:one': { x: -250, y: 0, z: 11 } }} />)
+  const canvas = screen.getByLabelText('归档分类和资料关系图')
+  fireEvent.pointerDown(screen.getByRole('button', { name: '预览 研究笔记.txt' }), { clientX: 100, clientY: 100, button: 0 })
+  fireEvent.pointerMove(canvas, { clientX: 170, clientY: 120, buttons: 1 })
+  view.rerender(<GraphCanvas {...p} view="relations" onPositions={relationPositions} positions={{ 'file:one': { x: 300, y: 0, z: 19 } }} />)
+  expect(relationPositions).toHaveBeenCalledOnce()
+  expect(relationPositions.mock.lastCall?.[0]['file:one']).toEqual({ x: 300, y: 0, z: 19 })
+  view.rerender(<GraphCanvas {...p} onPositions={categoryPositions} positions={{ 'file:one': { x: -250, y: 0, z: 11 } }} />)
+  expect(categoryPositions.mock.lastCall?.[0]['file:one']).toEqual({ x: -250, y: 0, z: 11 })
+})
+
+it('invalidates saved anchors in both views for force changes and explicit rearrange', () => {
+  const p = props(), category = { 'file:one': { x: -1000, y: 0, z: 21 } }, relation = { 'file:one': { x: 1000, y: 0, z: 41 } }
+  const view = render(<GraphCanvas {...p} positions={category} />)
+  view.rerender(<GraphCanvas {...p} view="relations" positions={relation} />)
+  const changedVisual = { ...defaultGraphVisualSettings, layout: { ...defaultGraphVisualSettings.layout, linkDistance: 200 } }
+  view.rerender(<GraphCanvas {...p} view="relations" positions={relation} visual={changedVisual} />)
+  expect(p.onPositions.mock.lastCall?.[0]['file:one'].x).not.toBe(1000)
+  view.rerender(<GraphCanvas {...p} positions={category} visual={changedVisual} />)
+  expect(p.onPositions.mock.lastCall?.[0]['file:one'].x).not.toBe(-1000)
+  view.rerender(<GraphCanvas {...p} positions={category} visual={changedVisual} layoutRevision={1} />)
+  view.rerender(<GraphCanvas {...p} view="relations" positions={relation} visual={changedVisual} layoutRevision={1} />)
+  expect(p.onPositions.mock.lastCall?.[0]['file:one'].x).not.toBe(1000)
+})
+
+it('emits a flat camera when mounting 2D with a saved rotated viewport', () => {
+  const p = props()
+  render(<GraphCanvas {...p} viewport={{ zoom: 1.2, pan: { x: 10, y: 20 }, rotation: { yaw: .7, pitch: .3 } }} />)
+  expect(p.onViewport.mock.lastCall?.[0]).toEqual({ zoom: 1.2, pan: { x: 10, y: 20 }, rotation: { yaw: 0, pitch: 0 } })
+})

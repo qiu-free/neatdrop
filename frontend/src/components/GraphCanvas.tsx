@@ -12,9 +12,13 @@ type Props = {
   onExpand: (group: string) => void; expanded: Record<string, number>; positions?: Record<string, GraphPosition>; onPositions?: (positions: Record<string, GraphPosition>) => void
   visual?: GraphVisualSettings; dimension?: GraphDimension; layoutRevision?: number
 }
-type Drag = { pointer: number; startX: number; startY: number; node?: string; pan: boolean; moved: boolean; camera: GraphCamera; point?: GraphPoint3D }
+type Drag = { pointer: number; startX: number; startY: number; node?: string; pan: boolean; moved: boolean; camera: GraphCamera; point?: GraphPoint3D; view: Props['view']; dimension: GraphDimension }
 const initialCamera: GraphCamera = { zoom: 1, pan: { x: 0, y: 0 }, rotation: { yaw: 0, pitch: 0 } }
 const normalizeCamera = (value: GraphViewport): GraphCamera => ({ ...value, rotation: value.rotation ?? { yaw: 0, pitch: 0 } })
+const cameraForDimension = (value: GraphViewport, dimension: GraphDimension): GraphCamera => {
+  const camera = normalizeCamera(value)
+  return dimension === '2d' ? { ...camera, rotation: { yaw: 0, pitch: 0 } } : camera
+}
 
 export function GraphCanvas(props: Props) {
   const { nodes, edges, view, viewport } = props
@@ -23,10 +27,11 @@ export function GraphCanvas(props: Props) {
   latest.current = props
   const [size, setSize] = useState({ width: 800, height: 500 }), sizeRef = useRef(size)
   const [points, setPoints] = useState<Record<string, GraphPoint3D>>({}), pointsRef = useRef(points)
-  const [camera, setCamera] = useState<GraphCamera>(() => viewport ? normalizeCamera(viewport) : initialCamera), cameraRef = useRef(camera)
+  const [camera, setCamera] = useState<GraphCamera>(() => viewport ? cameraForDimension(viewport, dimension) : initialCamera), cameraRef = useRef(camera)
   const [hovered, setHovered] = useState<string | null>(null), [selected, setSelected] = useState<string | null | undefined>(undefined), [dragging, setDragging] = useState(false), [operating, setOperating] = useState(false)
   const drag = useRef<Drag | null>(null), suppressClick = useRef(false), frame = useRef<number | null>(null), autoFit = useRef(!viewport), previousMode = useRef<string | null>(null)
   const previousRevision = useRef<number | null>(null), previousForce = useRef<string | null>(null)
+  const invalidatedViews = useRef(new Set<Props['view']>())
   const touches = useRef(new Map<number, { x: number; y: number }>()), pinch = useRef<{ distance: number; camera: GraphCamera } | null>(null)
   const finishGesture = useRef<(pointer?: number, cancelled?: boolean) => void>(() => {})
   const markerId = useId().replace(/:/g, ''), hintId = `${markerId}-hint`
@@ -37,7 +42,7 @@ export function GraphCanvas(props: Props) {
   const paint = () => { setCamera({ ...cameraRef.current }); setPoints({ ...pointsRef.current }) }
   const schedulePaint = () => { if (frame.current === null) frame.current = requestAnimationFrame(() => { frame.current = null; paint() }) }
   const flushPaint = () => { if (frame.current !== null) { cancelAnimationFrame(frame.current); frame.current = null } paint() }
-  const saveCamera = (next: GraphCamera) => { cameraRef.current = next; autoFit.current = false; setCamera(next); latest.current.onViewport(next) }
+  const saveCamera = (next: GraphCamera) => { const camera = cameraForDimension(next, latest.current.dimension ?? '2d'); cameraRef.current = camera; autoFit.current = false; setCamera(camera); latest.current.onViewport(camera) }
   const savePositions = () => {
     const currentView = latest.current.view
     cache.current[currentView] = Object.fromEntries([...Object.entries(cache.current[currentView]).filter(([id]) => !(id in pointsRef.current)), ...Object.entries(pointsRef.current)].slice(-400))
@@ -48,7 +53,8 @@ export function GraphCanvas(props: Props) {
     if (!current || (pointer !== undefined && current.pointer !== pointer)) return
     drag.current = null; setDragging(false)
     if (cancelled) suppressClick.current = false
-    if (current.moved) { flushPaint(); latest.current.onViewport(cameraRef.current); if (current.node) savePositions() }
+    const changedMode = current.view !== latest.current.view || current.dimension !== (latest.current.dimension ?? '2d')
+    if (current.moved && !changedMode) { flushPaint(); latest.current.onViewport(cameraRef.current); if (current.node) savePositions() }
     if (svg.current?.hasPointerCapture?.(current.pointer)) svg.current.releasePointerCapture(current.pointer)
   }
 
@@ -56,8 +62,9 @@ export function GraphCanvas(props: Props) {
     finishGesture.current(undefined, true)
     const forceKey = Object.values((latest.current.visual ?? defaultGraphVisualSettings).layout).join('|')
     const revised = previousRevision.current !== null && (previousRevision.current !== (latest.current.layoutRevision ?? 0) || previousForce.current !== forceKey)
-    if (revised) cache.current[view] = {}
-    const saved = revised ? {} : { ...latest.current.positions, ...cache.current[view] }
+    if (revised) { cache.current = { categories: {}, relations: {} }; invalidatedViews.current = new Set(['categories', 'relations']) }
+    const saved = invalidatedViews.current.has(view) ? {} : { ...latest.current.positions, ...cache.current[view] }
+    invalidatedViews.current.delete(view)
     const laidOut = forceLayoutGraph(latest.current.nodes, latest.current.edges, saved, (latest.current.visual ?? defaultGraphVisualSettings).layout)
     const next = Object.fromEntries(laidOut.map(node => [node.data.id, { ...node.position, z: saved[node.data.id]?.z ?? seedGraphDepth(node.data.id) }]))
     cache.current[view] = Object.fromEntries([...Object.entries(cache.current[view]).filter(([id]) => !(id in next)), ...Object.entries(next)].slice(-400))
@@ -65,7 +72,7 @@ export function GraphCanvas(props: Props) {
     if (previousMode.current !== mode) {
       touches.current.clear(); pinch.current = null; suppressClick.current = false; setHovered(null); setSelected(undefined)
       autoFit.current = !latest.current.viewport
-      const nextCamera = latest.current.viewport ? normalizeCamera(latest.current.viewport) : fitGraphCamera(Object.values(next).map(point => dimension === '2d' ? { ...point, z: 0 } : point), sizeRef.current)
+      const nextCamera = latest.current.viewport ? cameraForDimension(latest.current.viewport, dimension) : fitGraphCamera(Object.values(next).map(point => dimension === '2d' ? { ...point, z: 0 } : point), sizeRef.current)
       cameraRef.current = nextCamera; setCamera(nextCamera); latest.current.onViewport(nextCamera)
     }
     previousMode.current = mode; previousRevision.current = latest.current.layoutRevision ?? 0; previousForce.current = forceKey
@@ -77,15 +84,14 @@ export function GraphCanvas(props: Props) {
     if (previousMode.current === mode) return
     finishGesture.current(undefined, true); touches.current.clear(); pinch.current = null; suppressClick.current = false
     setHovered(null); setSelected(undefined)
-    const next = latest.current.viewport ? normalizeCamera(latest.current.viewport) : fitGraphCamera(Object.values(pointsRef.current).map(point => dimension === '2d' ? { ...point, z: 0 } : point), sizeRef.current)
-    const flat = dimension === '2d' ? { ...next, rotation: { yaw: 0, pitch: 0 } } : next
-    cameraRef.current = flat; setCamera(flat); autoFit.current = !latest.current.viewport; latest.current.onViewport(flat)
+    const next = latest.current.viewport ? cameraForDimension(latest.current.viewport, dimension) : fitGraphCamera(Object.values(pointsRef.current).map(point => dimension === '2d' ? { ...point, z: 0 } : point), sizeRef.current)
+    cameraRef.current = next; setCamera(next); autoFit.current = !latest.current.viewport; latest.current.onViewport(next)
     previousMode.current = mode
   }, [mode, dimension])
 
   useEffect(() => {
     if (!viewport || drag.current) return
-    const next = dimension === '2d' ? { ...normalizeCamera(viewport), rotation: { yaw: 0, pitch: 0 } } : normalizeCamera(viewport)
+    const next = cameraForDimension(viewport, dimension)
     cameraRef.current = next; setCamera(next)
   }, [viewport, view, dimension])
 
@@ -140,7 +146,7 @@ export function GraphCanvas(props: Props) {
     if (event.button !== 0 || drag.current) return
     const target = event.target instanceof Element ? event.target.closest('[data-graph-node]')?.getAttribute('data-graph-node') : null
     suppressClick.current = false
-    drag.current = { pointer: event.pointerId, startX: event.clientX, startY: event.clientY, node: event.shiftKey ? undefined : target ?? undefined, pan: dimension === '2d' || event.shiftKey, moved: false, camera: cameraRef.current, point: target ? pointsRef.current[target] : undefined }
+    drag.current = { pointer: event.pointerId, startX: event.clientX, startY: event.clientY, node: event.shiftKey ? undefined : target ?? undefined, pan: dimension === '2d' || event.shiftKey, moved: false, camera: cameraRef.current, point: target ? pointsRef.current[target] : undefined, view, dimension }
   }
   const pointerMove = (event: PointerEvent<SVGSVGElement>) => {
     if (event.pointerType === 'touch' && touches.current.has(event.pointerId)) {
@@ -157,8 +163,6 @@ export function GraphCanvas(props: Props) {
     if (event.pointerType === 'mouse' && !(event.buttons & 1)) { pointerEnd(event, true); return }
     const dx = event.clientX - current.startX, dy = event.clientY - current.startY
     if (!current.moved && Math.hypot(dx, dy) < 5) return
-    // Decide before changing coordinates: vertical touch input belongs to page scrolling.
-    if (!operating && !current.moved && event.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx)) { finishGesture.current(event.pointerId, true); return }
     current.moved = true; suppressClick.current = true; autoFit.current = false; setDragging(true)
     if (!svg.current?.hasPointerCapture?.(event.pointerId)) svg.current?.setPointerCapture?.(event.pointerId)
     if (current.node && current.point) {

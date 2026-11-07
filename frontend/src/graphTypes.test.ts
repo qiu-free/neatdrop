@@ -37,3 +37,16 @@ it('round trips independent cameras for both views in 2D and 3D', () => {
   expect(transitionGraphDimension(session, '3d')).toEqual(relation3d)
   expect(transitionGraphView(session, 'relations', 'categories')).toEqual(category3d)
 })
+it('honors replacement of the legacy 2D viewport cache after session creation', () => {
+  const session = createGraphSession('ws')
+  const category2d = { zoom: 1.4, pan: { x: 900, y: 800 } }
+  const relation2d = { zoom: 1.1, pan: { x: 50, y: 60 } }
+  session.viewport = category2d
+  session.viewports = { categories: category2d, relations: relation2d }
+  expect(transitionGraphView(session, 'categories', 'relations')).toEqual(relation2d)
+  expect(session.dimensionViewports?.['2d']).toBe(session.viewports)
+  session.viewport = relation2d
+  expect(transitionGraphDimension(session, '3d')).toBeNull()
+  session.viewport = { zoom: .8, pan: { x: -5, y: 9 }, rotation: { yaw: 1, pitch: .5 } }
+  expect(transitionGraphDimension(session, '2d')).toEqual(relation2d)
+})

@@ -14,6 +14,7 @@ export function createGraphSession(workspace: string | null = null): GraphSessio
 function cameraCache(session: GraphSession) {
   session.viewports ??= { categories: null, relations: null }
   session.dimensionViewports ??= { '2d': session.viewports, '3d': { categories: null, relations: null } }
+  if (session.dimensionViewports['2d'] !== session.viewports) session.dimensionViewports['2d'] = session.viewports
   return session.dimensionViewports[session.dimension ?? '2d']
 }
 export function transitionGraphView(session: GraphSession, current: GraphSession['view'], next: GraphSession['view']) {

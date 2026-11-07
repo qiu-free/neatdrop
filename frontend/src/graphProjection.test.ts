@@ -134,6 +134,28 @@ it('hides isolates on canvas but retains the complete filtered file list and cat
   expect(result.nodes[0].data.categoryLabel).toBe('研究')
   expect(result.hiddenFileCount).toBe(1)
 })
+it('does not let early isolates consume the canvas cap ahead of linked files', () => {
+  const data = listing([...Array.from({ length: 200 }, (_, i) => item(`a-${`${i}`.padStart(3, '0')}`)), item('z-linked'), item('z-peer')])
+  data.relations = [{ id: 'late', source: 'z-linked', target: 'z-peer', kind: 'related', status: 'confirmed', origin: 'manual', created: '' }]
+  const result = projectGraph(data, { expanded: { 'study/notes': 1000 }, visual: { showIsolates: false } as GraphSession['visual'] })
+  expect(result.files).toHaveLength(202)
+  expect(result.relations.map(edge => edge.id)).toEqual(['late'])
+  expect(result.nodes.map(node => node.data.entry)).toEqual(['z-linked', 'z-peer'])
+  expect(result.edges.map(edge => edge.data.relation)).toEqual(['late'])
+  expect(result.nodes.map(node => node.data.degree)).toEqual([1, 1])
+  expect(result.hiddenFileCount).toBe(200)
+})
+it('refills the capped canvas when early candidate endpoints have no visible partner', () => {
+  const data = listing([...Array.from({ length: 200 }, (_, i) => item(`a-${`${i}`.padStart(3, '0')}`)), item('z-center')])
+  data.relations = data.items.slice(0, 200).map((file, i) => ({ id: `r${i}`, source: file.id, target: 'z-center', kind: 'related', status: 'fact', origin: 'manual', created: '' }))
+  const result = projectGraph(data, { expanded: { 'study/notes': 1000 }, visual: { showIsolates: false } as GraphSession['visual'] })
+  expect(result.nodes).toHaveLength(200)
+  expect(result.nodes.some(node => node.data.entry === 'z-center')).toBe(true)
+  expect(result.nodes.every(node => (node.data.degree ?? 0) > 0)).toBe(true)
+  expect(result.edges).toHaveLength(199)
+  expect(result.files).toHaveLength(201)
+  expect(result.relations).toHaveLength(200)
+})
 it('excludes suggested-only neighbors from local focus when suggestions are hidden', () => {
   const data = listing([item('hub'), item('confirmed'), item('suggested')])
   data.relations = [

@@ -24,6 +24,7 @@ export function projectGraph(listing: GraphListing, options: Partial<GraphSessio
   const fileById = new Map(files.map(file => [file.id, file])), ids = new Set(files.map(file => file.id))
   const focus = options.focus && ids.has(options.focus) ? options.focus : null
   const relations = listing.relations.filter(edge => ids.has(edge.source) && ids.has(edge.target) && (!options.kind || options.kind === 'all' || edge.kind === options.kind))
+  const permittedRelations = options.visual?.showSuggested === false ? relations.filter(edge => edge.status !== 'suggested') : relations
   const nodes: GraphNode[] = [], edges: GraphEdge[] = [], colors = new Map<string, string>()
   const taxonomyCategories: Record<string, string> = options.taxonomy?.categories ?? (categories as Record<string, string>)
   const colorCategories = [...new Set([...Object.keys(categories), ...Object.keys(taxonomyCategories), ...files.map(file => file.category)])].sort()
@@ -37,15 +38,36 @@ export function projectGraph(listing: GraphListing, options: Partial<GraphSessio
     neighborIds.forEach((id, index) => nodes.push(fileNode(id, scatterPoint(index, neighborIds.length))))
   } else {
     const shownPerGroup = new Map<string, number>()
-    files.forEach(file => {
-      const key = `${file.category}/${file.subcategory ?? ''}`, shown = shownPerGroup.get(key) ?? 0
-      if (options.expanded?.[file.category] === 0 || options.expanded?.[key] === 0 || nodes.length >= MAX_NODES) return
-      const requested = query ? files.length : options.expanded?.[key] ?? DEFAULT_GROUP_FILES
-      if (shown >= requested) return
+    const groupKey = (id: string) => { const file = fileById.get(id)!; return `${file.category}/${file.subcategory ?? ''}` }
+    const allowed = (id: string) => {
+      const file = fileById.get(id)!, key = groupKey(id)
+      return options.expanded?.[file.category] !== 0 && options.expanded?.[key] !== 0
+    }
+    const requested = (key: string) => query ? files.length : options.expanded?.[key] ?? DEFAULT_GROUP_FILES
+    if (options.visual?.showIsolates === false) {
+      const selected = new Set<string>()
+      const canonical = permittedRelations.filter(edge => edge.source !== edge.target).map(edge => {
+        const [first, second] = [edge.source, edge.target].sort()
+        return { first, second }
+      }).sort((a, b) => a.first.localeCompare(b.first) || a.second.localeCompare(b.second))
+      canonical.forEach(({ first, second }) => {
+        if (!allowed(first) || !allowed(second)) return
+        const additions = [first, second].filter(id => !selected.has(id))
+        if (selected.size + additions.length > MAX_NODES) return
+        const needed = new Map<string, number>()
+        additions.forEach(id => { const key = groupKey(id); needed.set(key, (needed.get(key) ?? 0) + 1) })
+        if ([...needed].some(([key, count]) => (shownPerGroup.get(key) ?? 0) + count > requested(key))) return
+        additions.forEach(id => selected.add(id))
+        needed.forEach((count, key) => shownPerGroup.set(key, (shownPerGroup.get(key) ?? 0) + count))
+      })
+      files.filter(file => selected.has(file.id)).forEach(file => nodes.push(fileNode(file.id, seeds.get(file.id)!)))
+    } else files.forEach(file => {
+      const key = groupKey(file.id), shown = shownPerGroup.get(key) ?? 0
+      if (!allowed(file.id) || nodes.length >= MAX_NODES || shown >= requested(key)) return
       nodes.push(fileNode(file.id, seeds.get(file.id)!)); shownPerGroup.set(key, shown + 1)
     })
   }
-  const visible = new Set(nodes.map(node => node.data.id)); relations.forEach(edge => { if (options.visual?.showSuggested === false && edge.status === 'suggested') return; if (visible.has(`file:${edge.source}`) && visible.has(`file:${edge.target}`)) edges.push({ data: { id: `relation:${edge.id}`, relation: edge.id, source: `file:${edge.source}`, target: `file:${edge.target}`, kind: edge.kind, label: graphKindLabels[edge.kind], status: edge.status, origin: edge.origin, directed: directedKinds.has(edge.kind), color: colors.get(fileById.get(edge.source)?.category ?? '') } }) })
+  const visible = new Set(nodes.map(node => node.data.id)); permittedRelations.forEach(edge => { if (visible.has(`file:${edge.source}`) && visible.has(`file:${edge.target}`)) edges.push({ data: { id: `relation:${edge.id}`, relation: edge.id, source: `file:${edge.source}`, target: `file:${edge.target}`, kind: edge.kind, label: graphKindLabels[edge.kind], status: edge.status, origin: edge.origin, directed: directedKinds.has(edge.kind), color: colors.get(fileById.get(edge.source)?.category ?? '') } }) })
   const neighbors = new Map(nodes.map(node => [node.data.id, new Set<string>()]))
   edges.forEach(edge => { if (edge.data.source !== edge.data.target) { neighbors.get(edge.data.source)?.add(edge.data.target); neighbors.get(edge.data.target)?.add(edge.data.source) } })
   nodes.forEach(node => { node.data.degree = neighbors.get(node.data.id)?.size ?? 0; node.data.size = Math.min(22, 7 + 2 * Math.log2(1 + node.data.degree)) })

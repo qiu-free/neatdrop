@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, Search, ShieldCheck } from 'lucide-react'
 import './tutorial.css'
 import './help.css'
@@ -32,6 +32,7 @@ const topics: HelpTopic[] = [
   { id: 'sessions-costs', title: '会话与费用', terms: '费用 价格 成本 会话 请求 限额 网络', body: '本地会话有效 8 小时；完成的分析状态约保留 15 分钟。服务重启会丢失分析与计划状态，但磁盘操作记录仍在。云端请求有批次上限，不自动重试；实际费用由服务商决定。' },
   { id: 'unsupported', title: '暂不支持的能力', terms: '暂不支持 删除 移动 去重 递归 ICS HEIC GIF DOC XLS PPT 监听 扫描 PDF', body: '暂不提供旧 DOC / XLS / PPT、扫描 PDF OCR、HEIC / GIF、宏文档、递归目录、原位移动、永久删除、日历 ICS、自动去重或后台监听。CSV 的内容分析不等于票据导出功能。' },
 ]
+const topicIds = new Set(topics.map(topic => topic.id))
 
 export interface HelpPageProps {
   onPractice?: () => void
@@ -43,11 +44,36 @@ export interface HelpPageProps {
 
 export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false, session, supportedExtensions }: HelpPageProps) {
   const [query, setQuery] = useSessionState(session, 'query', '')
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(() => {
+    const id = window.location.hash.replace(/^#help-topic-/, '')
+    return topicIds.has(id) ? id : null
+  })
   const results = useMemo(() => {
     const currentTopics = topics.map(topic => topic.id === 'supported-files' ? { ...topic, body: `${supportedFormats(supportedExtensions)}只读取所选目录的直接子文件，不递归进入子目录，也不跟随链接。` } : topic)
     const needle = query.trim().toLocaleLowerCase()
     return needle ? currentTopics.filter(topic => `${topic.title} ${topic.terms} ${topic.body}`.toLocaleLowerCase().includes(needle)) : currentTopics
   }, [query, supportedExtensions])
+
+  useEffect(() => {
+    const openLinkedTopic = () => {
+      const id = window.location.hash.replace(/^#help-topic-/, '')
+      if (topicIds.has(id)) setExpandedTopic(id)
+    }
+    window.addEventListener('hashchange', openLinkedTopic)
+    return () => window.removeEventListener('hashchange', openLinkedTopic)
+  }, [])
+
+  useEffect(() => {
+    if (!expandedTopic || !results.some(topic => topic.id === expandedTopic)) return
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`help-topic-${expandedTopic}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [expandedTopic, results])
+
+  useEffect(() => {
+    if (expandedTopic && !results.some(topic => topic.id === expandedTopic)) setExpandedTopic(null)
+  }, [expandedTopic, results])
 
   return <>
     <section className="page-intro help-intro"><div><span className="intro-label">简单开始，放心整理</span><h1>一份清晰的使用指南<span>。</span></h1><p>先了解流程，再决定哪些文件要整理。</p></div>
@@ -67,7 +93,10 @@ export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false, 
       <h2 className="help-section-title">六个阶段，把文件理清楚</h2>
       <WorkflowOverview label="完整整理流程" />
       <div className="help-steps">
-        {workflow.map((step, index) => <article key={step.id}>{index === 0 ? <img src="/help/folder.svg" alt="先选择一个工作目录" /> : null}<span>0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p></article>)}
+        {workflow.map((step, index) => <article key={step.id}>
+          <img src={step.id === 'choose' ? '/help/folder.svg' : `/help/${step.id}.svg`} alt={`${step.title}阶段示意图`} loading={index > 2 ? 'lazy' : 'eager'} />
+          <span>0{index + 1}</span><h3>{step.title}</h3><p>{step.text}</p>
+        </article>)}
       </div>
 
       <div className="notice help-safety-note"><ShieldCheck size={23} /><div><strong>为什么首版保留原件？</strong><p>移动和删除存在文件竞争、外部修改与系统中断风险。当前执行器使用独占创建、复制校验和分步记录。副本模式以文件安全为先，不会释放磁盘空间。</p></div></div>
@@ -75,10 +104,23 @@ export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false, 
       <section className="help-topics" aria-live="polite" aria-label="帮助主题">
         <div className="help-topic-heading"><h2>详细说明</h2><span>{results.length} 个主题</span></div>
         {results.length ? <>
-          <nav className="help-topic-directory" aria-label="帮助目录">
-            {results.map(topic => <a key={topic.id} href={`#help-topic-${topic.id}`} onClick={() => document.getElementById(`help-topic-${topic.id}`)?.focus()}>{topic.title}</a>)}
-          </nav>
-          <div className="help-topic-grid">{results.map(topic => <article className="help-topic" id={`help-topic-${topic.id}`} tabIndex={-1} key={topic.id}><h3>{topic.title}</h3><p>{topic.body}</p></article>)}</div>
+          <div className="help-topic-list">{results.map(topic => <details
+            className="help-topic"
+            id={`help-topic-${topic.id}`}
+            key={topic.id}
+            open={expandedTopic === topic.id}
+          >
+            <summary onClick={event => {
+              event.preventDefault()
+              const shouldOpen = expandedTopic !== topic.id
+              setExpandedTopic(shouldOpen ? topic.id : null)
+              const targetUrl = shouldOpen
+                ? `#help-topic-${topic.id}`
+                : `${window.location.pathname}${window.location.search}`
+              window.history.replaceState(null, '', targetUrl)
+            }}>{topic.title}</summary>
+            {expandedTopic === topic.id ? <p>{topic.body}</p> : null}
+          </details>)}</div>
         </>
           : <p className="help-empty">没有找到相关说明。可以试试“目录”“复核”或“撤回”。</p>}
       </section>

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { KnowledgeGraphPage } from './KnowledgeGraphPage'
 import { createGraphSession, type GraphListing } from '../graphTypes'
 import type { Workspace } from '../types'
-vi.mock('./GraphCanvas', () => ({ GraphCanvas: () => <div>测试画布</div> }))
+vi.mock('./GraphCanvas', () => ({ GraphCanvas: (props: { visual?: { colorMode: string; nodeScale: number; showSuggested: boolean }; dimension?: string; viewport?: unknown; layoutRevision?: number }) => <div data-testid="canvas-props" data-color={props.visual?.colorMode} data-scale={props.visual?.nodeScale} data-suggested={String(props.visual?.showSuggested)} data-dimension={props.dimension} data-viewport={JSON.stringify(props.viewport)} data-revision={props.layoutRevision}>测试画布</div> }))
 const workspace: Workspace = { id: 'ws-one', name: '资料', path: 'C:\\资料', files: [] }
 const history: [] = []
 const data: GraphListing = { items: [
@@ -95,20 +95,98 @@ it('aborts old workspace requests and discards responses that ignore cancellatio
 it('filters relationship list with relation kind and keeps memory session on revisit', async () => {
   setup(); const p = props(); const view = render(<KnowledgeGraphPage {...p} />)
   await screen.findByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' })
+  fireEvent.click(screen.getByRole('button', { name: '图谱设置' }))
   fireEvent.change(screen.getByLabelText('关系类型'), { target: { value: 'reference' } })
   expect(screen.queryByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' })).not.toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('搜索图谱文件名'), { target: { value: '笔记' } })
   view.unmount()
   render(<KnowledgeGraphPage {...p} />)
   expect(await screen.findByLabelText('搜索图谱文件名')).toHaveValue('笔记')
+  fireEvent.click(screen.getByRole('button', { name: '图谱设置' }))
   expect(screen.getByLabelText('关系类型')).toHaveValue('reference')
 })
 it('does not re-fetch when the default group already shows every file and keeps collapse available', async () => {
   const calls = setup(); render(<KnowledgeGraphPage {...props()} />)
+  await screen.findByRole('button', { name: '图谱设置' })
+  fireEvent.click(screen.getByRole('button', { name: '图谱设置' }))
   const more = await screen.findByRole('button', { name: '继续展开 学习科研 / 课程笔记' })
   expect(more).toBeDisabled()
   expect(screen.getByRole('button', { name: '收起 学习科研 / 课程笔记' })).toBeInTheDocument()
   expect(calls.filter(call => call.url.endsWith('/graph'))).toHaveLength(1)
+})
+
+it('opens settings on demand, closes on Escape, and returns focus to the trigger', async () => {
+  setup(); render(<KnowledgeGraphPage {...props()} />)
+  const trigger = await screen.findByRole('button', { name: '图谱设置' })
+  expect(screen.queryByRole('region', { name: '图谱设置面板' })).not.toBeInTheDocument()
+  fireEvent.click(trigger)
+  expect(screen.getByRole('region', { name: '图谱设置面板' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '关闭图谱设置' })).toHaveFocus()
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByRole('region', { name: '图谱设置面板' })).not.toBeInTheDocument()
+  expect(trigger).toHaveFocus()
+  fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('button', { name: '关闭图谱设置' }))
+  expect(trigger).toHaveFocus()
+})
+
+it('updates canvas appearance without network requests and closes settings for preview', async () => {
+  const calls = setup(); render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.click(await screen.findByRole('button', { name: '图谱设置' }))
+  fireEvent.click(screen.getByText('外观'))
+  fireEvent.change(screen.getByLabelText('节点大小'), { target: { value: '1.5' } })
+  fireEvent.click(screen.getByLabelText('分类配色'))
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-scale', '1.5')
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-color', 'category')
+  expect(calls.filter(call => call.url.endsWith('/graph'))).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: '预览 研究笔记.txt' }))
+  expect(screen.queryByRole('region', { name: '图谱设置面板' })).not.toBeInTheDocument()
+})
+
+it('restores separate 2D and 3D view cameras across dimension changes', async () => {
+  setup(); const p = props(); p.session.workspace = workspace.id
+  p.session.viewport = { zoom: .8, pan: { x: 42, y: 11 } }
+  render(<KnowledgeGraphPage {...p} />)
+  fireEvent.click(await screen.findByRole('button', { name: '图谱设置' }))
+  fireEvent.click(screen.getByText('外观'))
+  fireEvent.click(screen.getByRole('button', { name: '3D' }))
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-dimension', '3d')
+  expect(p.session.viewport).toBeNull()
+  p.session.viewport = { zoom: 1.2, pan: { x: 25, y: 30 }, rotation: { yaw: .2, pitch: .3 } }
+  fireEvent.click(screen.getByRole('button', { name: '2D' }))
+  expect(p.session.viewport).toEqual({ zoom: .8, pan: { x: 42, y: 11 } })
+  fireEvent.click(screen.getByRole('button', { name: '3D' }))
+  expect(p.session.viewport?.rotation?.yaw).toBe(.2)
+})
+
+it('filters candidates through the settings and only explicit layout actions increment revision', async () => {
+  const calls = setup(); render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.click(await screen.findByRole('button', { name: '图谱设置' }))
+  fireEvent.click(screen.getByLabelText('显示待核实候选'))
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-suggested', 'false')
+  expect(screen.getByRole('button', { name: '研究笔记.txt 文本相似候选 研究附件.txt' })).toBeInTheDocument()
+  fireEvent.click(screen.getByText('布局'))
+  fireEvent.change(screen.getByLabelText('布局密度'), { target: { value: 'spacious' } })
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-revision', '0')
+  fireEvent.click(screen.getByRole('button', { name: '重新排列' }))
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-revision', '1')
+  fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-revision', '2')
+  expect(screen.getByTestId('canvas-props')).toHaveAttribute('data-suggested', 'false')
+  expect(calls.filter(call => call.url.endsWith('/graph'))).toHaveLength(1)
+})
+
+it('expands the canvas reversibly and keeps full file and relation lists in native disclosures', async () => {
+  setup(); render(<KnowledgeGraphPage {...props()} />)
+  const expand = await screen.findByRole('button', { name: '展开画布' })
+  fireEvent.click(expand)
+  expect(screen.getByRole('region', { name: '知识图谱' })).toHaveClass('is-expanded')
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.getByRole('region', { name: '知识图谱' })).not.toHaveClass('is-expanded')
+  const files = screen.getByText(/文件列表/).closest('details')
+  const relations = screen.getByText(/文件关系/).closest('details')
+  expect(files).toHaveAttribute('open')
+  expect(relations).toHaveAttribute('open')
 })
 it('reports evidence errors inside the drawer and blocks candidate confirmation without evidence', async () => {
   setup(); const original = vi.mocked(fetch).getMockImplementation()!
@@ -241,7 +319,7 @@ it('moves analysis and index panels ahead of long result lists and focuses the o
   await screen.findByRole('button', { name: '分析关联' })
   fireEvent.click(screen.getByRole('button', { name: '分析关联' }))
   expect(screen.getByRole('heading', { name: '选择本机分析资料' })).toHaveFocus()
-  expect(screen.getByRole('region', { name: '本机分析设置' }).compareDocumentPosition(screen.getByRole('region', { name: '可访问文件列表' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(screen.getByRole('region', { name: '本机分析设置' }).compareDocumentPosition(screen.getByText(/文件列表/).closest('details')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: '管理本机索引' }))
   expect(screen.getByRole('heading', { name: '本机索引管理' })).toHaveFocus()
 })

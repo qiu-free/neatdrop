@@ -173,10 +173,12 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }
 
   async function pickDirectory() {
+    if (picking || busy || !state.online) return
     const controller = new AbortController()
     pickerRequest.current?.abort()
     pickerRequest.current = controller
     setPicking(true)
+    state.setError('')
     try {
       const result = await api<{ path: string | null }>('/pick-directory', {}, controller.signal)
       if (!controller.signal.aborted && result.path) await requestScan(result.path)
@@ -330,7 +332,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
     {!workspace ? <section className="empty-landing" aria-label="开始使用">
       <div className="empty-landing-icon"><FolderOpen size={27} /></div>
         <div><h2>从一个本地文件夹开始</h2><p>先扫描当前目录，再挑选要整理的文件。分析、复核和生成副本都由你确认。</p>
-        <div className="empty-landing-actions"><button className="button primary" disabled={!!busy || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />选择本地目录</button>{onTutorial ? <button className="button secondary" onClick={onTutorial}>进入教程演练</button> : null}</div>
+        <div className="empty-landing-actions"><button className="button primary" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button>{onTutorial ? <button className="button secondary" onClick={onTutorial}>进入教程演练</button> : null}</div>
       </div>
       <span className="empty-kbd"><ShieldCheck size={14} />文件保留在本机，原件始终保留</span>
     </section> : <>

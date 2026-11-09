@@ -1,6 +1,9 @@
 let csrf = ''
+let sessionRequest: Promise<void> | null = null
 
 export const errorMessages: Record<string, string> = {
+  CSRF_REJECTED: '本地会话校验未通过。请刷新页面后重新选择目录；文件未被改动。',
+  ORIGIN_REJECTED: '访问地址与本地服务不一致。请从 http://127.0.0.1:8765 打开净匣后重试。',
   EXECUTION_STATUS_NOT_FOUND: '执行进度已不可查询，可能是服务重启或会话变更。请重新选择同一目录检查操作记录，不要重复发送复制请求。原件保留。',
   MODEL_CONFIG_CHANGED: '模型配置已变化，请重新查看目标服务并授权本次云端分析。',
   CONFIG_CHANGED: '配置版本已变化，请重新打开设置后保存。',
@@ -111,24 +114,45 @@ export const errorMessages: Record<string, string> = {
   GRAPH_CONFIRMATION_REQUIRED: '请先确认只在本机读取与保存图谱特征。', GRAPH_BATCH_INVALID: '请选择 1 至 50 个可用归档副本。', GRAPH_BATCH_LIMIT: '所选资料总大小超出本地分析上限。', GRAPH_STORE_UNAVAILABLE: '本机图谱索引暂不可用。', GRAPH_STORE_LIMIT: '本机图谱索引已达到容量限制。', GRAPH_JOB_BUSY: '已有图谱分析任务运行，请先取消或等待完成。', GRAPH_JOB_LIMIT: '本机图谱任务数量已达上限。', GRAPH_JOB_NOT_FOUND: '图谱分析任务已不存在，请刷新后重试。', GRAPH_RELATION_NOT_FOUND: '这条关系已不存在，请刷新后重试。', GRAPH_ENTRY_NOT_FOUND: '归档副本已不存在或不属于当前目录。', GRAPH_ENTRY_CHANGED: '归档副本已变化或不能安全读取，未使用旧内容。', GRAPH_CONTENT_LIMITED: '文件内容提取受限，请结合归档副本人工核对。', GRAPH_INDEX_STALE: '索引版本已变化，请刷新关系图谱后重试。', GRAPH_REVISION_CONFLICT: '图谱已被其他操作更新，请刷新后重试。', GRAPH_SELF_LINK: '不能把文件关联到自身。', GRAPH_CANDIDATE_INVALID: '此候选已失效，请刷新后查看当前关系。', GRAPH_RELATION_IMMUTABLE: '归档事实关系不能手动删除。', GRAPH_CANCELLED: '图谱分析已取消。', GRAPH_NO_READABLE_FILES: '本次没有可安全读取的归档副本。', GRAPH_JOB_FAILED: '本机图谱分析未完成，请检查文件状态后重试。',
 }
 export function explain(code: string) { return errorMessages[code] ?? `操作未完成（${code}）` }
-export async function initSession() {
-  const response = await fetch('/api/session')
-  if (!response.ok) throw new Error('无法建立本地会话，请检查服务是否运行。')
-  csrf = (await response.json()).csrf
+export function initSession(): Promise<void> {
+  if (!sessionRequest) {
+    sessionRequest = (async () => {
+      const response = await fetch('/api/session')
+      if (!response.ok) throw new Error('无法建立本地会话，请检查服务是否运行。')
+      const data = await response.json()
+      if (typeof data.csrf !== 'string' || !data.csrf || data.csrf.length > 256 || !/^[\x21-\x7e]+$/.test(data.csrf)) {
+        throw new Error('本地会话响应异常。请刷新页面后重试。')
+      }
+      csrf = data.csrf
+    })().finally(() => { sessionRequest = null })
+  }
+  return sessionRequest
 }
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: 'GET' | 'POST' | 'DELETE'): Promise<T> {
   const requestMethod = method ?? (body === undefined ? 'GET' : 'POST')
-  const response = await fetch('/api/v1' + path, {
-    method: requestMethod,
-    headers: requestMethod === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-NeatDrop-CSRF': csrf },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal,
-  })
-  if (!response.ok) {
+  const serializedBody = body === undefined ? undefined : JSON.stringify(body)
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    signal?.throwIfAborted()
+    const sentToken = csrf
+    const response = await fetch('/api/v1' + path, {
+      method: requestMethod,
+      headers: requestMethod === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-NeatDrop-CSRF': sentToken },
+      body: serializedBody,
+      signal,
+    })
+    if (response.ok) return response.json()
     const data = await response.json().catch(() => ({}))
-    throw new Error(explain(typeof data.code === 'string' ? data.code : typeof data.detail === 'string' ? data.detail : 'REQUEST_FAILED'))
+    const code = typeof data.code === 'string' ? data.code : typeof data.detail === 'string' ? data.detail : 'REQUEST_FAILED'
+    // LocalSecurity rejects this exact response before dispatching a handler.
+    // Recover only that rejection, never an uncertain network/operation failure.
+    if (attempt === 0 && requestMethod !== 'GET' && response.status === 403 && code === 'CSRF_REJECTED') {
+      signal?.throwIfAborted()
+      if (csrf === sentToken) await initSession()
+      continue
+    }
+    throw new Error(explain(code))
   }
-  return response.json()
+  throw new Error(explain('CSRF_REJECTED'))
 }
 export function bytes(size: number) {
   return size < 1024 ? `${size} B` : size < 1024 ** 2 ? `${(size / 1024).toFixed(1)} KB` : `${(size / 1024 ** 2).toFixed(1)} MB`

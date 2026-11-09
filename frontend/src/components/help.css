@@ -26,7 +26,7 @@
 .help-topic-heading h2 { margin: 0; font-family: var(--font-display); color: #334d32; font-size: 18px; font-weight: 500; }
 .help-topic-heading span { color: #819073; font-size: 10px; }
 .help-topic-list { display: grid; gap: 7px; }
-.help-topic { min-width: 0; overflow: clip; border: 1px solid #e3e8dc; border-radius: 7px; background: #fffefb; scroll-margin-top: 18px; }
+.help-topic { min-width: 0; overflow: clip; border: 1px solid var(--line); border-radius: 8px; background: #fff; scroll-margin-top: 18px; }
 .help-topic[open] { border-color: #bdcfb6; background: #fff; box-shadow: 0 2px 8px #3b563b0b; }
 .help-topic summary { position: relative; display: flex; align-items: center; min-height: 44px; padding: 9px 38px 9px 12px; color: #526d47; background: #fafbf7; cursor: pointer; font-size: 14px; list-style: none; }
 .help-topic summary::-webkit-details-marker { display: none; }

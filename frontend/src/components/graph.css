@@ -39,7 +39,7 @@
 .graph-spatial-node .graph-node-halo { fill: #dfe3df; opacity: 0; }
 .graph-spatial-node .graph-node-dot { stroke: #ffffff; stroke-width: .8px; }
 .graph-spatial-node.is-category .graph-node-dot { stroke: #8fa58a; stroke-width: 1.5px; }
-.graph-spatial-node text { fill: #424b44; font-family: var(--font-ui); font-size: 12px; font-weight: 500; paint-order: stroke; stroke: #fffefc; stroke-width: 4px; stroke-linejoin: round; pointer-events: bounding-box; }
+.graph-spatial-node text { fill: #263c58; font-family: var(--font-ui); font-size: 12px; font-weight: 550; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; pointer-events: bounding-box; }
 .graph-spatial-node.is-category text, .graph-spatial-node.is-subcategory text { fill: #63715b; font-weight: 600; }
 .graph-spatial-node:hover .graph-node-halo, .graph-spatial-node:focus .graph-node-halo, .graph-spatial-node.is-focused .graph-node-halo { opacity: 1; }
 .graph-spatial-node:focus { outline: none; }
@@ -123,14 +123,14 @@
 .graph-intro { margin-bottom: 12px; padding-block: 4px; }
 .graph-intro h1 { font-size: clamp(24px, 2.4rem, 32px); margin: 2px 0; }
 .graph-intro p { margin: 0; font-size: 13px; }
-.graph-workspace { display: block; overflow: visible; background: #fffefc; border-color: var(--line); }
-.graph-main { background: #fffefc; color: var(--ink); border-radius: var(--radius-panel); }
+.graph-workspace { display: block; overflow: visible; background: #fff; border-color: var(--line); }
+.graph-main { background: #fff; color: var(--ink); border-radius: var(--radius-panel); }
 .graph-toolbar { gap: 8px; background: #fcfcf8; border-color: var(--line); padding: 10px 12px; }
 .graph-toolbar > span { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .graph-toolbar > .button { min-height: 36px; padding: 6px 9px; white-space: nowrap; }
 .graph-mode { margin-right: 0; background: #edf1e9; flex-shrink: 0; }
 .graph-mode button { min-height: 32px; color: #526456; }
-.graph-mode button[aria-pressed="true"] { background: #dcecdc; color: #315c44; box-shadow: none; }
+.graph-mode button[aria-pressed="true"] { background: #edf4ff; color: #164f9c; box-shadow: none; }
 .graph-search { display: flex; align-items: center; min-width: 140px; flex: 1 1 180px; max-width: 340px; gap: 7px; padding: 0 9px; border: 1px solid var(--control-line); background: #fff; border-radius: 5px; color: var(--muted); }
 .graph-search input { min-width: 0; width: 100%; min-height: 34px; border: 0; background: transparent; color: var(--ink); outline: none; }
 .graph-search:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -146,9 +146,9 @@
 .graph-spatial-edge.is-suggested > path:not(.graph-edge-hit) { stroke-dasharray: 5 5; }
 .graph-legend, .graph-summary { color: var(--muted); border-color: var(--line); }
 .graph-limit-notice { color: #78633c; background: #faf5e8; border-color: #e5dbbf; }
-.graph-tools { position: absolute; z-index: 5; right: 14px; top: 14px; width: min(280px, calc(100% - 28px)); max-height: min(74vh, 610px); overflow: auto; display: block; padding: 10px 12px; background: #fffefc; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 12px 30px #26392b25; }
+.graph-tools { position: absolute; z-index: 5; right: 14px; top: 14px; width: min(280px, calc(100% - 28px)); max-height: min(74vh, 610px); overflow: auto; display: block; padding: 10px 12px; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 30px #193b621f; }
 .graph-tools-heading { display: flex; align-items: center; justify-content: space-between; padding: 2px 0 8px; border-color: var(--line); }
-.graph-tools-heading { position: sticky; z-index: 1; top: -10px; background: #fffefc; }
+.graph-tools-heading { position: sticky; z-index: 1; top: -10px; background: #fff; }
 .graph-tools-heading strong { color: var(--ink); }
 .graph-tools > details { border-bottom: 1px solid var(--line); }
 .graph-tools > details > summary { padding: 10px 2px; cursor: pointer; font-size: 13px; font-weight: 650; }
@@ -156,10 +156,10 @@
 .graph-settings-section { display: grid; gap: 11px; padding: 0 2px 12px; }
 .graph-tools label { color: var(--ink); }
 .graph-settings-section > label, .graph-advanced label { display: grid; gap: 5px; font-size: 12px; }
-.graph-settings-section input[type="range"] { width: 100%; min-height: 20px; padding: 0; accent-color: #5c9174; }
+.graph-settings-section input[type="range"] { width: 100%; min-height: 24px; padding: 0; accent-color: var(--primary); }
 .graph-settings-section select { width: 100%; min-height: 34px; padding: 5px 8px; color: var(--ink); background: #fff; border: 1px solid var(--control-line); }
 .graph-settings-section .graph-check { display: flex; align-items: center; gap: 8px; }
-.graph-settings-section input[type="checkbox"], .graph-settings-section input[type="radio"] { accent-color: #5c9174; }
+.graph-settings-section input[type="checkbox"], .graph-settings-section input[type="radio"] { accent-color: var(--primary); }
 .graph-tools .graph-settings-section :is(input[type="checkbox"], input[type="radio"]) { width: 16px; min-width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 0; background: #fff; }
 .graph-tools .graph-settings-section input[type="range"] { border: 0; background: transparent; box-shadow: none; }
 .app-shell .graph-workspace .graph-tools .graph-settings-section :is(input[type="checkbox"], input[type="radio"]) { width: 16px; height: 16px; min-height: 16px; padding: 0; }
@@ -169,7 +169,7 @@
 .app-shell .page-intro.graph-intro p { margin: 0; font-size: 13px; }
 .graph-segment, .graph-radio { border: 0; margin: 0; padding: 0; font-size: 12px; }
 .graph-segment button { border: 1px solid var(--control-line); background: #fff; color: var(--ink); padding: 6px 12px; }
-.graph-segment button[aria-pressed="true"] { background: #dcecdc; color: #315c44; }
+.graph-segment button[aria-pressed="true"] { background: #edf4ff; color: #164f9c; }
 .graph-radio { display: flex; flex-wrap: wrap; gap: 12px; }
 .graph-radio legend, .graph-segment legend { margin-bottom: 5px; }
 .graph-radio label { display: inline-flex; align-items: center; gap: 4px; }

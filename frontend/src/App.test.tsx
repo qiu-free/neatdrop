@@ -16,6 +16,19 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 }) })
 
+it('offers a keyboard shortcut link directly to the main content', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
+  const skip = screen.getByRole('link', { name: '跳到主内容' })
+  fireEvent.click(skip)
+  expect(screen.getByRole('main')).toHaveFocus()
+  expect(skip).toHaveAttribute('href', '#main-content')
+  const modalTrigger = screen.getByRole('button', { name: /模型设置/ })
+  fireEvent.click(modalTrigger)
+  expect(screen.getByRole('dialog', { name: '模型设置' })).toBeInTheDocument()
+})
+
 it('offers a skippable first-run tour and reopens the in-memory exercise from the empty workbench', async () => {
   render(<App />)
   expect(screen.getByRole('dialog', { name: '新手导览' })).toBeInTheDocument()

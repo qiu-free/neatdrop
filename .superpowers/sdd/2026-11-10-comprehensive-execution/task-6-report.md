@@ -33,10 +33,10 @@ The first new API tests ran red against missing catalog routes (4 expected failu
 Final fresh command:
 
 ```powershell
-.venv/Scripts/python.exe -m pytest backend/tests/test_catalog_api.py backend/tests/test_catalog_directory_api.py backend/tests/test_graph_api_v9.py backend/tests/test_graph_v9.py backend/tests/test_api.py backend/tests/test_parsing_security.py -q --tb=short --basetemp=./catalog-pytest-release
+.venv/Scripts/python.exe -m pytest backend/tests/test_catalog_api.py backend/tests/test_catalog_directory_api.py backend/tests/test_graph_api_v9.py backend/tests/test_graph_v9.py backend/tests/test_api.py backend/tests/test_parsing_security.py -q --tb=short --basetemp=./catalog-pytest-last
 ```
 
-Result: **41 passed, 1 skipped** in 23.87 seconds. The skip is the existing platform-gated symlink test. Windows sandbox temporary-directory cleanup was denied by the sandbox on an initial run; rerunning the same test command with approved execution outside the sandbox produced the reported result.
+Result: **41 passed, 1 skipped** in 24.69 seconds. The skip is the existing platform-gated symlink test. Windows sandbox temporary-directory cleanup was denied by the sandbox on an initial run; rerunning the same test command with approved execution outside the sandbox produced the reported result.
 
 ## Limitations
 
@@ -44,5 +44,6 @@ Result: **41 passed, 1 skipped** in 23.87 seconds. The skip is the existing plat
 - Automatic sparse candidates currently arise from freshly verified indexed features. Cross-root exact-digest duplicates are derived directly from trusted archive records. No classification-based or synthetic links are added.
 - Registry and manual relations share the installation-local trusted metadata boundary; corruption fails closed. They are bounded to 10 roots, 5000 manual relations, and 2 MiB metadata.
 - The root graph response `index.revision` is the catalog manual-relation revision. `root_revisions` and `root_indexes` expose per-root index revisions/count/state separately.
+- Duplicate facts use a deterministic chain per digest, preventing quadratic duplicate cliques. Derived relations are bounded to 5000; the existing graph canvas remains limited to 200 visible nodes in the frontend.
 - Child-directory endpoint coverage here depends on the adjacent Task 8 `Workspace.child_directory()` implementation; root has a separate unit suite for that primitive.
 - No synthetic accuracy, public deployment, Qoder authorship or product performance claim is made.

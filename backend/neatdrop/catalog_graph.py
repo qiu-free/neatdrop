@@ -112,7 +112,9 @@ class CatalogGraph:
         for key in sorted(current):
             groups[records[key][1]['sha256']].append(key)
         for digest, members in groups.items():
-            for source, target in ((left, right) for i, left in enumerate(members) for right in members[i + 1:]):
+            # A deterministic chain expresses identical content without a
+            # quadratic clique for large duplicate archives.
+            for source, target in zip(members, members[1:]):
                 relations.append({'id': hashlib.sha256(f'catalog:{source}:{target}:{digest}'.encode()).hexdigest(),
                     'source': source, 'target': target, 'kind': 'duplicate', 'status': 'fact', 'origin': 'archive',
                     'created': max(records[source][0]['created'], records[target][0]['created'])})
@@ -125,6 +127,9 @@ class CatalogGraph:
         relations.extend(r for r in match_features(bounded_features)
                          if r['id'] not in aggregate['dismissed'] and
                          records[r['source']][3]['id'] != records[r['target']][3]['id'])
+        if len(relations) > 5000:
+            issues.append({'code': 'CATALOG_RELATION_LIMIT'})
+            relations = sorted(relations, key=lambda r: (r['origin'] != 'manual', r['id']))[:5000]
         self.check_generations(generations)
         catalog.session.catalog_relations = {r['id']: r for r in relations}
         return {'records': records, 'ordered': ordered, 'features': bounded_features, 'relations': relations,

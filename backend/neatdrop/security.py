@@ -4,7 +4,7 @@ import asyncio
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Lock, RLock
 
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -22,6 +22,10 @@ class Session:
     jobs: AnalysisJobs = field(default_factory=AnalysisJobs)
     graph_jobs: GraphJobs = field(default_factory=GraphJobs)
     lock: Lock = field(default_factory=Lock)
+    catalog_grants: dict = field(default_factory=dict)
+    catalog_statuses: dict = field(default_factory=dict)
+    catalog_relations: dict = field(default_factory=dict)
+    catalog_lock: RLock = field(default_factory=RLock)
 
 
 class RequestGuard:
@@ -93,7 +97,7 @@ class RequestGuard:
                 return await receive()
 
             path = scope['path']
-            expensive = path == '/api/session' or (method == 'POST' and (path.endswith('/workspaces') or path.endswith('/pick-directory') or path.endswith('/analysis-jobs')))
+            expensive = path == '/api/session' or path.startswith('/api/v1/catalog') or (method == 'POST' and (path.endswith('/workspaces') or path.endswith('/pick-directory') or path.endswith('/analysis-jobs')))
             if expensive:
                 with self.lock:
                     now = time.monotonic()

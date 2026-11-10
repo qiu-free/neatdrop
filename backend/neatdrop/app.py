@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +21,7 @@ from .security import LocalSecurity, RequestGuard, Session, current
 from .taxonomy import taxonomy_config, FORMS
 from .configuration import public_model_config, test_model_snapshot, update_model_config
 from . import model as model_api
+from .safe_io import directory_pin, protect_workspace
 
 PROJECT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT / ".env")
@@ -93,6 +94,26 @@ class GraphRelationBody(GraphRevision):
     candidate_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
 
 
+class CatalogRemoveBody(Body):
+    revision: int = Field(ge=0, lt=2**53)
+    relations_revision: int = Field(ge=0, lt=2**53)
+    confirmed: bool = False
+    remove_relations: bool = False
+
+
+class CatalogGraphRelationBody(GraphRevision):
+    source: str = Field(pattern=r'^[a-f0-9]{64}$')
+    target: str = Field(pattern=r'^[a-f0-9]{64}$')
+    kind: Literal['related', 'reference', 'attachment', 'version']
+    candidate_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+
+class CatalogRootBody(Confirmation):
+    workspace_id: str = Field(max_length=64)
+    alias: str = Field(min_length=1, max_length=80)
+    root_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+
+
 def create_app():
     tasks = set()
 
@@ -107,6 +128,7 @@ def create_app():
 
     app = FastAPI(title="NeatDrop local MVP", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.sessions = {}
+    app.state.catalog_path = None
     from threading import Lock
     app.state.session_lock = Lock()
     app.add_middleware(LocalSecurity)
@@ -129,6 +151,86 @@ def create_app():
         if not entry:
             raise HTTPException(404, "WORKSPACE_NOT_FOUND")
         return entry
+
+    def catalog_action(request, action):
+        from .catalog import Catalog
+        from .catalog_graph import CatalogGraph
+        from .trust import _LOCK
+        session = current(request)
+        with _LOCK, session.catalog_lock:
+            service = Catalog(session, app.state.catalog_path)
+            try:
+                return action(service, CatalogGraph(service))
+            except SafetyError as exc:
+                if exc.code in {'CATALOG_ROOT_NOT_FOUND', 'WORKSPACE_NOT_FOUND', 'GRAPH_ENTRY_NOT_FOUND', 'GRAPH_RELATION_NOT_FOUND'}:
+                    return JSONResponse({'code': exc.code}, status_code=404)
+                raise
+
+    @app.get('/api/v1/catalog')
+    def catalog_listing(request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.states())
+
+    @app.post('/api/v1/catalog/roots')
+    def catalog_register(body: CatalogRootBody, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.register(**body.model_dump()))
+
+    @app.post('/api/v1/catalog/roots/{root_id}/revoke')
+    def catalog_revoke(root_id: str, body: Confirmation, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.revoke(root_id, body.confirmed))
+
+    @app.delete('/api/v1/catalog/roots/{root_id}')
+    def catalog_remove(root_id: str, body: CatalogRemoveBody, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.remove(**body.model_dump(), root_id=root_id))
+
+    @app.get('/api/v1/catalog/graph')
+    def catalog_graph(request: Request, offset: int = Query(default=0, ge=0), limit: int = Query(default=1000, ge=1, le=1000)):
+        return catalog_action(request, lambda _, graph: graph.listing(offset, limit))
+
+    @app.get('/api/v1/catalog/library/{entry_id}/preview')
+    def catalog_preview(entry_id: str, request: Request):
+        return catalog_action(request, lambda _, graph: graph.preview(entry_id))
+
+    @app.get('/api/v1/catalog/graph/relations/{relation_id}/evidence')
+    def catalog_evidence(relation_id: str, request: Request):
+        return catalog_action(request, lambda _, graph: graph.evidence(relation_id))
+
+    @app.post('/api/v1/workspaces/{identifier}/children/{file_id}/open')
+    def open_child_directory(identifier: str, file_id: str, body: Confirmation, request: Request):
+        if body.confirmed is not True:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        ws, _ = granted(request, identifier)
+        session = current(request)
+        with protect_workspace(ws):
+            path = Path(ws.child_directory(file_id))
+            expected = ws.directory_identities.get(file_id)
+            if not expected or path.parent != ws.root:
+                raise SafetyError('DIRECTORY_NOT_AVAILABLE')
+            with directory_pin(path):
+                info = path.stat()
+                if (info.st_dev, info.st_ino) != expected:
+                    raise SafetyError('DIRECTORY_CHANGED')
+                child = Workspace(path)
+                if child.root.parent != ws.root or child.identity != expected:
+                    raise SafetyError('DIRECTORY_CHANGED')
+                files = child.scan()
+                executor = Executor(child)
+                with session.lock:
+                    if len(session.workspaces) >= 16:
+                        raise SafetyError('WORKSPACE_LIMIT')
+                    session.workspaces[child.id] = (child, executor)
+        return {'id': child.id, 'path': str(child.root), 'name': child.root.name, 'files': files}
+
+    @app.post('/api/v1/catalog/graph/relations')
+    def catalog_relation_add(body: CatalogGraphRelationBody, request: Request):
+        return catalog_action(request, lambda _, graph: graph.add(**body.model_dump()))
+
+    @app.post('/api/v1/catalog/graph/relations/{relation_id}/dismiss')
+    def catalog_relation_dismiss(relation_id: str, body: GraphRevision, request: Request):
+        return catalog_action(request, lambda _, graph: graph.dismiss(relation_id, body.revision))
+
+    @app.delete('/api/v1/catalog/graph/relations/{relation_id}')
+    def catalog_relation_delete(relation_id: str, body: GraphRevision, request: Request):
+        return catalog_action(request, lambda _, graph: graph.delete(relation_id, body.revision))
 
     @app.get("/api/session")
     def session(request: Request):
@@ -162,6 +264,8 @@ def create_app():
         offline = offline_status()
         offline['semantic'] = semantic_status()
         offline['semantic']['enabled'] = os.getenv('NEATDROP_SEMANTIC_CANDIDATES') == '1'
+        from .pdf_ocr import pdf_ocr_status
+        offline['scanned_pdf'] = pdf_ocr_status()
         return {"model": model_status(), "offline": offline, "categories": CATEGORIES, "taxonomy": taxonomy_config(), "content_forms": FORMS, "undo_supported": os.name == "nt", "execution_supported": os.name == "nt",
                 "supported_extensions": sorted(SUPPORTED),
                 "limits": {"files": 50, "file_mib": 20, "total_mib": 200}, "demo_path": str(PROJECT / "demo-files")}

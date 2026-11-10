@@ -72,7 +72,8 @@ def classify_payload(record, payload, *, semantic=None, classifier=None, image_c
                 line, cursor = None, 0
                 for row in payload.get('ocr_lines', []):
                     row_text = row.get('text', '')
-                    if cursor <= start_hint < end_hint <= cursor + len(row_text):
+                    row_start = row.get('sample_start', cursor)
+                    if row_start <= start_hint < end_hint <= row_start + len(row_text):
                         line = row
                         break
                     cursor += len(row_text) + 1
@@ -81,6 +82,8 @@ def classify_payload(record, payload, *, semantic=None, classifier=None, image_c
                              if item['text'].casefold() in line.get('text', '').casefold()), None)
             if line and line.get('box'):
                 item['box'] = copy.deepcopy(line['box'])
+                if 'page' in line:
+                    item['page'] = line['page']
         elif item.get('source') in {'title', 'body'}:
             interval = (start_hint, end_hint) if verified_hint else _evidence_interval(text, item['text'])
             if interval is None:

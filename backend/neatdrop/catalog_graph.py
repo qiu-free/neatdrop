@@ -1,0 +1,256 @@
+"""Freshly verified aggregation over explicitly granted per-root archives."""
+import hashlib
+import os
+import stat
+from collections import defaultdict
+
+from .catalog import composite_id
+from .files import MAX_FILE, SafetyError, checked_path
+from .graph_matching import ALGORITHM, match_features, text_features
+from .safe_io import file_identity, locked_reader, protect_workspace
+
+
+def verify(service, item, identity):
+    """Hash current bytes without decoding/extracting or trusting cached size."""
+    with protect_workspace(service.ws):
+        path = checked_path(service.ws.root, item['target'])
+        with locked_reader(path) as stream:
+            before = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size != item['size']
+                    or before.st_size > MAX_FILE or file_identity(stream.fileno()) != identity):
+                raise SafetyError('GRAPH_ENTRY_CHANGED')
+            digest = hashlib.sha256()
+            length = 0
+            while block := stream.read(1024 * 1024):
+                length += len(block)
+                if length > MAX_FILE or length > item['size']:
+                    raise SafetyError('GRAPH_ENTRY_CHANGED')
+                digest.update(block)
+            after = os.fstat(stream.fileno())
+            if (length != item['size'] or after.st_size != before.st_size or after.st_mtime_ns != before.st_mtime_ns
+                    or file_identity(stream.fileno()) != identity or digest.hexdigest() != item['sha256']):
+                raise SafetyError('GRAPH_ENTRY_CHANGED')
+
+
+class CatalogGraph:
+    def __init__(self, catalog):
+        self.catalog = catalog
+
+    def snapshot(self):
+        catalog = self.catalog
+        registry = catalog.store.require()
+        aggregate = catalog.relations.require()
+        records, features, per_root_relations, issues = {}, {}, [], []
+        generations = {}
+        truncated = False
+        root_revisions = {}
+        root_indexes = {}
+        for root in sorted(registry['roots'], key=lambda r: r['id']):
+            if root['id'] not in catalog.session.catalog_grants:
+                continue
+            try:
+                grant, service = catalog.grant(root)
+                generations[root['id']] = grant['generation']
+                local_records, limited = service.records()
+                truncated = truncated or limited
+                state, available = service.store.load()
+                root_revisions[root['id']] = state['revision']
+                root_indexes[root['id']] = {'count': 0, 'revision': state['revision'],
+                    'state': 'unavailable' if not available else 'empty'}
+                local_map = {}
+                local_features = {}
+                for key, (entry, item, identity) in local_records.items():
+                    identifier = composite_id(root['id'], key)
+                    entry = {**entry, 'id': identifier, 'original_entry_id': key,
+                             'root_id': root['id'], 'source_alias': root['alias'],
+                             'workspace_id': grant['workspace_id']}
+                    if entry['availability'] == 'available':
+                        try:
+                            verify(service, item, identity)
+                        except (OSError, SafetyError):
+                            entry['availability'] = 'changed'
+                            catalog.session.graph_jobs.cancel_for_root(service.ws)
+                    records[identifier] = (entry, item, identity, root, service)
+                    local_map[key] = identifier
+                    feature = state['features'].get(key)
+                    if (available and entry['availability'] == 'available' and feature and
+                            feature['sha256'] == item['sha256'] and feature['identity'] == identity and feature['algorithm'] == ALGORITHM):
+                        features[identifier] = feature
+                        local_features[key] = feature
+                        root_indexes[root['id']]['count'] += 1
+                        root_indexes[root['id']]['state'] = 'ready'
+                    elif feature:
+                        issues.append({'entry_id': identifier, 'code': 'GRAPH_INDEX_HISTORICAL'})
+                    elif entry['availability'] != 'available':
+                        issues.append({'entry_id': identifier, 'code': 'GRAPH_ENTRY_' + entry['availability'].upper()})
+                for relation in state['relations']:
+                    if relation['origin'] != 'manual':
+                        continue
+                    if relation['source'] in local_map and relation['target'] in local_map:
+                        per_root_relations.append({**relation,
+                            'id': hashlib.sha256(f"{root['id']}:{relation['id']}".encode()).hexdigest(),
+                            'original_relation_id': relation['id'], 'root_id': root['id'],
+                            'source': local_map[relation['source']], 'target': local_map[relation['target']]})
+                # Reuse the existing sparse matcher over fresh per-root features.
+                for relation in match_features(local_features):
+                    per_root_relations.append({**relation,
+                        'id': hashlib.sha256(f"{root['id']}:{relation['id']}".encode()).hexdigest(),
+                        'original_relation_id': relation['id'], 'root_id': root['id'],
+                        'source': local_map[relation['source']], 'target': local_map[relation['target']]})
+            except (OSError, SafetyError):
+                # A root failure must not publish partial data gathered earlier.
+                records = {k: v for k, v in records.items() if v[3]['id'] != root['id']}
+                features = {k: v for k, v in features.items() if k in records}
+                per_root_relations = [r for r in per_root_relations if r.get('root_id') != root['id']]
+                root_revisions.pop(root['id'], None)
+                root_indexes.pop(root['id'], None)
+        current = {key for key, (entry, *_) in records.items() if entry['availability'] == 'available'}
+        relations = [r for r in [*per_root_relations, *aggregate['relations']]
+                     if r['source'] in current and r['target'] in current and
+                     not (r['origin'] == 'automatic' and r['id'] in aggregate['dismissed'])]
+        groups = defaultdict(list)
+        for key in sorted(current):
+            groups[records[key][1]['sha256']].append(key)
+        for digest, members in groups.items():
+            for source, target in ((left, right) for i, left in enumerate(members) for right in members[i + 1:]):
+                relations.append({'id': hashlib.sha256(f'catalog:{source}:{target}:{digest}'.encode()).hexdigest(),
+                    'source': source, 'target': target, 'kind': 'duplicate', 'status': 'fact', 'origin': 'archive',
+                    'created': max(records[source][0]['created'], records[target][0]['created'])})
+        # Retain the existing matcher's 1000-feature resource bound across roots.
+        ordered = sorted(records, key=lambda key: (records[key][0]['created'], key), reverse=True)
+        bounded_features = {key: features[key] for key in ordered if key in features}
+        if len(bounded_features) > 1000:
+            issues.append({'code': 'CATALOG_MATCH_LIMIT'})
+            bounded_features = dict(list(bounded_features.items())[:1000])
+        relations.extend(r for r in match_features(bounded_features)
+                         if r['id'] not in aggregate['dismissed'] and
+                         records[r['source']][3]['id'] != records[r['target']][3]['id'])
+        self.check_generations(generations)
+        catalog.session.catalog_relations = {r['id']: r for r in relations}
+        return {'records': records, 'ordered': ordered, 'features': bounded_features, 'relations': relations,
+                'issues': issues, 'state': aggregate, 'generations': generations, 'root_revisions': root_revisions,
+                'root_indexes': root_indexes, 'root_truncated': truncated}
+
+    def check_generations(self, generations):
+        for identifier, generation in generations.items():
+            root = self.catalog._root(identifier)
+            grant, _ = self.catalog.grant(root)
+            if grant['generation'] != generation:
+                raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
+
+    def listing(self, offset=0, limit=1000):
+        snapshot = self.snapshot()
+        page = snapshot['ordered'][offset:offset + limit]
+        members = set(page)
+        page_issues = [issue for issue in snapshot['issues'] if issue.get('entry_id') in members]
+        total = len(snapshot['ordered'])
+        state = snapshot['state']
+        return {'items': [snapshot['records'][key][0] for key in page],
+            'relations': [r for r in snapshot['relations'] if r['source'] in members and r['target'] in members],
+            'total': total, 'offset': offset, 'limit': limit,
+            'next_offset': offset + limit if offset + limit < total else None,
+            'truncated': snapshot['root_truncated'] or total > len(page),
+            'roots': self.catalog.states()['roots'], 'root_revisions': snapshot['root_revisions'],
+            'root_indexes': snapshot['root_indexes'],
+            'index': {'count': len(snapshot['features']), 'revision': state['revision'], 'updated': state['updated'],
+                      'state': 'ready' if snapshot['features'] else 'empty', 'issues': page_issues}}
+
+    def preview(self, identifier):
+        snapshot = self.snapshot()
+        record = snapshot['records'].get(identifier)
+        if record is None:
+            raise SafetyError('GRAPH_ENTRY_NOT_FOUND')
+        entry, _, _, _, service = record
+        payload = service.read(entry['original_entry_id'], local=False)
+        self.check_generations(snapshot['generations'])
+        _, item, identity, _, service = record
+        verify(service, item, identity)
+        return payload
+
+    def evidence(self, identifier):
+        snapshot = self.snapshot()
+        relation = next((r for r in snapshot['relations'] if r['id'] == identifier), None)
+        if relation is None:
+            raise SafetyError('GRAPH_RELATION_NOT_FOUND')
+        files = []
+        for key in (relation['source'], relation['target']):
+            entry, _, _, _, service = snapshot['records'][key]
+            payload = service.read(entry['original_entry_id'])
+            text = payload.get('text', '')[:12000]
+            terms = text_features(text)['terms']
+            intervals = [positions[0] for term in relation.get('keywords', []) if (positions := terms.get(term))]
+            excerpts = [text[max(0, a - 55):min(len(text), b + 80)] for a, b in intervals[:3]]
+            if not excerpts and text:
+                excerpts = [text[:240]]
+            from .content_quality import assess_content
+            quality = assess_content(payload, bool(payload.get('local_image')))
+            scope = payload.get('sampling', {}).get('summary') or payload.get('sample', '有界本机读取')
+            files.append({'id': key, 'name': entry['name'], 'root_id': entry['root_id'], 'source_alias': entry['source_alias'],
+                          'excerpts': excerpts, 'summary': '已重新核验当前归档副本。' + scope + '。' + quality['summary']})
+        # Both endpoints remain authorized and verified at the publication boundary.
+        self.check_generations(snapshot['generations'])
+        for key in (relation['source'], relation['target']):
+            _, item, identity, _, service = snapshot['records'][key]
+            verify(service, item, identity)
+        explanation = ('归档时 SHA-256 相同；当前双方副本已重新核验。' if relation['kind'] == 'duplicate' else
+                       '本机内容相似线索，仍为待确认候选；不能据此推断引用或版本事实。' if relation['origin'] == 'automatic' else
+                       '人工维护的关系；不代表内容推断。')
+        return {'relation': relation, 'files': files, 'explanation': explanation}
+
+    def add(self, source, target, kind, revision, candidate_id=None):
+        snapshot = self.snapshot()
+        if source == target:
+            raise SafetyError('GRAPH_SELF_LINK')
+        if source not in snapshot['records'] or target not in snapshot['records']:
+            raise SafetyError('GRAPH_ENTRY_NOT_FOUND')
+        source_entry = snapshot['records'][source][0]
+        target_entry = snapshot['records'][target][0]
+        for key in (source, target):
+            entry, item, identity, _, service = snapshot['records'][key]
+            if entry['availability'] != 'available':
+                raise SafetyError('GRAPH_ENTRY_CHANGED')
+            verify(service, item, identity)
+        if candidate_id:
+            candidate = next((r for r in snapshot['relations'] if r['id'] == candidate_id), None)
+            if candidate is None or candidate['origin'] != 'automatic' or {source, target} != {candidate['source'], candidate['target']}:
+                raise SafetyError('GRAPH_CANDIDATE_INVALID')
+            self.evidence(candidate_id)
+        import uuid
+        from .journal import stamp
+        relation = {'id': hashlib.sha256(uuid.uuid4().bytes).hexdigest(), 'source': source, 'target': target,
+            'source_root_id': source_entry['root_id'], 'target_root_id': target_entry['root_id'],
+            'kind': kind, 'status': 'confirmed', 'origin': 'manual', 'created': stamp()}
+        def mutate(state):
+            if any({r['source'], r['target']} == {source, target} and r['kind'] == kind for r in state['relations']):
+                raise SafetyError('GRAPH_RELATION_EXISTS')
+            state['relations'].append(relation)
+            if candidate_id:
+                state['dismissed'] = list(dict.fromkeys([*state['dismissed'], candidate_id]))
+        self.catalog.relations.commit(revision, mutate)
+        return self.listing()
+
+    def dismiss(self, identifier, revision):
+        snapshot = self.snapshot()
+        relation = next((r for r in snapshot['relations'] if r['id'] == identifier), None)
+        if relation is None:
+            raise SafetyError('GRAPH_RELATION_NOT_FOUND')
+        if relation['origin'] != 'automatic':
+            raise SafetyError('GRAPH_CANDIDATE_INVALID')
+        for key in (relation['source'], relation['target']):
+            _, item, identity, _, service = snapshot['records'][key]
+            verify(service, item, identity)
+        self.catalog.relations.commit(revision, lambda state: state.update(
+            dismissed=list(dict.fromkeys([*state['dismissed'], identifier]))))
+        return self.listing()
+
+    def delete(self, identifier, revision):
+        snapshot = self.snapshot()
+        state = self.catalog.relations.require()
+        relation = next((r for r in state['relations'] if r['id'] == identifier), None)
+        if relation is None:
+            raise SafetyError('GRAPH_RELATION_NOT_FOUND')
+        if relation['source'] not in snapshot['records'] or relation['target'] not in snapshot['records']:
+            raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
+        self.catalog.relations.commit(revision, lambda current: current.update(
+            relations=[r for r in current['relations'] if r['id'] != identifier]))
+        return self.listing()

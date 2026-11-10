@@ -88,6 +88,9 @@ def decode_input(data, extension, local=False, cancelled=None, *, use_vision=Tru
         except (OSError, UnidentifiedImageError, Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
             raise SafetyError("IMAGE_DECODE_FAILED") from exc
     if ext == ".pdf":
+        if local:
+            from .pdf_ocr import parse_local_pdf
+            return parse_local_pdf(data, cancelled=cancelled)
         from .parsing import parse_pdf
         kwargs = {'cancelled': cancelled} if local and cancelled else {}
         return parse_pdf(data, limit=12000 if local else 1500, **kwargs)

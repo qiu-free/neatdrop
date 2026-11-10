@@ -20,6 +20,9 @@ dev = [
     "pytest==9.2.0",
 ]
 
+[project.optional-dependencies]
+pdf-ocr = ["pypdfium2==5.14.0"]
+
 [tool.pytest.ini_options]
 pythonpath = ["backend"]
 testpaths = ["backend/tests"]

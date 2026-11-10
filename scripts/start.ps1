@@ -22,7 +22,16 @@ if (-not (Test-Path -LiteralPath '.venv\Scripts\python.exe')) {
     }
 }
 $python = Join-Path $root '.venv\Scripts\python.exe'
+$portState = & $python scripts/port_probe.py
+Check-Exit 'Loopback port inspection'
+if ($portState -eq 'neatdrop') {
+    Write-Host 'NeatDrop is already running: http://127.0.0.1:8765' -ForegroundColor Cyan
+    Write-Host 'Stop its terminal first if you need to restart with updated code.'
+    exit 0
+}
+if ($portState -ne 'free') { throw 'Port 8765 is occupied by another service. Stop it or choose an isolated environment; NeatDrop did not terminate it.' }
 if (-not $SkipInstall) {
+    Write-Host 'Preparing pinned backend dependencies and frontend build...'
     if (Get-Command uv -ErrorAction SilentlyContinue) {
         & uv pip install --python $python -r requirements.lock
     } else {

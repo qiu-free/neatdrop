@@ -7,6 +7,10 @@
 **安全模式：只生成副本，始终保留原件。不执行原位移动、源文件删除或永久删除。**
 这不是释放磁盘空间的工具；副本与撤回区都仍然占用空间。
 
+本轮新增：生产分类与评测共用流程；受限网页文本体验；全部主动登记且当前会话已授权目录的集合图谱；可选扫描 PDF OCR（默认关闭）；直接子目录确认打开。详见 [本轮交付](docs/releases/2026-11-11-comprehensive.md)、[能力对照](docs/competition/capabilities.md) 和 [扫描 PDF 配置](docs/extraction/scanned-pdf.md)。
+
+网页构建与本地版分别运行：在`frontend`中执行`npm run build:experience`、`npm run preview:experience -- --port 8770`，打开`http://127.0.0.1:8770/`。网页仅在浏览器内存处理有限文本，不写入文件夹；该预览地址不是已公开部署的网站。
+
 ## 快速启动（Windows）
 
 需要 Node.js 22.12+（建议当前 LTS）、Python 3.12.x；推荐安装 uv。

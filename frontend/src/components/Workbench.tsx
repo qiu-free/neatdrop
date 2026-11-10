@@ -15,9 +15,14 @@ import { visibleFiles } from '../fileSelection'
 import { useSessionState, type WorkbenchSession } from '../pageSession'
 import { WorkflowOverview } from './WorkflowOverview'
 import { supportedFormats } from '../supportedFormats'
+import { runtimeCapabilities, isWebExperience } from '../runtimeCapabilities'
+import { TextImport } from '../experience/TextImport'
+import { RecordedExamples } from '../experience/RecordedExamples'
+import { BoundaryExamples } from '../experience/BoundaryExamples'
+import { reviewEligibility } from '../reviewEligibility'
 
 type State = ReturnType<typeof useWorkspace>
-type ResetRequest = { type: 'scan'; path: string } | { type: 'rescan' }
+type ResetRequest = { type: 'scan'; path: string } | { type: 'rescan' } | { type: 'child'; fileId: string }
 type ConsentRequest = { fileIds: string[]; initialMode: 'local' | 'cloud'; retry: boolean }
 
 const analysisPhaseLabels: Record<string, string> = {
@@ -64,7 +69,9 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   const supported = files.filter(file => file.supported)
   const retryIds = Object.keys(errors).filter(id => files.some(file => file.id === id))
   const selectedFiles = files.filter(file => selected.has(file.id))
-  const approvalEligible = selectedFiles.filter(file => file.supported && (suggestions[file.id] || edits[file.id]) && !errors[file.id])
+  const eligibility = reviewEligibility(files, selected, suggestions, edits, errors)
+  const approvalEligible = eligibility.eligible
+  const ordinaryPending = eligibility.ordinary.filter(file => !reviewed.has(file.id))
   const approvalCount = approvalEligible.filter(file => !reviewed.has(file.id)).length
   const approvalSkipped = selected.size - approvalEligible.length
   const selectedReviewed = selectedFiles.filter(file => reviewed.has(file.id)).length
@@ -77,7 +84,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   const view = viewChoice && viewChoice.workspace === workspace?.id ? viewChoice.view : imageCount > 0 && imageCount >= supported.length / 2 ? 'grid' : 'list'
   const visibleAllSelected = visibleSelectable.length > 0 && visibleSelectable.every(file => selected.has(file.id))
   const activeAnalysis = Boolean(state.job && ['queued', 'running'].includes(state.job.status))
-  const canCreatePlan = selected.size > 0 && approvalEligible.length === selected.size && [...selected].every(id => reviewed.has(id)) && !!config?.execution_supported && !busy
+  const canCreatePlan = selected.size > 0 && approvalEligible.length === selected.size && [...selected].every(id => reviewed.has(id)) && (!!config?.execution_supported || runtimeCapabilities.canOrganizeInMemory) && !busy
   const drawerVisible = pageActive && stage !== 'results' && detailOpen && Boolean(active)
 
   useLayoutEffect(() => {
@@ -194,6 +201,10 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
     if (!request) return
     setResetRequest(null)
     if (request.type === 'scan') await runScan(request.path)
+    else if (request.type === 'child') {
+      await state.openChild(request.fileId)
+      setStage('choose'); setDetailOpen(false); returnFocusRef.current = null
+    }
     else {
       await state.rescan()
       setStage('choose')
@@ -307,37 +318,39 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }}>
     <section className="page-intro">
       <div><span className="intro-label">一点秩序，更多从容</span><h1>给文件，一个清晰的归处<span>。</span></h1><p>把杂乱交给净匣，把决定留给你。先预览，再安心整理。</p></div>
-      <button className="button primary choose-main" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={17} />{picking ? '等待选择…' : '选择本地目录'}</button>
+      {!isWebExperience ? <button className="button primary choose-main" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={17} />{picking ? '等待选择…' : '选择本地目录'}</button> : <button className="button primary" disabled={!!busy || !config} onClick={() => config && void requestScan(config.demo_path)}>载入学习样例</button>}
     </section>
 
-    <WorkflowOverview current={stage === 'results' ? 'copy' : stage} label="整理步骤" working={!!busy} onNavigate={next => {
+    {isWebExperience ? <nav aria-label="网页体验五阶段"><ol className="experience-steps">{([{ id: 'choose', label: '载入资料' }, { id: 'analyze', label: '分析与看依据' }, { id: 'review', label: '核对分类' }, { id: 'results', label: '加入资料库' }, { id: 'library', label: '查找与关联' }] as const).map((item, index) => <li key={item.id} aria-current={stage === item.id ? 'step' : undefined}><button type="button" disabled={!!busy || !workspace && item.id !== 'choose'} onClick={() => item.id === 'library' ? onLibrary?.() : setStage(item.id)}>{index + 1}. {item.label}</button></li>)}</ol></nav> : null}
+    {!isWebExperience ? <WorkflowOverview current={stage === 'results' ? 'copy' : stage} label="整理步骤" working={!!busy} onNavigate={next => {
       if (next === 'library') onLibrary?.()
       else if (next === 'history') onHistory?.()
       else setStage(next === 'copy' ? 'results' : next)
-    }} />
+    }} /> : null}
 
     <section className="directory-panel">
       <div className="directory-icon"><FolderInput size={30} strokeWidth={1.35} /></div>
       <div className="directory-content">
-        <div className="directory-heading"><h2>{workspace ? workspace.name : '从一个文件夹开始'}</h2>{workspace ? <span className="small-badge">{files.length} 项 · {supported.length} 项可处理</span> : <span className="small-badge">仅在本机处理</span>}</div>
-        <form onSubmit={event => { event.preventDefault(); void requestScan(path) }} className="path-form">
+        <div className="directory-heading"><h2>{workspace ? workspace.name : isWebExperience ? '从学习资料开始' : '从一个文件夹开始'}</h2>{workspace ? <span className="small-badge">{files.length} 项 · {supported.length} 项可处理</span> : <span className="small-badge">{isWebExperience ? '浏览器计算' : '仅在本机处理'}</span>}</div>
+        {!isWebExperience ? <form onSubmit={event => { event.preventDefault(); void requestScan(path) }} className="path-form">
           <label htmlFor="directory-path" className="sr-only">本地目录完整路径</label>
           <input id="directory-path" value={path} onChange={event => setPath(event.target.value)} placeholder="粘贴本地文件夹完整路径，例如 C:\Users\你的用户名\Downloads" autoComplete="off" spellCheck={false} disabled={!!busy} />
           <button className="button secondary" disabled={!path.trim() || !!busy || !state.online}>{busy === 'scan' ? <LoaderCircle size={15} className="spin" /> : <ArrowRight size={15} />}扫描目录</button>
-        </form>
-        <div className="directory-foot"><span>只扫描当前目录 · 单批 ≤50 项 / 200 MiB · 不永久删除</span><button className="text-button" disabled={!!busy || !config} onClick={() => { if (config) void requestScan(config.demo_path) }}>试用人工样例 <ArrowUpRightIcon /></button></div>
+        </form> : <TextImport disabled={!!busy} hasWorkspace={!!workspace} onImported={value => { void state.scan(value) }} />}
+        <div className="directory-foot"><span>{isWebExperience ? '浏览器内存 · 不上传文本 · 刷新即清空' : '只扫描当前目录 · 单批 ≤50 项 / 200 MiB · 不永久删除'}</span><button className="text-button" disabled={!!busy || !config} onClick={() => { if (config) void requestScan(config.demo_path) }}>试用人工样例 <ArrowUpRightIcon /></button></div>
       </div>
     </section>
 
+    {isWebExperience ? <><RecordedExamples /><BoundaryExamples disabled={!!busy} onLoaded={value => { void state.scan(value) }} /></> : null}
     {!workspace ? <section className="empty-landing" aria-label="开始使用">
       <div className="empty-landing-icon"><FolderOpen size={27} /></div>
-        <div><h2>从一个本地文件夹开始</h2><p>先扫描当前目录，再挑选要整理的文件。分析、复核和生成副本都由你确认。</p>
-        <div className="empty-landing-actions"><button className="button primary" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button>{onTutorial ? <button className="button secondary" onClick={onTutorial}>进入教程演练</button> : null}</div>
+        <div><h2>{isWebExperience ? '整理一组学习资料' : '从一个本地文件夹开始'}</h2><p>{isWebExperience ? '载入样例或选择文本，查看真实分类依据，确认后加入浏览器资料库，再探索词项关系。' : '先扫描当前目录，再挑选要整理的文件。分析、复核和生成副本都由你确认。'}</p>
+        <div className="empty-landing-actions">{!isWebExperience ? <button className="button primary" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button> : <button className="button primary" disabled={!!busy || !config} onClick={() => config && void requestScan(config.demo_path)}>开始学习样例</button>}{onTutorial ? <button className="button secondary" onClick={onTutorial}>进入教程演练</button> : null}</div>
       </div>
-      <span className="empty-kbd"><ShieldCheck size={14} />文件保留在本机，原件始终保留</span>
+      <span className="empty-kbd"><ShieldCheck size={14} />{isWebExperience ? '文本只在浏览器中处理，不改动原始文件' : '文件保留在本机，原件始终保留'}</span>
     </section> : <>
       <div className="workspace-path"><FolderOpen size={13} /><span>{workspace.path}</span><button className="icon-button" aria-label="重新扫描目录" title="重新扫描，清除旧建议" disabled={!!busy} onClick={() => setResetRequest({ type: 'rescan' })}><RotateCw size={14} /></button></div>
-      <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>副本位置：当前文件夹内的分类子目录，原件保留。</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹（当前不进入） · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
+      <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>{isWebExperience ? '结果位置：浏览器内存资料库；不创建真实文件副本。' : '副本位置：当前文件夹内的分类子目录，原件保留。'}</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹（当前不进入） · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
 
       <div ref={stageSurface} className="workbench-stage-surface">
       {stage !== 'results' ? <section className="work-area">
@@ -356,8 +369,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
             <button className="text-button select-all" disabled={!!busy || !visibleSelectable.length} onClick={toggleVisibleSelection}>{visibleAllSelected ? '取消选择可见项' : '选择可见项'}</button>
           </div>
           {stage === 'review' ? <div className="review-toolbar review-toolbar-v6">
-            <div className="review-main"><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
-            <p>确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。修改后需要重新审核；生成副本前仍需独立确认。</p>
+            <div className="review-main"><button className="button secondary" disabled={!!busy || activeAnalysis || !ordinaryPending.length} onClick={() => state.approveOrdinary(ordinaryPending.map(file => file.id))}>确认普通建议（{ordinaryPending.length}）</button><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
+            <p>确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。当前包含 {eligibility.candidates.length} 项待复核、{eligibility.mainOnly.length} 项仅主类或待分类；人工确认不代表算法已判定可靠。修改后需要重新审核；{isWebExperience ? '加入资料库' : '生成副本'}前仍需独立确认。</p>
             {approvalSkipped ? <p className="review-skipped">{approvalSkipped} 项尚未分析或存在未处理错误，请先分析或编辑，错误项需重新分析。</p> : null}
             <details className="review-more"><summary>更多操作</summary><div className="review-advanced">
               <label>批量分类<select aria-label="批量分类" value={bulkCategory} onChange={event => setBulkCategory(event.target.value as Category)}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -366,11 +379,12 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
               <span>更改分类后需要重新审核。</span>
             </div></details>
           </div> : null}
-          <div className="safe-banner"><ShieldCheck size={14} /><span>保留原件<span className="separator">/</span>生成归档副本<span className="separator">/</span>执行前再次确认</span></div>
+          <div className="safe-banner"><ShieldCheck size={14} /><span>{isWebExperience ? '浏览器计算 / 内存整理 / 不创建磁盘副本' : <>保留原件<span className="separator">/</span>生成归档副本<span className="separator">/</span>执行前再次确认</>}</span></div>
           <div className="selection-legend"><span><i className="legend-active" />点击文件查看详情</span><span><i className="legend-checked" />勾选加入整理批次</span></div>
-          <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可生成副本。</span></div>
+          <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可{isWebExperience ? '加入资料库' : '生成副本'}。</span></div>
           {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} />}
-          <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>不递归扫描</span></div>
+          <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>{isWebExperience ? '预录资料仅供查看' : '不递归扫描'}</span></div>
+          {!isWebExperience && files.some(file => file.reason === 'DIRECTORY_SKIPPED') ? <details className="child-directories"><summary>打开子文件夹（单独授权，不递归）</summary><p>将清除当前草稿并打开所选子目录。原件和既有副本保持不变。</p>{files.filter(file => file.reason === 'DIRECTORY_SKIPPED').map(file => <button key={file.id} className="button secondary" disabled={!!busy} onClick={() => setResetRequest({ type: 'child', fileId: file.id })}><FolderOpen size={16} />在此目录中打开：{file.name}</button>)}</details> : null}
         </div>
       </section> : <ExecutionResults execution={state.execution} busy={busy} onCheck={() => void state.checkExecution()} onHistory={onHistory} onLibrary={onLibrary} />}
       </div>
@@ -378,7 +392,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
       {failedCount ? <div className="analysis-errors"><div className="analysis-errors-heading"><strong><CircleAlert size={14} />{failedCount} 项分析失败</strong><button className="button secondary" disabled={!!busy || activeAnalysis} onClick={retryFailed}>仅重试失败项</button></div>{retryIds.map(id => <p key={id}><strong>{files.find(file => file.id === id)?.name}</strong>：{explain(errors[id])}</p>)}</div> : null}
       {busy === 'analysis' && state.job ? <div className="progress-region" role="status" aria-live="polite"><div><LoaderCircle size={16} className="spin" /><span>正在分析 {state.job.processed} / {state.job.total}{state.job.current_file ? ` · ${state.job.current_file}` : ''}{state.job.phase ? ` · ${analysisPhaseLabels[state.job.phase] ?? state.job.phase}` : ''}，未执行文件操作</span><button className="text-button" onClick={() => void state.cancel()}>取消分析</button></div><progress value={state.job.processed} max={Math.max(state.job.total, 1)} /></div> : null}
       {busy !== 'analysis' && state.job && ['running', 'queued'].includes(state.job.status) ? <div className="progress-region recovery-progress" role="status"><div><CircleAlert size={16} /><span>进度连接已中断。已完成的建议保留；可继续查询同一分析任务。</span><button className="button secondary" onClick={() => void state.resumeAnalysis()}><RotateCw size={14} />继续查询进度</button><button className="text-button" onClick={() => void state.cancel()}>取消任务</button></div><progress value={state.job.processed} max={Math.max(state.job.total, 1)} /></div> : null}
-      {config && !config.execution_supported ? <div className="notice">当前平台可以扫描、预览和分析，不能生成归档副本。</div> : null}
+      {config && !config.execution_supported && !runtimeCapabilities.canOrganizeInMemory ? <div className="notice">当前平台可以扫描、预览和分析，不能生成归档副本。</div> : null}
 
       {stage !== 'results' ? <footer className="action-bar">
         <div><strong>已选择 <em>{selected.size}</em> 个文件</strong><span>{selected.size ? `${[...selected].filter(id => reviewed.has(id)).length} 项已确认；建议不会自动应用` : '从可见列表中明确选择需要处理的文件'}</span></div>
@@ -397,8 +411,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
     {consent ? <ConsentDialog key={`${consent.retry ? 'retry' : 'analysis'}-${consent.fileIds.join(',')}`} count={consent.fileIds.length} config={config} initialMode={consent.initialMode} onClose={closeConsent} onStart={(mode, approved, binding) => { setConsent(null); void state.analyze(mode, approved, consent.fileIds, binding) }} /> : null}
     {state.plan ? <PlanDialog key={state.plan.id} plan={state.plan} busy={busy === 'execute'} onClose={() => { state.setPlan(null); setStage('review') }} onConfirm={() => { setStage('results'); void state.execute() }} /> : null}
     {resetRequest ? <Modal title={resetRequest.type === 'rescan' ? '重新扫描并清除当前草稿？' : '切换目录并清除当前草稿？'} onClose={closeReset} busy={!!busy}>
-      <p className="modal-description">这会清除当前目录在本次会话中的选择、分析建议、手动编辑和计划。磁盘上的原文件与已生成副本保持不变。</p>
-      <div className="notice"><ShieldCheck size={18} /><span>新扫描只读取所选目录的一层文件。清除草稿后可以重新选择和复核。</span></div>
+      <p className="modal-description">{isWebExperience ? '这会清除本页中的选择、分析建议、手动编辑、计划和内存资料库，原始文件不会改变。' : '这会清除当前目录在本次会话中的选择、分析建议、手动编辑和计划。磁盘上的原文件与已生成副本保持不变。'}</p>
+      <div className="notice"><ShieldCheck size={18} /><span>{isWebExperience ? '重新载入后可以再次分析和复核；需要保留结果时请先导出清单。' : '新扫描只读取所选目录的一层文件。清除草稿后可以重新选择和复核。'}</span></div>
       <footer className="modal-footer"><button className="button secondary" onClick={closeReset} disabled={!!busy}>保留当前草稿</button><button className="button primary" onClick={() => void confirmReset()} disabled={!!busy}>{busy === 'scan' ? <LoaderCircle className="spin" size={16} /> : <X size={16} />}清除草稿并继续</button></footer>
     </Modal> : null}
   </div>
@@ -413,11 +427,11 @@ function ExecutionResults({ execution, busy, onCheck, onHistory, onLibrary }: {
   const notRun = execution.items.filter(item => item.stage === 'planned').length
   const running = execution.status === 'running' || execution.status === 'planned'
   return <section className="execution-results" aria-label="执行结果">
-    <header><div><span className="intro-label">本次整理</span><h2>{running ? '正在生成归档副本' : execution.status === 'completed' ? '整理已完成' : '整理已结束，需要检查'}</h2><p>{completed} 项成功 · {failed} 项失败 · {notRun} 项未开始</p></div><span className={`execution-status ${running ? 'running' : execution.status}`}>{running ? '进行中' : execution.status === 'completed' ? '已完成' : execution.status === 'partial' ? '部分完成' : execution.status === 'interrupted' ? '已中断' : execution.status}</span></header>
+    <header><div><span className="intro-label">本次整理</span><h2>{running ? isWebExperience ? '正在加入内存资料库' : '正在生成归档副本' : execution.status === 'completed' ? '整理已完成' : '整理已结束，需要检查'}</h2><p>{completed} 项成功 · {failed} 项失败 · {notRun} 项未开始</p></div><span className={`execution-status ${running ? 'running' : execution.status}`}>{running ? '进行中' : execution.status === 'completed' ? '已完成' : execution.status === 'partial' ? '部分完成' : execution.status === 'interrupted' ? '已中断' : execution.status}</span></header>
     <div className="execution-progress"><div><span>{execution.processed} / {execution.total} 项</span>{execution.current_file ? <strong>当前文件：{execution.current_file}</strong> : null}</div><progress value={execution.processed} max={Math.max(execution.total, 1)} /></div>
     {execution.error ? <p className="execution-error"><CircleAlert size={15} />{explain(execution.error)}</p> : null}
     <div className="execution-items">{execution.items.map(item => <article className={`execution-item ${item.stage}`} key={item.file_id}><div><strong>{item.source}</strong><span>{item.target}</span></div><b>{item.stage === 'completed' ? '成功' : item.stage === 'failed' ? '失败' : item.stage === 'copying' ? '处理中' : '未开始'}</b>{item.error ? <small>{explain(item.error)}</small> : null}</article>)}</div>
-    <footer className="execution-actions"><span>原件全部保留。状态可在操作记录中再次核对。</span><div>{onLibrary && !running ? <button className="button primary" onClick={onLibrary}>查看资料库</button> : null}{onHistory ? <button className="button secondary" onClick={onHistory}>查看操作记录</button> : null}<button className="button secondary" disabled={busy === 'execute'} onClick={onCheck}>{busy === 'execute' ? <LoaderCircle size={15} className="spin" /> : <RotateCw size={15} />}重新查询状态</button></div></footer>
+    <footer className="execution-actions"><span>{isWebExperience ? '结果只在浏览器内存；没有生成磁盘副本，刷新会清空。' : '原件全部保留。状态可在操作记录中再次核对。'}</span><div>{onLibrary && !running ? <button className="button primary" onClick={onLibrary}>查看资料库</button> : null}{onHistory ? <button className="button secondary" onClick={onHistory}>查看操作记录</button> : null}<button className="button secondary" disabled={busy === 'execute'} onClick={onCheck}>{busy === 'execute' ? <LoaderCircle size={15} className="spin" /> : <RotateCw size={15} />}重新查询状态</button></div></footer>
   </section>
 }
 

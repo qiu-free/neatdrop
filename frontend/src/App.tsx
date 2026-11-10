@@ -14,6 +14,8 @@ import { loadPreferences, savePreferences } from './preferences'
 import type { Page } from './types'
 import { createPageSession } from './pageSession'
 import { useThemeEffects } from './useThemeEffects'
+import { isWebExperience } from './runtimeCapabilities'
+import { ExperienceBanner } from './experience/ExperienceBanner'
 import './navigation.css'
 const KnowledgeGraphPage = lazy(() => import('./components/KnowledgeGraphPage').then(module => ({ default: module.KnowledgeGraphPage })))
 
@@ -30,7 +32,7 @@ export default function App() {
   const [page, setPage] = useState<Page>('workbench')
   const [settings, setSettings] = useState(false)
   const [preferences, setPreferences] = useState(loadPreferences)
-  const [tour, setTour] = useState(() => loadPreferences().tutorial.tourStatus === 'unseen')
+  const [tour, setTour] = useState(() => !isWebExperience && loadPreferences().tutorial.tourStatus === 'unseen')
   const [practice, setPractice] = useState(false)
   useEffect(() => {
     const refresh = () => setPreferences(loadPreferences())
@@ -142,7 +144,8 @@ export default function App() {
     await state.refreshConfig()
   }
   const titles = { workbench: '整理工作台', library: '资料库', graph: '知识图谱', history: '操作记录', help: '使用说明' }
-  return <div className="app-shell" data-density={preferences.density}><a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus() }}>跳到主内容</a><Sidebar page={page} onPage={navigate} online={state.online} onTutorial={openPractice} exerciseCompleted={preferences.tutorial.exerciseCompleted} /><div className="main-shell"><header className="topbar"><div className="breadcrumb"><span>工作空间</span><ChevronRight size={13} aria-hidden="true" /><strong>{titles[page]}</strong></div><button className="button settings-button" onClick={() => setSettings(true)}><Settings2 size={15} aria-hidden="true" />模型设置<span className={`status-dot ${state.config?.model.configured ? 'online' : ''}`} /></button></header><main id="main-content" tabIndex={-1}>
+  return <div className="app-shell" data-density={preferences.density}><a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus() }}>跳到主内容</a><Sidebar page={page} onPage={navigate} online={state.online} onTutorial={openPractice} exerciseCompleted={preferences.tutorial.exerciseCompleted} /><div className="main-shell"><header className="topbar"><div className="breadcrumb"><span>工作空间</span><ChevronRight size={13} aria-hidden="true" /><strong>{titles[page]}</strong></div>{!isWebExperience ? <button className="button settings-button" onClick={() => setSettings(true)}><Settings2 size={15} aria-hidden="true" />模型设置<span className={`status-dot ${state.config?.model.configured ? 'online' : ''}`} /></button> : null}</header><main id="main-content" tabIndex={-1}>
+    {isWebExperience ? <ExperienceBanner /> : null}
     {state.error ? <div className="alert error" role="alert"><CircleAlert size={18} /><span>{state.error}</span><button className="icon-button" aria-label="关闭错误提示" onClick={() => state.setError('')}><X size={16} /></button></div> : null}
     {state.message ? <div className="alert success" role="status"><CheckCircle2 size={18} /><span>{state.message}</span><button className="icon-button" aria-label="关闭状态提示" onClick={() => state.setMessage('')}><X size={16} /></button></div> : null}
     <div key={page} className="page-transition" ref={pageContent} data-page={page}>

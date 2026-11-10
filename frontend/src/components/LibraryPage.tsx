@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import { Archive, ChevronLeft, ChevronRight, CircleAlert, Eye, FolderOpen, LoaderCircle, RotateCw, Search, ShieldCheck, X } from 'lucide-react'
 import { api, bytes } from '../api'
+import { isWebExperience } from '../runtimeCapabilities'
+import { downloadManifest } from '../experience/exportManifest'
 import { requestPreview } from '../previewRequests'
 import { TaxonomyProvider, useTaxonomy } from '../taxonomy'
 import type { LibraryItem, LibraryListing, Preview, Taxonomy, Transaction, Workspace } from '../types'
@@ -29,9 +31,9 @@ export function LibraryPage({ workspace, history, taxonomy, onWorkbench, session
   onGraph?: (entryId: string) => void
 }) {
   return <TaxonomyProvider taxonomy={taxonomy}>
-    <section className="page-intro"><div><span className="intro-label">已生成的本机归档副本</span><h1>资料有序，随时查阅<span>。</span></h1><p>{workspace ? workspace.path : '选择资料所在的本机目录，查看净匣曾生成的归档副本。'}</p></div></section>
+    <section className="page-intro"><div><span className="intro-label">{isWebExperience ? '浏览器内存资料' : '已生成的本机归档副本'}</span><h1>资料有序，随时查阅<span>。</span></h1><p>{workspace ? workspace.path : '选择资料所在的本机目录，查看净匣曾生成的归档副本。'}</p></div></section>
     {workspace ? <LibraryContent key={workspace.id} workspace={workspace} history={history} session={session} onContentReady={onContentReady} onGraph={onGraph} /> : <section className="library-empty"><FolderOpen size={38} strokeWidth={1.4} /><h2>先选择一个本机目录</h2><p>资料库来自当前目录的本地归档记录。刷新后重新选择同一目录，即可再次查看。</p><button className="button primary" onClick={onWorkbench}>返回工作台选择目录</button></section>}
-    <p className="library-local-note"><ShieldCheck size={17} />文件保存在本机；预览由本地服务核验后读取，不上传云端。</p>
+    <p className="library-local-note"><ShieldCheck size={17} />{isWebExperience ? '结果仅在浏览器内存，没有磁盘副本；可导出整理清单，刷新后清空。' : '文件保存在本机；预览由本地服务核验后读取，不上传云端。'}</p>
   </TaxonomyProvider>
 }
 
@@ -75,6 +77,7 @@ function LibraryContent({ workspace, history, session, onContentReady, onGraph }
   const active = items.find(item => item.id === activeId)
   const position = visible.findIndex(item => item.id === activeId)
   return <section className="library-panel" aria-label="资料库文件">
+    {isWebExperience && items.length ? <div className="experience-export"><button className="button secondary" onClick={() => downloadManifest(items, 'json')}>导出 JSON 整理清单</button><button className="button secondary" onClick={() => downloadManifest(items, 'csv')}>导出 CSV 整理清单</button></div> : null}
     <header className="library-panel-heading"><div><h2><Archive size={21} />归档副本</h2><p aria-live="polite">{listing ? category === 'all' && !needle ? `共 ${items.length} 项` : `显示 ${visible.length} / ${items.length} 项` : '正在读取本地记录'}</p></div><button className="button secondary" aria-label="重新加载资料库" onClick={() => setReload(value => value + 1)}><RotateCw size={16} />刷新</button></header>
     <div className="library-filters"><label>主分类<select aria-label="主分类" value={category} onChange={event => setCategory(event.target.value)}><option value="all">全部分类</option>{Object.entries(categories).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label className="library-search"><span className="sr-only">搜索资料库文件名</span><Search size={17} /><input aria-label="搜索资料库文件名" value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索文件名" type="search" autoComplete="off" /></label></div>
     {error ? <div className="library-empty"><CircleAlert size={28} /><p role="alert">{error}</p><button className="button secondary" onClick={() => setReload(value => value + 1)}>重试读取</button></div> : !listing ? <div className="library-empty" role="status"><LoaderCircle className="library-spinner" size={25} /><p>正在读取资料库…</p></div> : !items.length ? <div className="library-empty"><Archive size={36} strokeWidth={1.4} /><h3>还没有归档副本</h3><p>在工作台完成分析、审核并确认生成副本后，它们会出现在这里。已撤回的副本不再列出。</p></div> : !visible.length ? <div className="library-empty"><Search size={28} /><h3>没有符合条件的归档副本</h3><p>试试其他文件名或主分类。</p><button className="button secondary" onClick={() => { setCategory('all'); setQuery('') }}>清除筛选</button></div> : <ul className="library-list">{visible.map(item => <li key={item.id} className={item.id === activeId ? 'library-item is-active' : 'library-item'}>
@@ -87,9 +90,10 @@ function LibraryContent({ workspace, history, session, onContentReady, onGraph }
   </section>
 }
 
-export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGraph, footer, content, trigger, position, total, onPrevious, onNext }: {
+export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGraph, footer, content, trigger, position, total, onPrevious, onNext, previewPath }: {
   workspaceId: string; item: LibraryItem; categoryLabel: string; onClose: () => void; onGraph?: () => void; trigger: HTMLElement | SVGElement | null
   footer?: ReactNode; content?: ReactNode; position: number; total: number; onPrevious?: () => void; onNext?: () => void
+  previewPath?: string
 }) {
   const panel = useRef<HTMLElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
@@ -99,12 +103,12 @@ export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGra
     const controller = new AbortController()
     setLoaded(null)
     if (item.availability === 'available') {
-      requestPreview(`/workspaces/${encodeURIComponent(workspaceId)}/library/${encodeURIComponent(item.id)}/preview`, controller.signal)
+      requestPreview(previewPath ?? `/workspaces/${encodeURIComponent(workspaceId)}/library/${encodeURIComponent(item.id)}/preview`, controller.signal)
         .then(preview => { if (!controller.signal.aborted) setLoaded({ id: item.id, preview }) })
         .catch(reason => { if (!controller.signal.aborted) setLoaded({ id: item.id, error: reason instanceof Error ? reason.message : '预览读取失败，请关闭后重试。' }) })
     }
     return () => controller.abort()
-  }, [workspaceId, item.id, item.availability])
+  }, [workspaceId, item.id, item.availability, previewPath])
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -141,7 +145,7 @@ export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGra
   // archive path or a remote URL as an image source in the browser.
   const image = preview?.image && /^data:image\/(?:png|jpeg|webp);base64,/.test(preview.image) ? preview.image : undefined
   return createPortal(<div className="library-overlay"><button type="button" className="library-backdrop" aria-label="关闭资料库详情遮罩" tabIndex={-1} onClick={onClose} /><aside ref={panel} className="library-drawer" role="dialog" aria-modal="true" aria-label="归档副本详情" tabIndex={-1}>
-    <header className="library-drawer-heading"><div><span>资料库</span><h2>归档副本详情</h2></div><button ref={closeButton} className="icon-button" aria-label="关闭资料库详情" onClick={onClose}><X size={21} /></button></header>
+    <header className="library-drawer-heading"><div><span>资料库</span><h2>{isWebExperience ? '体验资料详情' : '归档副本详情'}</h2></div><button ref={closeButton} className="icon-button" aria-label="关闭资料库详情" onClick={onClose}><X size={21} /></button></header>
     <div className="library-drawer-body"><h3>{item.name}</h3><div className="library-item-meta"><span>{categoryLabel}</span><span>{bytes(item.size)}</span><span className={`library-availability ${item.availability === 'available' ? 'available' : 'unavailable'}`}>{availabilityLabels[item.availability]}</span></div>
       <section className="library-preview" aria-label="归档副本预览" aria-busy={!unavailable && !current}>
         {unavailable ? <p className="library-preview-message" role="status"><CircleAlert size={22} />{unavailable}</p> : current?.error ? <p className="library-preview-message" role="alert"><CircleAlert size={22} />{current.error}</p> : !preview ? <p className="library-preview-message"><LoaderCircle className="library-spinner" size={25} />正在核验并读取本机副本…</p> : image ? <img src={image} alt={`${item.name} 的归档副本预览`} /> : preview.text ? <pre>{preview.text}</pre> : <p className="library-preview-message">此文件没有可显示的文本或图像预览。</p>}
@@ -149,7 +153,7 @@ export function LibraryDrawer({ workspaceId, item, categoryLabel, onClose, onGra
       {preview?.truncated ? <p className="library-preview-note">为控制本地读取量，当前显示部分内容。</p> : null}
       {preview?.sampling?.summary ? <p className="library-preview-note">{preview.sampling.summary}</p> : null}
       <dl className="library-detail-metadata"><div><dt>生成日期</dt><dd>{displayDate(item.created)}</dd></div><div><dt>来源</dt><dd>{item.source}</dd></div><div><dt>实际相对路径</dt><dd>{item.target}</dd></div></dl>{content}
-    </div>{footer ? <div className="graph-drawer-actions">{footer}</div> : null}<footer className="library-drawer-footer"><p>原件保留 · 文件位于当前授权目录</p><div>{onGraph ? <button className="button secondary" onClick={onGraph}>在图谱中查看</button> : null}<button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
+    </div>{footer ? <div className="graph-drawer-actions">{footer}</div> : null}<footer className="library-drawer-footer"><p>{isWebExperience ? '浏览器内存文本 · 不在磁盘创建副本' : '原件保留 · 文件位于当前授权目录'}</p><div>{onGraph ? <button className="button secondary" onClick={onGraph}>在图谱中查看</button> : null}<button className="icon-button" aria-label="上一个归档副本" disabled={!onPrevious} onClick={event => {
       // Move focus before React disables the boundary control; browsers may
       // otherwise leave focus on a disabled button or drop it to the body.
       if (position === 1 && document.activeElement === event.currentTarget) closeButton.current?.focus({ preventScroll: true })

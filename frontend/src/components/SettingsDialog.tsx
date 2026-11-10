@@ -246,6 +246,7 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
           <p><span className={`status-dot ${offline?.ocr.available ? 'online' : ''}`} />中文 OCR：{offline?.ocr.available ? `已就绪 · ${offline.ocr.name}` : '不可用'}</p>
           <p><span className={`status-dot ${offline?.vision.available ? 'online' : ''}`} />图片场景：{offline?.vision.available ? `已安装 · ${offline.vision.name}` : '未安装'}</p>
           <p><span className={`status-dot ${semanticReady ? 'online' : ''}`} />本地语义：{semanticLabel}</p>
+          {offline?.scanned_pdf ? <p><span className={`status-dot ${offline.scanned_pdf.available && offline.scanned_pdf.enabled ? 'online' : ''}`} />扫描 PDF：{offline.scanned_pdf.enabled ? offline.scanned_pdf.available ? '已启用 · 最多4页 / 总计60秒' : '已启用但依赖未就绪' : '默认关闭 · 按本地说明启用'}</p> : null}
         </div>
         {offline?.semantic?.version ? <small>语义模型版本：{offline.semantic.version}</small> : null}
         {offline?.semantic?.enabled === false ? <small>实验候选未启用；当前使用规则、OCR 与视觉线索。</small> : offline?.semantic?.enabled === true ? <small>实验候选已启用，所有语义建议仍需复核。</small> : null}

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, initSession } from './api'
+import { isWebExperience } from './runtimeCapabilities'
+import { reviewEligibility } from './reviewEligibility'
 import type {
   Config, Edit, ExecutionSnapshot, FileRecord, Job, ModelBinding, Plan, Suggestion,
   Transaction, Workspace,
@@ -173,11 +175,22 @@ export function useWorkspace() {
     resetFiles(next.files)
     const records = await api<Transaction[]>(`/workspaces/${next.id}/transactions`)
     if (mounted.current) setHistory(records)
-    setMessage(`已扫描 ${next.files.length} 项，内容未发送至云端。`)
+    setMessage(isWebExperience ? `已载入 ${next.files.length} 项，仅在本页内存处理。` : `已扫描 ${next.files.length} 项，内容未发送至云端。`)
+  })
+
+  const openChild = async (fileId: string) => guard('scan', async () => {
+    if (!workspace) return
+    const next = await api<Workspace>(`/workspaces/${workspace.id}/children/${encodeURIComponent(fileId)}/open`, { confirmed: true })
+    setWorkspace(next)
+    resetFiles(next.files)
+    const records = await api<Transaction[]>(`/workspaces/${next.id}/transactions`)
+    if (mounted.current) setHistory(records)
+    setMessage(`已打开子目录 ${next.name}，只扫描此目录一层文件。`)
   })
 
   async function rescan() {
     if (!workspace) return
+    if (isWebExperience) { await scan(workspace.path); return }
     await guard('scan', async () => {
       const files = await api<FileRecord[]>(`/workspaces/${workspace.id}/files`)
       const updated = { ...workspace, files }
@@ -225,19 +238,18 @@ export function useWorkspace() {
 
   const approveSelected = useCallback(() => {
     if (actionLock.current) return 0
-    const eligible = filesRef.current.filter(file => selectedRef.current.has(file.id) && file.supported &&
-      !errors[file.id] && (suggestions[file.id] || edits[file.id]))
+    const eligible = reviewEligibility(filesRef.current, selectedRef.current, suggestions, edits, errors).eligible
     const pending = eligible.filter(file => !reviewed.has(file.id))
     setReviewed(current => new Set([...current, ...pending.map(file => file.id)]))
     setPlan(null)
     const skipped = selectedRef.current.size - eligible.length
-    setMessage(`已确认 ${pending.length} 项当前分类与名称。${skipped ? `${skipped} 项尚未分析或存在未处理错误，请先分析或编辑。` : '生成副本前仍需核对整理计划并独立勾选确认。'}`)
+    setMessage(`已确认 ${pending.length} 项当前分类与名称。${skipped ? `${skipped} 项尚未分析或存在未处理错误，请先分析或编辑。` : isWebExperience ? '加入资料库前仍需核对整理计划并独立勾选确认。' : '生成副本前仍需核对整理计划并独立勾选确认。'}`)
     return pending.length
   }, [suggestions, edits, errors, reviewed])
 
   const approveOrdinary = useCallback((ids?: string[]) => {
     const candidates = ids ?? filesRef.current.map(file => file.id)
-    const eligible = candidates.filter(id => filesRef.current.some(file => file.id === id && file.supported) && !errors[id] && Boolean(suggestions[id]) && !suggestions[id].review_required && !edits[id])
+    const eligible = reviewEligibility(filesRef.current, new Set(candidates), suggestions, edits, errors).ordinary.map(file => file.id)
     setReviewed(current => new Set([...current, ...eligible]))
     setPlan(null)
     return eligible.length
@@ -423,7 +435,7 @@ export function useWorkspace() {
     const failed = snapshot.items.filter(item => item.stage === 'failed').length
     const pending = snapshot.items.filter(item => item.stage === 'planned').length
     if (snapshot.status === 'completed') {
-      setMessage(`整理完成：${completed} 项成功，${failed} 项失败。原件全部保留。`)
+      setMessage(isWebExperience ? `已加入浏览器资料库：${completed} 项；没有创建磁盘副本。` : `整理完成：${completed} 项成功，${failed} 项失败。原件全部保留。`)
     } else if (snapshot.status === 'partial') {
       setMessage(`整理部分完成：${completed} 项成功，${failed} 项失败，${pending} 项未开始。请检查操作记录。`)
     } else {
@@ -539,7 +551,7 @@ export function useWorkspace() {
       await api(`/workspaces/${workspace.id}/transactions/${transactionId}/${action}`, { confirmed: true })
       await refreshHistory(workspace.id)
       setMessage(action === 'undo'
-        ? '撤回检查完成。成功项移入 .neatdrop/withdrawn，未删除文件。冲突项保持原状。'
+        ? isWebExperience ? '已移除浏览器内存中的整理结果，原始文件未改动。' : '撤回检查完成。成功项移入 .neatdrop/withdrawn，未删除文件。冲突项保持原状。'
         : '已记录人工检查确认，保留所有现有文件。')
     })
   }
@@ -547,7 +559,7 @@ export function useWorkspace() {
   return {
     config, online, refreshConfig, workspace, selected, setSelected, activeId, setActiveId, suggestions, edits,
     errors, job, plan, setPlan, execution, history, busy, error, setError, message, setMessage,
-    scan, rescan, toggle, edit, reviewed, approve, approveSelected, approveOrdinary, analyze, cancel,
+    scan, rescan, openChild, toggle, edit, reviewed, approve, approveSelected, approveOrdinary, analyze, cancel,
     createPlan, execute, checkExecution, resumeAnalysis, historyAction, refreshHistory,
   }
 }

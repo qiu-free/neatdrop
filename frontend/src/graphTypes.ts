@@ -2,7 +2,7 @@ import type { LibraryItem } from './types'
 import type { GraphVisualSettings } from './graphSettings'
 export type GraphDimension = '2d' | '3d'
 export type GraphKind = 'duplicate' | 'text_similar' | 'visual_similar' | 'related' | 'reference' | 'attachment' | 'version'
-export interface GraphRelation { id: string; source: string; target: string; kind: GraphKind; status: 'fact' | 'suggested' | 'confirmed'; origin: 'archive' | 'automatic' | 'manual'; created: string; score?: number; keywords?: string[] }
+export interface GraphRelation { id: string; source: string; target: string; kind: GraphKind; status: 'fact' | 'suggested' | 'confirmed'; origin: 'archive' | 'automatic' | 'manual'; created: string; score?: number; keywords?: string[]; root_id?: string }
 export interface GraphListing { items: LibraryItem[]; relations: GraphRelation[]; truncated: boolean; index: { count: number; revision: number; updated: string | null; state: 'empty' | 'ready' | 'unavailable'; issues: { entry_id: string; code: string }[] } }
 export interface GraphJob { id: string; status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed'; processed: number; total: number; current_file: string | null; errors: { entry_id: string; code: string }[]; error?: string | null }
 export interface GraphEvidence { relation: GraphRelation; files: { id: string; name: string; excerpts: string[]; summary: string }[]; explanation: string }

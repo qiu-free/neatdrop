@@ -1,0 +1,85 @@
+{
+  "source": "classification_profiles.json",
+  "version": "1",
+  "profiles": [
+    {
+      "subcategory": "notes",
+      "definition": "学习过程中记录的知识要点、概念、推导、定理及个人理解。",
+      "necessary_structure": [
+        "教学知识内容",
+        "要点或推导记录"
+      ]
+    },
+    {
+      "subcategory": "courseware",
+      "definition": "面向授课展示的课件，按章节或幻灯片安排教学目标、知识内容与课堂示例。",
+      "necessary_structure": [
+        "授课章节或页面结构",
+        "教学主题"
+      ]
+    },
+    {
+      "subcategory": "paper",
+      "definition": "学术研究论文与文献，围绕研究问题提出方法、分析证据与结果并给出参考来源。",
+      "necessary_structure": [
+        "研究问题及方法或结果",
+        "摘要或参考文献结构"
+      ]
+    },
+    {
+      "subcategory": "exam",
+      "definition": "用于考试、作业或练习的题目、试卷、答案和评分解析。",
+      "necessary_structure": [
+        "待解题目或答案结构"
+      ]
+    },
+    {
+      "subcategory": "board",
+      "definition": "课堂黑板、白板或手写板上连续书写的教学推导与板书记录。",
+      "necessary_structure": [
+        "明确板书载体或手写课堂上下文"
+      ]
+    },
+    {
+      "subcategory": "data_chart",
+      "definition": "用于学习研究的数据可视化资料；图片是图表不代表其归档用途必为科研。",
+      "necessary_structure": [
+        "视觉图表证据",
+        "学习研究用途由上下文或人工确认"
+      ]
+    },
+    {
+      "subcategory": "experiment_material",
+      "definition": "为实验准备、实施和复现保存的方案、操作记录、条件说明与实验附件。",
+      "necessary_structure": [
+        "实验用途",
+        "条件或操作过程"
+      ]
+    },
+    {
+      "subcategory": "research_data",
+      "definition": "学习研究中保存的测量观测数据、变量说明和数据记录；依据提取内容核对研究用途。",
+      "necessary_structure": [
+        "明确研究数据或科研测量锚点",
+        "研究课题或背景实值",
+        "观测测量值或变量定义实值"
+      ]
+    },
+    {
+      "subcategory": "technical_document",
+      "definition": "供学习参考的技术规范、接口说明、操作手册与技术原理资料。",
+      "necessary_structure": [
+        "技术主题",
+        "规范或操作说明"
+      ]
+    },
+    {
+      "subcategory": "reading_excerpt",
+      "definition": "从阅读材料摘录的原句、阅读心得与来源页码记录。",
+      "necessary_structure": [
+        "阅读来源",
+        "摘录或阅读心得"
+      ]
+    }
+  ]
+}

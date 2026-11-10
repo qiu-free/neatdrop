@@ -1,7 +1,8 @@
 import io
 import pytest
 from PIL import Image, ImageDraw
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from neatdrop.files import SafetyError
 
@@ -11,6 +12,34 @@ def scanned_pdf(pages=1):
     ImageDraw.Draw(image).text((70, 100), 'Lecture notes: optics measurement', fill='black')
     output = io.BytesIO()
     image.save(output, format='PDF', save_all=True, append_images=[image] * (pages - 1))
+    return output.getvalue()
+
+
+def text_pdf(texts):
+    writer = PdfWriter()
+    for text in texts:
+        page = writer.add_blank_page(width=800, height=1000)
+        font = DictionaryObject({NameObject('/Type'): NameObject('/Font'),
+                                 NameObject('/Subtype'): NameObject('/Type1'),
+                                 NameObject('/BaseFont'): NameObject('/Helvetica')})
+        page[NameObject('/Resources')] = DictionaryObject({NameObject('/Font'): DictionaryObject({
+            NameObject('/F1'): writer._add_object(font)})})
+        stream = DecodedStreamObject()
+        stream.set_data(f'BT /F1 12 Tf 30 20 Td ({text}) Tj ET'.encode('ascii'))
+        page[NameObject('/Contents')] = writer._add_object(stream)
+    output = io.BytesIO()
+    writer.write(output)
+    return output.getvalue()
+
+
+def hybrid_scanned_pdf(layer, pages=1):
+    writer = PdfWriter()
+    raster = PdfReader(io.BytesIO(scanned_pdf(pages)))
+    overlay = PdfReader(io.BytesIO(text_pdf([layer])))
+    for page in raster.pages:
+        writer.add_page(page).merge_page(overlay.pages[0])
+    output = io.BytesIO()
+    writer.write(output)
     return output.getvalue()
 
 
@@ -28,6 +57,68 @@ def test_disabled_scanned_ocr_never_renders(monkeypatch):
     monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
     with pytest.raises(SafetyError, match='PDF_OCR_DISABLED'):
         pdf_ocr.parse_local_pdf(scanned_pdf())
+
+
+@pytest.mark.parametrize('layer,pages,selected', [('1', 1, [1]), ('Confidential', 1, [1]),
+                                                ('Confidential', 5, [1, 2, 3, 5])])
+def test_opted_in_hybrid_scan_recovers_raster_text_despite_nonempty_text_layer(monkeypatch, layer, pages, selected):
+    pytest.importorskip('pypdfium2')
+    from neatdrop import pdf_ocr, offline
+    from neatdrop.parsing import parse_pdf
+    data = hybrid_scanned_pdf(layer, pages)
+    assert parse_pdf(data, limit=12000)['text'].strip() == '\n'.join([layer] * len(selected))
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    def ocr(image, **kwargs):
+        # Real parser and renderer must deliver the raster to the OCR boundary.
+        assert image.mode == 'RGB' and image.getextrema()[0][0] < 100
+        assert kwargs['use_vision'] is False
+        return {'text': 'Lecture notes: optics measurement recovered from raster.',
+                'ocr_lines': [], 'warnings': []}
+    monkeypatch.setattr(offline, 'analyze_image_bounded', ocr)
+
+    result = pdf_ocr.parse_local_pdf(data)
+
+    assert 'recovered from raster' in result['text']
+    assert result['local_image'] is True
+    assert [segment['page'] for segment in result['sampling']['segments']] == selected
+
+
+@pytest.mark.parametrize('layer', ['1', 'Confidential'])
+def test_disabled_hybrid_scan_explicitly_reports_insufficient_text_without_ocr(monkeypatch, layer):
+    from neatdrop import pdf_ocr, offline
+    monkeypatch.delenv('NEATDROP_SCANNED_PDF_OCR', raising=False)
+    monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
+    monkeypatch.setattr(offline, 'analyze_image_bounded', lambda *a, **kw: pytest.fail('OCR called'))
+
+    with pytest.raises(SafetyError, match='PDF_OCR_DISABLED'):
+        pdf_ocr.parse_local_pdf(hybrid_scanned_pdf(layer))
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+def test_adequate_text_pdf_retains_exact_legacy_payload_without_optional_dependencies(monkeypatch, enabled):
+    from neatdrop import pdf_ocr
+    from neatdrop.parsing import parse_pdf
+    data = text_pdf(['Lecture notes on optics and the measurement of focal lengths.'] * 7)
+    expected = parse_pdf(data, limit=12000)
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1' if enabled else '0')
+    monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: pytest.fail('dependency probe called'))
+    monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
+
+    assert pdf_ocr.parse_local_pdf(data) == expected
+
+
+def test_cloud_pdf_sampling_bypasses_local_ocr_even_when_enabled(monkeypatch):
+    from neatdrop import pdf_ocr
+    from neatdrop.analysis import decode_input
+    from neatdrop.parsing import parse_pdf
+    data = hybrid_scanned_pdf('Confidential', 5)
+    expected = parse_pdf(data, limit=1500)
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    monkeypatch.setattr(pdf_ocr, 'parse_local_pdf', lambda *a, **kw: pytest.fail('local OCR called'))
+
+    assert decode_input(data, '.pdf', local=False) == expected
+    assert expected['sample'] == 'PDF pages 1, 2, 5'
+    assert 'sampling' not in expected
 
 
 def test_enabled_ocr_tracks_real_page_boxes_and_partial_coverage(monkeypatch):
@@ -100,3 +191,72 @@ def test_missing_optional_renderer_is_explicit(monkeypatch):
     monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: None)
     with pytest.raises(SafetyError, match='PDF_OCR_RENDERER_MISSING'):
         pdf_ocr.parse_local_pdf(b'synthetic')
+
+
+def test_hybrid_scan_missing_optional_renderer_is_explicit(monkeypatch):
+    from neatdrop import pdf_ocr
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: None)
+
+    with pytest.raises(SafetyError, match='PDF_OCR_RENDERER_MISSING'):
+        pdf_ocr.parse_local_pdf(hybrid_scanned_pdf('Confidential'))
+
+
+def test_low_text_fallback_uses_only_deadline_left_after_text_parse(monkeypatch):
+    from neatdrop import pdf_ocr, offline, parsing
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: True)
+    clock = [0.0]
+    monkeypatch.setattr(pdf_ocr.time, 'monotonic', lambda: clock[0])
+    def parse(*args, **kwargs):
+        clock[0] = 58
+        return {'text': 'Confidential', 'sample': 'short text layer'}
+    def render(*args, **kwargs):
+        assert kwargs['timeout'] == 2
+        clock[0] = 59
+        return Image.new('RGB', (100, 100)), 1
+    def ocr(image, **kwargs):
+        assert kwargs['timeout'] == 1
+        clock[0] = 61
+        return {'text': 'Late raster text'}
+    monkeypatch.setattr(parsing, 'parse_pdf', parse)
+    monkeypatch.setattr(pdf_ocr, 'render_page', render)
+    monkeypatch.setattr(offline, 'analyze_image_bounded', ocr)
+
+    with pytest.raises(SafetyError, match='PDF_OCR_TIMEOUT'):
+        pdf_ocr.parse_local_pdf(b'synthetic')
+
+
+@pytest.mark.parametrize('failure', ['cancel_after_render', 'ocr_raises'])
+def test_rendered_page_is_closed_if_cancelled_or_ocr_raises(monkeypatch, failure):
+    from neatdrop import pdf_ocr, offline, parsing
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: True)
+    monkeypatch.setattr(parsing, 'parse_pdf', lambda *a, **kw: (_ for _ in ()).throw(SafetyError('PDF_NO_TEXT')))
+    image = Image.new('RGB', (100, 100))
+    cancelled = [False]
+    def render(*args, **kwargs):
+        cancelled[0] = failure == 'cancel_after_render'
+        return image, 1
+    def ocr(*args, **kwargs):
+        raise SafetyError('PDF_PARSE_CANCELLED')
+    monkeypatch.setattr(pdf_ocr, 'render_page', render)
+    monkeypatch.setattr(offline, 'analyze_image_bounded', ocr)
+
+    with pytest.raises(SafetyError, match='PDF_PARSE_CANCELLED'):
+        pdf_ocr.parse_local_pdf(b'synthetic', cancelled=lambda: cancelled[0])
+    with pytest.raises(ValueError, match='closed image'):
+        image.getpixel((0, 0))
+
+
+def test_known_garbled_text_layer_also_reaches_opted_in_ocr(monkeypatch):
+    from neatdrop import pdf_ocr, offline, parsing
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    monkeypatch.setattr(pdf_ocr.importlib.util, 'find_spec', lambda _: True)
+    monkeypatch.setattr(parsing, 'parse_pdf', lambda *a, **kw: {
+        'text': '\ufffd' * 50 + 'unreadable document text layer' * 3, 'sample': 'garbled text layer'})
+    monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: (Image.new('RGB', (100, 100)), 1))
+    monkeypatch.setattr(offline, 'analyze_image_bounded', lambda *a, **kw: {
+        'text': 'Recovered readable raster document.', 'ocr_lines': [], 'warnings': []})
+
+    assert pdf_ocr.parse_local_pdf(b'synthetic')['text'] == 'Recovered readable raster document.'

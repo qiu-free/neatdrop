@@ -10,10 +10,23 @@ from .files import MAX_FILE, SafetyError
 
 TOTAL_SECONDS = 60
 PAGE_PIXELS = 4_000_000
+MIN_READABLE_PER_SAMPLED_PAGE = 32
 
 
 def sample_pages(count):
     return sorted({page for page in (0, 1, (count - 1) // 2, count - 1) if 0 <= page < count})
+
+
+def _text_layer_sufficient(payload):
+    from .content_quality import assess_content
+    quality = assess_content(payload, image_input=False)
+    segments = payload.get('sampling', {}).get('segments', [])[:4]
+    # The naming-quality floor (<8 readable chars) also accepts common
+    # watermarks. Require a conservative average of 32 letters/numbers per
+    # sampled page so repeated page numbers/short labels cannot pass it.
+    # This bounded heuristic does not establish complete document coverage.
+    return (quality['metrics']['readable_chars'] >= MIN_READABLE_PER_SAMPLED_PAGE * max(1, len(segments))
+            and 'text_garbled' not in quality['issues'])
 
 
 def pdf_ocr_status():
@@ -108,8 +121,12 @@ def parse_local_pdf(data, *, cancelled=None, timeout=TOTAL_SECONDS):
         return left
 
     try:
-        # Text PDFs retain their existing extraction and cloud sampling path.
-        return parse_pdf(data, limit=12000, timeout=min(12, remaining()), cancelled=cancelled)
+        parsed = parse_pdf(data, limit=12000, timeout=min(12, remaining()), cancelled=cancelled)
+        remaining()
+        # Adequate text PDFs retain the exact existing payload. Only local
+        # insufficient text reaches the opt-in gate; cloud sampling is separate.
+        if _text_layer_sufficient(parsed):
+            return parsed
     except SafetyError as exc:
         if exc.code != 'PDF_NO_TEXT':
             raise
@@ -121,14 +138,17 @@ def parse_local_pdf(data, *, cancelled=None, timeout=TOTAL_SECONDS):
     first, count = render_page(data, 0, timeout=min(8, remaining()), cancelled=cancelled)
     pages = sample_pages(count)
     if not pages:
+        first.close()
         raise SafetyError('PDF_NO_TEXT')
     quota = (12000 - len(pages)) // len(pages)
     text_parts, segments, lines, warnings = [], [], [], []
     cursor, partial = 0, len(pages) < count
     for index in pages:
         image = first if index == 0 else render_page(data, index, timeout=min(8, remaining()), cancelled=cancelled)[0]
-        payload = analyze_image_bounded(image, timeout=min(25, remaining()), use_vision=False, cancelled=cancelled)
-        image.close()
+        try:
+            payload = analyze_image_bounded(image, timeout=min(25, remaining()), use_vision=False, cancelled=cancelled)
+        finally:
+            image.close()
         remaining()
         warnings.extend(payload.get('warnings', []))
         if 'inference_timeout' in warnings:

@@ -11,8 +11,7 @@ from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT / 'backend'))
-from neatdrop.classifier import classify_text, fuse_image
-from neatdrop.decision import decide
+from neatdrop.classification_pipeline import classify_payload
 from neatdrop.evaluation import validate_manifest, summarize
 
 
@@ -28,9 +27,15 @@ def evaluate(manifest_path, stages, split=None):
               'python': platform.python_version(), 'platform': platform.system(),
               'scope': 'Development fixtures; not independent production accuracy evidence.',
               'baseline_scope': 'Frozen v2 classifier. Inline text uses v2 first-12000 sampling; explicit file paths share v3 extraction across stages. Path results compare classifiers only, not v2/v3 extraction.',
+              'semantic_experiment': {'rules_uses_product_toggle': True,
+                                      'semantic_stage': 'Explicit experimental comparison stage; not product-default evidence.'},
               'sample_sha256': {},
               'engine_fingerprints': {name: hashlib.sha256((PROJECT / 'backend/neatdrop' / name).read_bytes()).hexdigest()
-                                      for name in ('classifier.py', 'decision.py', 'extraction.py', 'offline.py', 'semantic.py', 'classification_profiles.json')},
+                                      for name in ('analysis.py', 'classifier.py', 'classification_pipeline.py', 'content_quality.py',
+                                                   'decision.py', 'extraction.py', 'offline.py', 'semantic.py',
+                                                   'classification_profiles.json')},
+              'evaluation_tool_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+              'split_tool_sha256': hashlib.sha256((PROJECT / 'scripts/evaluation/make_group_splits.py').read_bytes()).hexdigest(),
               'baseline_sha256': hashlib.sha256((PROJECT / 'scripts/evaluation/baseline_v2.py').read_bytes()).hexdigest(),
               'dependencies': {name: importlib.metadata.version(name) for name in
                                ('onnxruntime', 'tokenizers', 'numpy', 'rapidocr-onnxruntime', 'pillow', 'pypdf')},
@@ -62,7 +67,8 @@ def evaluate(manifest_path, stages, split=None):
                     from neatdrop.analysis import prepare_input
                     ws = Workspace(path.parent)
                     from neatdrop.files import MAX_FILE
-                    if path.suffix.lower() not in {'.txt', '.md', '.pdf', '.png', '.jpg', '.jpeg', '.webp'} or path.stat().st_size > MAX_FILE:
+                    if path.suffix.lower() not in {'.txt', '.md', '.pdf', '.png', '.jpg', '.jpeg', '.webp',
+                                                   '.docx', '.pptx', '.xlsx', '.csv'} or path.stat().st_size > MAX_FILE:
                         raise ValueError('UNSUPPORTED_SAMPLE')
                     record = {'id': row['id'], 'name': path.name, 'extension': path.suffix.lower(),
                               'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
@@ -80,12 +86,16 @@ def evaluate(manifest_path, stages, split=None):
                 if stage == 'baseline':
                     result = baseline.fuse_image(row['name'], text, payload.get('visual', []), payload.get('warnings', [])) if image else baseline.classify_text(row['name'], text)
                 else:
-                    result = fuse_image(row['name'], text, payload.get('visual', []), payload.get('warnings', [])) if image else classify_text(row['name'], text)
                     semantic = None
                     if stage == 'semantic':
                         from neatdrop.semantic import classify_semantic
                         semantic = classify_semantic(text)
-                    result = decide(result, semantic, payload.get('sampling'))
+                    elif stage == 'rules':
+                        from neatdrop.analysis import local_semantic
+                        semantic = local_semantic(text)
+                    result = classify_payload({'id': row['id'], 'name': row['name'],
+                                               'extension': Path(row['name']).suffix.lower()},
+                                              payload, semantic=semantic)
                 predictions.append({'id': row['id'], **result, 'elapsed': time.perf_counter() - start})
             except Exception as exc:
                 # Do not serialize arbitrary exception text: parser messages can
@@ -102,12 +112,22 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--stages', nargs='+', choices=['baseline', 'rules', 'semantic'], default=['baseline', 'rules', 'semantic'])
     parser.add_argument('--split', choices=['development', 'calibration', 'test'])
+    parser.add_argument('--semantic', choices=['product', 'off', 'on'], default='product',
+                        help='rules-stage semantic candidates: product env toggle, forced off, or explicit experiment')
     args = parser.parse_args()
+    if args.semantic != 'product':
+        import os
+        if args.semantic == 'on':
+            os.environ['NEATDROP_SEMANTIC_CANDIDATES'] = '1'
+        else:
+            os.environ.pop('NEATDROP_SEMANTIC_CANDIDATES', None)
     result = evaluate(args.manifest.resolve(), args.stages, args.split)
+    result['semantic_experiment']['rules_toggle'] = args.semantic
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     lines = ['# 离线分类开发集对照', '', result['scope'], '',
              result['baseline_scope'], '',
+             f"Semantic settings: `{result['semantic_experiment']}`", '',
              f"Manifest SHA-256: `{result['manifest_sha256']}`", '',
              '| 阶段 | 样本 | 子类首选命中 | Top-3 | 普通建议/错误 | 待复核 | 拒判 | P95 秒 |',
              '| --- | --- | --- | --- | --- | --- | --- | --- |']

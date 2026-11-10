@@ -16,6 +16,14 @@ from neatdrop.classification_pipeline import classify_payload
 from neatdrop.evaluation import validate_manifest, summarize
 
 
+def _engine_fingerprint(name):
+    path = PROJECT / 'backend/neatdrop' / name
+    if name == 'pdf_ocr.py' and not path.is_file():
+        return 'unavailable'
+    raw = path.read_bytes()
+    return hashlib.sha256(raw).hexdigest()
+
+
 def evaluate(manifest_path, stages, split=None, *, semantic_mode='product'):
     data = manifest_path.read_bytes()
     rows = validate_manifest(json.loads(data))
@@ -34,7 +42,7 @@ def evaluate(manifest_path, stages, split=None, *, semantic_mode='product'):
                                       'rules_semantic_enabled': (os.getenv('NEATDROP_SEMANTIC_CANDIDATES') == '1'
                                                                  if semantic_mode == 'product' else semantic_mode == 'on')},
               'sample_sha256': {},
-              'engine_fingerprints': {name: hashlib.sha256((PROJECT / 'backend/neatdrop' / name).read_bytes()).hexdigest()
+              'engine_fingerprints': {name: _engine_fingerprint(name)
                                       for name in ('analysis.py', 'classifier.py', 'classification_pipeline.py', 'content_quality.py',
                                                    'decision.py', 'extraction.py', 'offline.py', 'semantic.py',
                                                    'parsing.py', 'document_formats.py', 'pdf_ocr.py',

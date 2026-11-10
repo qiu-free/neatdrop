@@ -102,6 +102,29 @@ def test_cli_exercises_manifest_and_anonymous_report(tmp_path):
     assert 'PRIVATE BODY' not in output.read_text('utf-8')
 
 
+def test_evaluator_records_optional_extractor_as_unavailable_when_module_is_absent(tmp_path, monkeypatch):
+    import json
+    from pathlib import Path
+    from scripts import evaluate_offline
+
+    manifest = tmp_path / 'manifest.json'
+    manifest.write_text(json.dumps({'version': 1, 'records': [row()]}), encoding='utf-8')
+    missing_module = (evaluate_offline.PROJECT / 'backend/neatdrop/pdf_ocr.py').resolve()
+    original_is_file = Path.is_file
+
+    def hide_optional_ocr(path):
+        if path.resolve() == missing_module:
+            return False
+        return original_is_file(path)
+
+    monkeypatch.setattr(Path, 'is_file', hide_optional_ocr)
+
+    report = evaluate_offline.evaluate(manifest, ['rules'])
+
+    assert report['stages']['rules']['processing_failures'] == 0
+    assert report['engine_fingerprints']['pdf_ocr.py'] == 'unavailable'
+
+
 def test_partial_engine_failures_are_disclosed_separately_from_completed_results():
     report = summarize([row()], [{'id': 'a', 'category': 'study', 'subcategory': 'notes',
                                   'review_required': True, 'engine_warnings': ['semantic_budget_exhausted']}])

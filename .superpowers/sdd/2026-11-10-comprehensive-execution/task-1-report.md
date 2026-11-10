@@ -49,3 +49,14 @@ Final focused verification after adding the PDF OCR extraction fingerprint:
 .venv/Scripts/python.exe -m pytest backend/tests/test_evaluation.py backend/tests/test_classification_pipeline.py backend/tests/test_analysis.py backend/tests/test_analysis_v3.py backend/tests/test_document_formats_v7.py -q --tb=short -p no:cacheprovider
 117 passed in 56.21s
 ```
+
+## Review round 2 fix
+
+The round 2 reviewer found that `pdf_ocr.py` is supplied by a concurrent Task 7 change and is absent from Task 1 commit `bc69f08`. Its optional source fingerprint now returns the explicit value `unavailable` when the module is absent; when present it still reports the module SHA-256. All required engine files still fail visibly if missing. The regression test simulates that clean commit boundary by hiding the optional file and confirms that text-only evaluation completes and reports `unavailable`.
+
+TDD evidence: before the fix, the new test failed at `evaluate()` with `FileNotFoundError` while reading `pdf_ocr.py`. After the fix:
+
+```text
+.venv/Scripts/python.exe -m pytest backend/tests/test_evaluation.py backend/tests/test_classification_pipeline.py -q --tb=short -p no:cacheprovider
+28 passed in 2.70s
+```

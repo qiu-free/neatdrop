@@ -6,7 +6,7 @@ from .catalog_store import CatalogStore
 from .files import SafetyError
 from .graph import GraphService
 from .safe_io import protect_workspace
-from .trust import _LOCK, root_key
+from .trust import root_key
 
 
 def composite_id(root_id, entry_id):
@@ -111,7 +111,7 @@ class Catalog:
         alias = alias.strip()
         if not alias or len(alias) > 80 or any(ord(c) < 32 for c in alias):
             raise SafetyError('CATALOG_ALIAS_INVALID')
-        with _LOCK, self.session.catalog_lock:
+        with self.session.catalog_lock:
             pair = self.session.workspaces.get(workspace_id)
             if pair is None:
                 raise SafetyError('WORKSPACE_NOT_FOUND')
@@ -150,7 +150,7 @@ class Catalog:
     def revoke(self, root_id, confirmed):
         if confirmed is not True:
             raise SafetyError('CONFIRMATION_REQUIRED')
-        with _LOCK, self.session.catalog_lock:
+        with self.session.catalog_lock:
             self._root(root_id)
             self._revoke(root_id)
             return self.states()
@@ -161,7 +161,7 @@ class Catalog:
         self._root(root_id)
         if remove_relations is not True:
             raise SafetyError('CATALOG_RELATIONS_CONFIRMATION_REQUIRED')
-        with _LOCK, self.session.catalog_lock:
+        with self.session.catalog_lock:
             # Check both snapshots before changing either. Relation cleanup is
             # deliberately committed first so a failed registry write cannot
             # leave user-requested manual links to a removed root.

@@ -155,9 +155,8 @@ def create_app():
     def catalog_action(request, action):
         from .catalog import Catalog
         from .catalog_graph import CatalogGraph
-        from .trust import _LOCK
         session = current(request)
-        with _LOCK, session.catalog_lock:
+        with session.catalog_lock:
             service = Catalog(session, app.state.catalog_path)
             try:
                 return action(service, CatalogGraph(service))
@@ -200,7 +199,7 @@ def create_app():
             raise SafetyError('CONFIRMATION_REQUIRED')
         ws, _ = granted(request, identifier)
         session = current(request)
-        with protect_workspace(ws):
+        with ws.lock, protect_workspace(ws):
             path = Path(ws.child_directory(file_id))
             expected = ws.directory_identities.get(file_id)
             if not expected or path.parent != ws.root:

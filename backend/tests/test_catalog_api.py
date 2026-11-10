@@ -115,7 +115,8 @@ def test_changed_same_length_bytes_hide_edges_and_features(catalog):
     changed = client.get('/api/v1/catalog/graph').json()
     assert changed['relations'] == []
     assert next(i for i in changed['items'] if i['id'] == item['id'])['availability'] == 'changed'
-    assert client.get('/api/v1/catalog/graph/relations/' + old_relation['id'] + '/evidence').status_code == 404
+    invalid = client.get('/api/v1/catalog/graph/relations/' + old_relation['id'] + '/evidence')
+    assert invalid.status_code == 409 and invalid.json()['code'] == 'GRAPH_ENTRY_CHANGED'
 
 
 def test_registration_confirmation_and_catalog_mutations_inherit_guards(catalog):
@@ -219,7 +220,8 @@ def test_paging_is_deterministic_and_root_registry_limit_is_ten(catalog, tmp_pat
     assert first['next_offset'] == 1 and second['next_offset'] is None
     assert first['total'] == second['total'] == 2
     assert [first['items'][0]['id'], second['items'][0]['id']] == [i['id'] for i in full['items']]
-    assert first['relations'] == second['relations'] == []
+    assert first['relations'] == second['relations'] == full['relations']
+    assert first['related_items'][0]['id'] == second['items'][0]['id']
     for index in range(2, 11):
         path = tmp_path / f'extra-{index}'
         path.mkdir()
@@ -320,3 +322,141 @@ def test_config_reports_scanned_pdf_status_without_enabling_it(catalog, monkeypa
     assert status['enabled'] is False
     assert status['name'] == '扫描 PDF OCR（最多4页）'
     assert status['max_pages'] == 4
+
+
+def test_catalog_keeps_current_root_candidate_dismissal(catalog):
+    client, _, archives = catalog
+    ws, executor, _ = archives[0]
+    (ws.root / 'paper.md').write_text((ws.root / 'notes.md').read_text(encoding='utf-8'), encoding='utf-8')
+    record = next(row for row in ws.scan() if row['name'] == 'paper.md')
+    plan = executor.plan([{'file_id': record['id'], 'name': 'paper.md', 'category': 'study', 'subcategory': 'notes'}])
+    assert executor.execute(plan['id'], plan['digest'], True)['status'] == 'completed'
+    register(client, ws, '甲')
+    prefix = '/api/v1/workspaces/' + ws.id + '/graph'
+    ids = [item['id'] for item in client.get(prefix).json()['items']]
+    job = client.post(prefix + '/jobs', json={'entry_ids': ids, 'confirmed': True}).json()
+    for _ in range(150):
+        result = client.get(prefix + '/jobs/' + job['id']).json()
+        if result['status'] not in {'queued', 'running'}:
+            break
+        time.sleep(.02)
+    assert result['status'] == 'completed'
+    data = client.get(prefix).json()
+    candidate = next(r for r in data['relations'] if r['origin'] == 'automatic')
+    response = client.post(prefix + '/relations/' + candidate['id'] + '/dismiss', json={'revision': data['index']['revision']})
+    assert response.status_code == 200
+    catalog_data = client.get('/api/v1/catalog/graph').json()
+    assert all(r['origin'] != 'automatic' for r in catalog_data['relations'])
+
+
+def test_catalog_detected_replaced_file_cancels_pending_graph_job(catalog):
+    from neatdrop.graph import GraphService
+    client, session, archives = catalog
+    ws, executor, _ = archives[0]
+    register(client, ws, '甲')
+    service = GraphService(executor)
+    identifiers = [item['id'] for item in service.listing()['items']]
+    # Queue a real job without running the worker so no synthetic service state
+    # or decode timing determines whether invalidation cancels it.
+    job = session.graph_jobs.create(service, identifiers, True)
+    entry = service.listing()['items'][0]
+    target = ws.root / entry['target']
+    target.rename(target.with_suffix('.original'))
+    target.write_text('replacement file with a new identity', encoding='utf-8')
+    try:
+        listing = client.get('/api/v1/catalog/graph').json()
+        assert listing['items'][0]['availability'] == 'changed'
+        assert session.graph_jobs.get(job['id'], service)['status'] == 'cancelled'
+    finally:
+        # Worker finally releases the existing global graph slot/active marker.
+        session.graph_jobs.cancel(job['id'], service)
+        session.graph_jobs._run(job['id'])
+
+
+def test_catalog_preview_reads_only_selected_entry_and_paging_keeps_cross_page_relations(catalog, monkeypatch):
+    from neatdrop import catalog_graph
+    client, _, archives = catalog
+    for index, (ws, _, _) in enumerate(archives):
+        register(client, ws, str(index))
+    listing = client.get('/api/v1/catalog/graph').json()
+    reads = []
+    original = catalog_graph.verify
+    def tracked(service, item, identity, *args, **kwargs):
+        reads.append((service.ws.id, item['target']))
+        return original(service, item, identity, *args, **kwargs)
+    monkeypatch.setattr(catalog_graph, 'verify', tracked)
+    item = listing['items'][0]
+    assert client.get('/api/v1/catalog/library/' + item['id'] + '/preview').status_code == 200
+    assert {workspace_id for workspace_id, _ in reads} == {item['workspace_id']}
+    first = client.get('/api/v1/catalog/graph?limit=1').json()
+    assert len(first['relations']) == 1
+    assert {row['id'] for row in first['related_items']} == {listing['items'][1]['id']}
+
+
+def test_catalog_snapshot_byte_budget_marks_unverified_and_hides_edges(catalog, monkeypatch):
+    from neatdrop import catalog_graph
+    client, _, archives = catalog
+    for index, (ws, _, _) in enumerate(archives):
+        register(client, ws, str(index))
+    monkeypatch.setattr(catalog_graph, 'VERIFY_MAX_BYTES', 1)
+    listing = client.get('/api/v1/catalog/graph').json()
+    assert listing['relations'] == []
+    assert all(row['availability'] == 'unverified' for row in listing['items'])
+    assert listing['verification']['limited'] is True
+    assert listing['verification']['bytes'] <= 1
+    assert any(issue['code'] == 'CATALOG_VERIFY_BUDGET' for issue in listing['index']['issues'])
+
+
+def test_catalog_budget_cursor_advances_and_time_budget_hides_derived_edges(catalog, monkeypatch):
+    from neatdrop import catalog_graph
+    client, _, archives = catalog
+    for index, (ws, _, _) in enumerate(archives):
+        register(client, ws, str(index))
+    size = len((archives[0][0].root / 'notes.md').read_bytes())
+    monkeypatch.setattr(catalog_graph, 'VERIFY_MAX_BYTES', size)
+    first = client.get('/api/v1/catalog/graph').json()
+    assert len(first['items']) == 1 and first['next_offset'] == 1
+    assert first['items'][0]['availability'] == 'available'
+    assert first['relations_truncated'] is True and first['related_items'] == []
+    second = client.get('/api/v1/catalog/graph?offset=1').json()
+    assert len(second['items']) == 1 and second['next_offset'] is None
+    assert second['items'][0]['id'] != first['items'][0]['id']
+    monkeypatch.setattr(catalog_graph, 'VERIFY_SECONDS', 0)
+    expired = client.get('/api/v1/catalog/graph').json()
+    assert expired['verification']['limited'] is True and expired['relations'] == []
+    assert expired['items'][0]['availability'] == 'unverified'
+
+
+def test_catalog_revoke_does_not_invert_graph_publish_lock_order(catalog, monkeypatch):
+    import threading
+    from neatdrop.trust import _LOCK
+    client, session, archives = catalog
+    root_id = register(client, archives[0][0], '甲')['roots'][0]['id']
+    publish_locked, cancel_entered = threading.Event(), threading.Event()
+    result = {}
+    original = session.graph_jobs.cancel_for_root
+
+    def observed_cancel(ws):
+        cancel_entered.set()
+        return original(ws)
+
+    monkeypatch.setattr(session.graph_jobs, 'cancel_for_root', observed_cancel)
+
+    def publisher():
+        # Existing final publish holds GraphJobs.lock before GraphStore.commit.
+        with session.graph_jobs.lock:
+            publish_locked.set()
+            assert cancel_entered.wait(3)
+            acquired = _LOCK.acquire(timeout=.8)
+            result['publish_progress'] = acquired
+            if acquired:
+                _LOCK.release()
+
+    worker = threading.Thread(target=publisher, daemon=True)
+    worker.start()
+    assert publish_locked.wait(3)
+    response = client.post('/api/v1/catalog/roots/' + root_id + '/revoke', json={'confirmed': True})
+    worker.join(3)
+    assert not worker.is_alive()
+    assert response.status_code == 200
+    assert result['publish_progress'] is True

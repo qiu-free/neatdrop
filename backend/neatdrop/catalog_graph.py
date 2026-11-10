@@ -2,6 +2,7 @@
 import hashlib
 import os
 import stat
+import time
 from collections import defaultdict
 
 from .catalog import composite_id
@@ -9,9 +10,32 @@ from .files import MAX_FILE, SafetyError, checked_path
 from .graph_matching import ALGORITHM, match_features, text_features
 from .safe_io import file_identity, locked_reader, protect_workspace
 
+VERIFY_MAX_BYTES = 200 * 1024 * 1024
+VERIFY_SECONDS = 5
 
-def verify(service, item, identity):
+
+class VerificationBudget:
+    def __init__(self):
+        self.bytes = 0
+        self.deadline = time.monotonic() + VERIFY_SECONDS
+        self.limited = False
+
+    def admit(self, size):
+        if self.bytes + size > VERIFY_MAX_BYTES or time.monotonic() >= self.deadline:
+            self.limited = True
+            raise SafetyError('CATALOG_VERIFY_BUDGET')
+        self.bytes += size
+
+    def check(self):
+        if time.monotonic() >= self.deadline:
+            self.limited = True
+            raise SafetyError('CATALOG_VERIFY_BUDGET')
+
+
+def verify(service, item, identity, budget=None):
     """Hash current bytes without decoding/extracting or trusting cached size."""
+    if budget:
+        budget.admit(item['size'])
     with protect_workspace(service.ws):
         path = checked_path(service.ws.root, item['target'])
         with locked_reader(path) as stream:
@@ -22,6 +46,8 @@ def verify(service, item, identity):
             digest = hashlib.sha256()
             length = 0
             while block := stream.read(1024 * 1024):
+                if budget:
+                    budget.check()
                 length += len(block)
                 if length > MAX_FILE or length > item['size']:
                     raise SafetyError('GRAPH_ENTRY_CHANGED')
@@ -36,7 +62,7 @@ class CatalogGraph:
     def __init__(self, catalog):
         self.catalog = catalog
 
-    def snapshot(self):
+    def snapshot(self, selected=None, budget=None, *, metadata_only=False):
         catalog = self.catalog
         registry = catalog.store.require()
         aggregate = catalog.relations.require()
@@ -45,6 +71,7 @@ class CatalogGraph:
         truncated = False
         root_revisions = {}
         root_indexes = {}
+        budget = budget or VerificationBudget()
         for root in sorted(registry['roots'], key=lambda r: r['id']):
             if root['id'] not in catalog.session.catalog_grants:
                 continue
@@ -64,14 +91,21 @@ class CatalogGraph:
                     entry = {**entry, 'id': identifier, 'original_entry_id': key,
                              'root_id': root['id'], 'source_alias': root['alias'],
                              'workspace_id': grant['workspace_id']}
-                    if entry['availability'] == 'available':
+                    if entry['availability'] == 'available' and not metadata_only and (selected is None or identifier in selected):
                         try:
-                            verify(service, item, identity)
-                        except (OSError, SafetyError):
-                            entry['availability'] = 'changed'
-                            catalog.session.graph_jobs.cancel_for_root(service.ws)
+                            verify(service, item, identity, budget)
+                        except (OSError, SafetyError) as exc:
+                            entry['availability'] = 'unverified' if getattr(exc, 'code', '') == 'CATALOG_VERIFY_BUDGET' else 'changed'
+                            if entry['availability'] == 'changed':
+                                catalog.session.graph_jobs.cancel_for_root(service.ws)
+                            else:
+                                issues.append({'entry_id': identifier, 'code': 'CATALOG_VERIFY_BUDGET'})
+                    elif entry['availability'] == 'available' and not metadata_only:
+                        entry['availability'] = 'unverified'
                     records[identifier] = (entry, item, identity, root, service)
                     local_map[key] = identifier
+                    if entry['availability'] in {'changed', 'missing'}:
+                        catalog.session.graph_jobs.cancel_for_root(service.ws)
                     feature = state['features'].get(key)
                     if (available and entry['availability'] == 'available' and feature and
                             feature['sha256'] == item['sha256'] and feature['identity'] == identity and feature['algorithm'] == ALGORITHM):
@@ -93,6 +127,8 @@ class CatalogGraph:
                             'source': local_map[relation['source']], 'target': local_map[relation['target']]})
                 # Reuse the existing sparse matcher over fresh per-root features.
                 for relation in match_features(local_features):
+                    if relation['id'] in state['dismissed']:
+                        continue
                     per_root_relations.append({**relation,
                         'id': hashlib.sha256(f"{root['id']}:{relation['id']}".encode()).hexdigest(),
                         'original_relation_id': relation['id'], 'root_id': root['id'],
@@ -131,10 +167,11 @@ class CatalogGraph:
             issues.append({'code': 'CATALOG_RELATION_LIMIT'})
             relations = sorted(relations, key=lambda r: (r['origin'] != 'manual', r['id']))[:5000]
         self.check_generations(generations)
-        catalog.session.catalog_relations = {r['id']: r for r in relations}
+        if not metadata_only:
+            catalog.session.catalog_relations = {r['id']: r for r in relations}
         return {'records': records, 'ordered': ordered, 'features': bounded_features, 'relations': relations,
                 'issues': issues, 'state': aggregate, 'generations': generations, 'root_revisions': root_revisions,
-                'root_indexes': root_indexes, 'root_truncated': truncated}
+                'root_indexes': root_indexes, 'root_truncated': truncated, 'budget': budget}
 
     def check_generations(self, generations):
         for identifier, generation in generations.items():
@@ -144,42 +181,82 @@ class CatalogGraph:
                 raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
 
     def listing(self, offset=0, limit=1000):
-        snapshot = self.snapshot()
-        page = snapshot['ordered'][offset:offset + limit]
+        metadata = self.snapshot(metadata_only=True)
+        total = len(metadata['ordered'])
+        effective_limit = min(limit, 800) if total > 1000 else limit
+        page = metadata['ordered'][offset:offset + effective_limit]
+        # Advance by the actual bounded primary page, allowing a later cursor
+        # to verify large files that would otherwise remain perpetually skipped.
+        planned_bytes = 0
+        bounded_page = []
+        for key in page:
+            size = metadata['records'][key][1]['size']
+            if bounded_page and planned_bytes + size > VERIFY_MAX_BYTES:
+                break
+            bounded_page.append(key)
+            planned_bytes += size
+        page = bounded_page
+        effective_limit = len(page)
         members = set(page)
+        candidates = [r for r in metadata['relations'] if r['source'] in members or r['target'] in members]
+        related = sorted({key for r in candidates for key in (r['source'], r['target']) if key not in members})
+        related_limit = min(200, 1000 - len(page))
+        relations_truncated = len(related) > related_limit
+        related = related[:related_limit]
+        bounded_related = []
+        for key in related:
+            size = metadata['records'][key][1]['size']
+            if planned_bytes + size > VERIFY_MAX_BYTES:
+                relations_truncated = True
+                continue
+            bounded_related.append(key)
+            planned_bytes += size
+        related = bounded_related
+        snapshot = self.snapshot(selected=members | set(related))
         page_issues = [issue for issue in snapshot['issues'] if issue.get('entry_id') in members]
-        total = len(snapshot['ordered'])
+        if snapshot['budget'].limited:
+            page_issues.append({'code': 'CATALOG_VERIFY_BUDGET'})
+        if relations_truncated:
+            page_issues.append({'code': 'CATALOG_RELATED_LIMIT'})
         state = snapshot['state']
+        selected = members | set(related)
         return {'items': [snapshot['records'][key][0] for key in page],
-            'relations': [r for r in snapshot['relations'] if r['source'] in members and r['target'] in members],
-            'total': total, 'offset': offset, 'limit': limit,
-            'next_offset': offset + limit if offset + limit < total else None,
+            'related_items': [snapshot['records'][key][0] for key in related],
+            'relations': [r for r in snapshot['relations'] if (r['source'] in members or r['target'] in members)
+                          and r['source'] in selected and r['target'] in selected],
+            'total': total, 'offset': offset, 'limit': limit, 'effective_limit': effective_limit,
+            'next_offset': offset + len(page) if offset + len(page) < total else None,
             'truncated': snapshot['root_truncated'] or total > len(page),
+            'relations_truncated': relations_truncated or snapshot['budget'].limited,
+            'verification': {'bytes': snapshot['budget'].bytes, 'max_bytes': VERIFY_MAX_BYTES,
+                             'max_seconds': VERIFY_SECONDS, 'limited': snapshot['budget'].limited},
             'roots': self.catalog.states()['roots'], 'root_revisions': snapshot['root_revisions'],
             'root_indexes': snapshot['root_indexes'],
             'index': {'count': len(snapshot['features']), 'revision': state['revision'], 'updated': state['updated'],
                       'state': 'ready' if snapshot['features'] else 'empty', 'issues': page_issues}}
 
     def preview(self, identifier):
-        snapshot = self.snapshot()
+        snapshot = self.snapshot(metadata_only=True)
         record = snapshot['records'].get(identifier)
         if record is None:
             raise SafetyError('GRAPH_ENTRY_NOT_FOUND')
-        entry, _, _, _, service = record
+        entry, item, identity, _, service = record
+        verify(service, item, identity, snapshot['budget'])
         payload = service.read(entry['original_entry_id'], local=False)
         self.check_generations(snapshot['generations'])
         _, item, identity, _, service = record
-        verify(service, item, identity)
+        verify(service, item, identity, snapshot['budget'])
         return payload
 
     def evidence(self, identifier):
-        snapshot = self.snapshot()
+        snapshot = self.snapshot(metadata_only=True)
         relation = next((r for r in snapshot['relations'] if r['id'] == identifier), None)
         if relation is None:
             raise SafetyError('GRAPH_RELATION_NOT_FOUND')
         files = []
         for key in (relation['source'], relation['target']):
-            entry, _, _, _, service = snapshot['records'][key]
+            entry, item, identity, _, service = snapshot['records'][key]
+            verify(service, item, identity, snapshot['budget'])
             payload = service.read(entry['original_entry_id'])
             text = payload.get('text', '')[:12000]
             terms = text_features(text)['terms']
@@ -196,14 +273,14 @@ class CatalogGraph:
         self.check_generations(snapshot['generations'])
         for key in (relation['source'], relation['target']):
             _, item, identity, _, service = snapshot['records'][key]
-            verify(service, item, identity)
+            verify(service, item, identity, snapshot['budget'])
         explanation = ('归档时 SHA-256 相同；当前双方副本已重新核验。' if relation['kind'] == 'duplicate' else
                        '本机内容相似线索，仍为待确认候选；不能据此推断引用或版本事实。' if relation['origin'] == 'automatic' else
                        '人工维护的关系；不代表内容推断。')
         return {'relation': relation, 'files': files, 'explanation': explanation}
 
     def add(self, source, target, kind, revision, candidate_id=None):
-        snapshot = self.snapshot()
+        snapshot = self.snapshot(metadata_only=True)
         if source == target:
             raise SafetyError('GRAPH_SELF_LINK')
         if source not in snapshot['records'] or target not in snapshot['records']:
@@ -214,7 +291,7 @@ class CatalogGraph:
             entry, item, identity, _, service = snapshot['records'][key]
             if entry['availability'] != 'available':
                 raise SafetyError('GRAPH_ENTRY_CHANGED')
-            verify(service, item, identity)
+            verify(service, item, identity, snapshot['budget'])
         if candidate_id:
             candidate = next((r for r in snapshot['relations'] if r['id'] == candidate_id), None)
             if candidate is None or candidate['origin'] != 'automatic' or {source, target} != {candidate['source'], candidate['target']}:
@@ -235,7 +312,7 @@ class CatalogGraph:
         return self.listing()
 
     def dismiss(self, identifier, revision):
-        snapshot = self.snapshot()
+        snapshot = self.snapshot(metadata_only=True)
         relation = next((r for r in snapshot['relations'] if r['id'] == identifier), None)
         if relation is None:
             raise SafetyError('GRAPH_RELATION_NOT_FOUND')
@@ -243,13 +320,13 @@ class CatalogGraph:
             raise SafetyError('GRAPH_CANDIDATE_INVALID')
         for key in (relation['source'], relation['target']):
             _, item, identity, _, service = snapshot['records'][key]
-            verify(service, item, identity)
+            verify(service, item, identity, snapshot['budget'])
         self.catalog.relations.commit(revision, lambda state: state.update(
             dismissed=list(dict.fromkeys([*state['dismissed'], identifier]))))
         return self.listing()
 
     def delete(self, identifier, revision):
-        snapshot = self.snapshot()
+        snapshot = self.snapshot(metadata_only=True)
         state = self.catalog.relations.require()
         relation = next((r for r in state['relations'] if r['id'] == identifier), None)
         if relation is None:

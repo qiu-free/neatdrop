@@ -49,3 +49,44 @@ def test_child_open_rechecks_directory_identity_after_lookup(tmp_path):
     assert response.status_code == 409
     assert response.json()['code'] == 'DIRECTORY_CHANGED'
     assert len(next(iter(client.app.state.sessions.values())).workspaces) == 1
+
+
+def test_child_open_does_not_follow_concurrent_rescan_to_replacement(tmp_path, monkeypatch):
+    import threading
+    from neatdrop.files import Workspace
+    client, root, child, opened, directory = make_client(tmp_path)
+    ws = next(iter(client.app.state.sessions.values())).workspaces[opened['id']][0]
+    lookup, swapped, rescan_attempted, rescanned = threading.Event(), threading.Event(), threading.Event(), threading.Event()
+    original = Workspace.child_directory
+    workers = []
+
+    def change_then_rescan():
+        assert lookup.wait(3)
+        child.rename(root / 'old-course')
+        child.mkdir()
+        (child / 'attacker.md').write_text('replacement', encoding='utf-8')
+        swapped.set()
+        rescan_attempted.set()
+        ws.scan()
+        rescanned.set()
+
+    def pause_after_lookup(self, identifier):
+        value = original(self, identifier)
+        lookup.set()
+        assert swapped.wait(3)
+        assert rescan_attempted.wait(3)
+        rescanned.wait(.5)
+        # With the endpoint's workspace lock, a concurrent rescan cannot update
+        # the captured expected identity. The replacement must be rejected.
+        return value
+
+    monkeypatch.setattr(Workspace, 'child_directory', pause_after_lookup)
+    worker = threading.Thread(target=change_then_rescan, daemon=True)
+    workers.append(worker); worker.start()
+    endpoint = f"/api/v1/workspaces/{opened['id']}/children/{directory['id']}/open"
+    response = client.post(endpoint, json={'confirmed': True})
+    worker.join(3)
+    assert not worker.is_alive()
+    assert response.status_code == 409
+    assert response.json()['code'] == 'DIRECTORY_CHANGED'
+    assert len(next(iter(client.app.state.sessions.values())).workspaces) == 1

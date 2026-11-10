@@ -1,7 +1,9 @@
 import { defaultGraphVisualSettings, graphLayoutPreset, normalizeGraphVisualSettings } from './graphSettings'
 
-it('defaults to a neutral balanced overview and preserves independent visual edits', () => {
-  expect(defaultGraphVisualSettings).toMatchObject({ colorMode: 'neutral', showIsolates: true, showSuggested: true, nodeScale: 1, edgeOpacity: .55, edgeWidth: 1, showDirections: false, layoutPreset: 'balanced' })
+it('defaults to a legible category overview and preserves independent visual edits', () => {
+  expect(defaultGraphVisualSettings).toMatchObject({ colorMode: 'category', showIsolates: true, showSuggested: true, nodeScale: 1, edgeOpacity: .8, edgeWidth: 1.6, showDirections: false, layoutPreset: 'balanced' })
+  expect(normalizeGraphVisualSettings().colorMode).toBe('category')
+  expect(normalizeGraphVisualSettings({ colorMode: 'neutral' }).colorMode).toBe('neutral')
   const changed = normalizeGraphVisualSettings({ colorMode: 'category', showSuggested: false, layout: { ...graphLayoutPreset('balanced'), attraction: .17 } })
   expect(changed.colorMode).toBe('category')
   expect(changed.showSuggested).toBe(false)

@@ -8,6 +8,25 @@ const fixture = (ids: string[], pairs: [string, string][]) => ({
 const positions = (nodes: GraphNode[]) => Object.fromEntries(nodes.map(node => [node.data.id, node.position]))
 const distance = (a: GraphNode['position'], b: GraphNode['position']) => Math.hypot(a.x - b.x, a.y - b.y)
 
+it('keeps unrelated files in compact category groups without creating relationships or moving saved nodes', () => {
+  const nodes: GraphNode[] = Array.from({ length: 16 }, (_, i) => ({
+    data: { id: `${i}`.padStart(2, '0'), label: `${i}`, type: 'file', category: i % 2 ? 'study' : 'work', size: 18 },
+    position: { x: 0, y: 0 },
+  }))
+  const result = forceLayoutGraph(nodes, []), byId = positions(result)
+  const same = result.filter(node => node.data.category === 'work')
+  const other = result.filter(node => node.data.category === 'study')
+  const centroid = (items: GraphNode[]) => ({ x: items.reduce((sum, node) => sum + node.position.x / items.length, 0), y: items.reduce((sum, node) => sum + node.position.y / items.length, 0) })
+  const center = centroid(same), separation = distance(center, centroid(other))
+  expect(Math.max(...same.map(node => distance(node.position, center)))).toBeLessThan(separation / 2)
+  expect(Math.max(...result.map(node => node.position.x)) - Math.min(...result.map(node => node.position.x))).toBeLessThan(750)
+  for (let i = 0; i < result.length; i++) for (let j = i + 1; j < result.length; j++) expect(distance(result[i].position, result[j].position)).toBeGreaterThan(48)
+  expect(positions(forceLayoutGraph([...nodes].reverse(), []))).toEqual(byId)
+  const saved = { '00': { x: 300, y: 100 } }
+  expect(positions(forceLayoutGraph(nodes, [], saved))['00']).toEqual(saved['00'])
+  expect(result.every(node => node.data.degree === undefined)).toBe(true)
+})
+
 it('places a connected three-hub network deterministically regardless of input order or parallel edges', () => {
   const { nodes, edges } = fixture(['hub', 'a', 'b', 'c', 'd', 'e', 'f'], [['hub', 'a'], ['hub', 'b'], ['a', 'c'], ['c', 'd'], ['d', 'e'], ['e', 'f'], ['f', 'b']])
   const normal = positions(forceLayoutGraph(nodes, edges))

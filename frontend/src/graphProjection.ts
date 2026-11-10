@@ -6,7 +6,7 @@ export interface GraphTaxonomy { categories?: Record<string, string>; subcategor
 export interface GraphNode { data: { id: string; label: string; type: 'root' | 'category' | 'subcategory' | 'file'; entry?: string; group?: string; category?: string; categoryLabel?: string; color?: string; count?: number; degree?: number; size?: number; tooltip?: string; focused?: boolean }; position: GraphPosition }
 export interface GraphEdge { data: { id: string; source: string; target: string; kind: string; label?: string; status?: string; relation?: string; origin?: string; directed?: boolean; color?: string } }
 
-const CATEGORY_COLORS = ['#728eae', '#bc9471', '#c08088', '#609e92', '#8b9d6d', '#b49d56', '#9b84ab', '#bb8c9f', '#a3907b', '#8c95a4']
+const CATEGORY_COLORS = ['#2864cf', '#b56a20', '#b64f78', '#168278', '#617f38', '#a77a14', '#8055b7', '#b34f57', '#88643f', '#526d98']
 const DEFAULT_GROUP_FILES = 8
 const MAX_NODES = 200
 function scatterPoint(index: number, total: number): GraphPosition {
@@ -70,7 +70,7 @@ export function projectGraph(listing: GraphListing, options: Partial<GraphSessio
   const visible = new Set(nodes.map(node => node.data.id)); permittedRelations.forEach(edge => { if (visible.has(`file:${edge.source}`) && visible.has(`file:${edge.target}`)) edges.push({ data: { id: `relation:${edge.id}`, relation: edge.id, source: `file:${edge.source}`, target: `file:${edge.target}`, kind: edge.kind, label: graphKindLabels[edge.kind], status: edge.status, origin: edge.origin, directed: directedKinds.has(edge.kind), color: colors.get(fileById.get(edge.source)?.category ?? '') } }) })
   const neighbors = new Map(nodes.map(node => [node.data.id, new Set<string>()]))
   edges.forEach(edge => { if (edge.data.source !== edge.data.target) { neighbors.get(edge.data.source)?.add(edge.data.target); neighbors.get(edge.data.target)?.add(edge.data.source) } })
-  nodes.forEach(node => { node.data.degree = neighbors.get(node.data.id)?.size ?? 0; node.data.size = Math.min(22, 7 + 2 * Math.log2(1 + node.data.degree)) })
+  nodes.forEach(node => { node.data.degree = neighbors.get(node.data.id)?.size ?? 0; node.data.size = Math.min(36, 20 + 2.8 * Math.log2(1 + node.data.degree)) })
   if (options.visual?.showIsolates === false) {
     for (let index = nodes.length - 1; index >= 0; index--) if (!nodes[index].data.degree) nodes.splice(index, 1)
   }

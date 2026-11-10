@@ -111,6 +111,11 @@
   --table-row-bg: var(--surface);
   --table-row-hover: #f5f8fd;
   --table-row-selected: #edf4ff;
+  --graph-node: #516b90;
+  --graph-node-hub: #294e83;
+  --graph-link: #6a83a4;
+  --graph-link-confirmed: #4b6d9c;
+  --graph-selection: #185fd0;
   --motion-enter: 180ms;
   --motion-drawer: 160ms;
   color-scheme: light;

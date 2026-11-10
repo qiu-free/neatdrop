@@ -238,8 +238,9 @@ it('uses projected diameters, stable neutral or category colors, and adequate hi
   const view = render(<GraphCanvas {...p} nodes={varied} dimension="3d" />)
   const small = screen.getByRole('button', { name: '预览 研究笔记.txt' }), large = screen.getByRole('button', { name: '预览 研究附件.txt' })
   const dot = (element: Element) => element.querySelector('.graph-node-dot')!
-  expect(Number(dot(large).getAttribute('r'))).toBeGreaterThan(Number(dot(small).getAttribute('r')) * 2)
-  expect(Number(small.querySelector('.graph-node-hit')!.getAttribute('r'))).toBeGreaterThanOrEqual(12)
+  expect(Number(dot(small).getAttribute('r'))).toBeGreaterThanOrEqual(8)
+  expect(Number(dot(large).getAttribute('r'))).toBeGreaterThan(Number(dot(small).getAttribute('r')))
+  expect(Number(small.querySelector('.graph-node-hit')!.getAttribute('r'))).toBeGreaterThanOrEqual(22)
   const color = dot(large).getAttribute('fill')
   fireEvent.pointerDown(screen.getByLabelText('归档分类和资料关系图'), { clientX: 100, clientY: 100, button: 0 })
   fireEvent.pointerMove(screen.getByLabelText('归档分类和资料关系图'), { clientX: 180, clientY: 100, buttons: 1 })
@@ -247,6 +248,58 @@ it('uses projected diameters, stable neutral or category colors, and adequate hi
   expect(dot(large).getAttribute('fill')).toBe(color)
   view.rerender(<GraphCanvas {...p} nodes={varied} visual={{ ...defaultGraphVisualSettings, colorMode: 'category' }} />)
   expect(dot(large).getAttribute('fill')).toBe('#7792ba')
+})
+
+it('identifies relation-free category groups while keeping file captions hidden and every node easy to select', () => {
+  const p = props(), grouped = nodes.map(node => ({ ...node, data: { ...node.data, category: 'study', categoryLabel: '学习科研', degree: 0 } }))
+  const view = render(<GraphCanvas {...p} nodes={grouped} edges={[]} />)
+  expect(screen.getByText('学习科研 · 2')).toBeInTheDocument()
+  expect(document.querySelector('.graph-nodes text')).toBeNull()
+  expect(document.querySelector('.graph-spatial-edge')).toBeNull()
+  const dot = document.querySelector('.graph-node-dot')!
+  const before = Number(dot.getAttribute('r'))
+  fireEvent.click(screen.getByRole('button', { name: '缩小画布' }))
+  expect(Number(dot.getAttribute('r'))).toBe(before)
+  view.rerender(<GraphCanvas {...p} nodes={grouped} />)
+  expect(screen.queryByText('学习科研 · 2')).not.toBeInTheDocument()
+  expect(document.querySelectorAll('.graph-spatial-edge')).toHaveLength(1)
+})
+
+it('uses an external category legend when zooming out would overlap the group captions', () => {
+  const p = props(), grouped = nodes.map((node, index) => ({ ...node, data: { ...node.data, category: index ? 'study' : 'work', categoryLabel: index ? '学习科研' : '工作资料' } }))
+  render(<GraphCanvas {...p} nodes={grouped} edges={[]} positions={{ 'file:one': { x: 0, y: 0 }, 'file:two': { x: 30, y: 0 } }} />)
+  expect(screen.getByRole('list', { name: '图谱类别' })).toHaveTextContent('学习科研 · 1')
+  expect(screen.getByRole('list', { name: '图谱类别' })).toHaveTextContent('工作资料 · 1')
+  expect(document.querySelector('.graph-category-regions rect')).toBeNull()
+  expect(document.querySelector('.graph-nodes text')).toBeNull()
+})
+
+it('keeps a dense overview selectable without an invisible target covering its neighbor', () => {
+  const p = props()
+  render(<GraphCanvas {...p} edges={[]} viewport={{ zoom: .6, pan: { x: 0, y: 0 } }} positions={{ 'file:one': { x: 0, y: 0 }, 'file:two': { x: 30, y: 0 } }} />)
+  const elements = [...document.querySelectorAll('.graph-spatial-node')]
+  const coordinates = elements.map(node => node.getAttribute('transform')!.match(/-?\d+(?:\.\d+)?/g)!.map(Number))
+  const gap = Math.hypot(coordinates[0][0] - coordinates[1][0], coordinates[0][1] - coordinates[1][1])
+  for (const node of elements) {
+    expect(Number(node.querySelector('.graph-node-dot')!.getAttribute('r')) * 2).toBeLessThan(gap)
+    expect(Number(node.querySelector('.graph-node-hit')!.getAttribute('r')) * 2).toBeLessThan(gap)
+  }
+  const small = Number(elements[0].querySelector('.graph-node-dot')!.getAttribute('r'))
+  fireEvent.click(screen.getByRole('button', { name: '放大画布' }))
+  expect(Number(elements[0].querySelector('.graph-node-dot')!.getAttribute('r'))).toBeGreaterThan(small)
+})
+
+it('keeps coincident saved nodes visible and individually keyboard accessible', () => {
+  const p = props()
+  render(<GraphCanvas {...p} edges={[]} positions={{ 'file:one': { x: 0, y: 0 }, 'file:two': { x: 0, y: 0 } }} />)
+  for (const node of document.querySelectorAll('.graph-spatial-node')) {
+    expect(Number(node.querySelector('.graph-node-dot')!.getAttribute('r'))).toBeGreaterThanOrEqual(4)
+    expect(Number(node.querySelector('.graph-node-hit')!.getAttribute('r'))).toBeGreaterThanOrEqual(6)
+    fireEvent.focus(node)
+    fireEvent.keyDown(node, { key: 'Enter' })
+  }
+  expect(p.onOpen).toHaveBeenCalledWith('one')
+  expect(p.onOpen).toHaveBeenCalledWith('two')
 })
 
 it('shows hovered identity, category and unique neighbor count while arrows stay off until focused', () => {

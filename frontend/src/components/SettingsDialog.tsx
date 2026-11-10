@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { CheckCircle2, CircleAlert, ShieldCheck } from 'lucide-react'
+import { CheckCircle2, CircleAlert, Cloud, HardDrive, ShieldCheck } from 'lucide-react'
 import { api } from '../api'
 import type { Config, SemanticCapability } from '../types'
 import { loadPreferences, savePreferences, type Preferences } from '../preferences'
@@ -235,7 +235,13 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
 
   return <Modal title="模型设置" onClose={onClose} busy={busy} scrollContent>
     <div className="settings-content">
-      <div className="offline-status"><h3>离线识别能力</h3>
+      <section className="settings-mode settings-offline-mode" aria-labelledby="offline-mode-title">
+        <header className="settings-mode-heading">
+          <HardDrive size={22} aria-hidden="true" />
+          <div><h3 id="offline-mode-title">离线模式</h3><p>在本机识别文件与图片，无需配置在线服务。</p></div>
+          <span className="settings-local-tag">无需 API 密钥</span>
+        </header>
+      <div className="offline-status"><h4>离线识别能力</h4>
         <div className="offline-capabilities">
           <p><span className={`status-dot ${offline?.ocr.available ? 'online' : ''}`} />中文 OCR：{offline?.ocr.available ? `已就绪 · ${offline.ocr.name}` : '不可用'}</p>
           <p><span className={`status-dot ${offline?.vision.available ? 'online' : ''}`} />图片场景：{offline?.vision.available ? `已安装 · ${offline.vision.name}` : '未安装'}</p>
@@ -245,7 +251,18 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
         {offline?.semantic?.enabled === false ? <small>实验候选未启用；当前使用规则、OCR 与视觉线索。</small> : offline?.semantic?.enabled === true ? <small>实验候选已启用，所有语义建议仍需复核。</small> : null}
         <small>离线运行不下载、不上传。缺少模型时可按项目说明准备本地模型。</small>
       </div>
+      <div className="settings-offline-preference">
+        <label className="settings-toggle"><input type="checkbox" checked={uiPreferences.offlineFirst} onChange={event => changePreference({ offlineFirst: event.target.checked })} />优先使用离线识别</label>
+        <p>立即生效，作为工作台的默认分析方式。</p>
+      </div>
+      </section>
 
+      <section className="settings-mode settings-online-mode" aria-labelledby="online-mode-title">
+        <header className="settings-mode-heading">
+          <Cloud size={22} aria-hidden="true" />
+          <div><h3 id="online-mode-title">在线模式</h3><p>配置兼容服务后，可在工作台按需使用云端分析。</p></div>
+          <span className="settings-source-tag">需要网络</span>
+        </header>
       <div className="settings-status"><span className={`status-dot ${modelConfig?.configured ? 'online' : ''}`} />{settingsError ? '本机模型设置不可用' : modelConfig?.configured ? `密钥已配置 · ${sourceLabel(modelConfig.key_source)}` : modelConfig ? '未配置密钥，仍可使用本地规则与手动整理' : '正在读取本机模型设置…'}</div>
       {loadError ? <div className="settings-message error" role="alert"><CircleAlert size={16} />{loadError}</div> : null}
       {settingsError ? <div className="settings-message error" role="alert"><CircleAlert size={16} />{settingsError}</div> : null}
@@ -256,7 +273,7 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
         <ul>{Object.entries(fieldErrors).map(([name, message]) => <li key={name}><a href={`#settings-${name}`} onClick={event => { event.preventDefault(); document.getElementById(`settings-${name}`)?.focus() }}>{message}</a></li>)}</ul>
       </div> : null}
       <section className="settings-section" aria-labelledby="service-section-title">
-      <div className="settings-form-heading"><div><h3 id="service-section-title">兼容模型服务</h3><p>仅支持 Chat Completions 兼容接口。</p></div><span className="settings-local-tag"><ShieldCheck size={14} />保存在本机</span></div>
+      <div className="settings-form-heading"><div><h4 id="service-section-title">兼容模型服务</h4><p>仅支持 Chat Completions 兼容接口。</p></div><span className="settings-local-tag"><ShieldCheck size={14} aria-hidden="true" />保存在本机</span></div>
       <label className="settings-field"><span>服务商模式</span><select aria-label="服务商模式" value={provider} onChange={event => {
         const value = event.target.value as 'bailian' | 'custom'
         setProvider(value)
@@ -273,7 +290,7 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
 
       </section>
       <section className="settings-section settings-key-section" aria-labelledby="key-section-title">
-      <div className="settings-section-heading"><div><h3 id="key-section-title">密钥</h3><p>密钥与服务地址绑定，保存在本机加密设置中。</p></div><span className="settings-source-tag">{sourceLabel(modelConfig?.key_source)}</span></div>
+      <div className="settings-section-heading"><div><h4 id="key-section-title">密钥</h4><p>密钥与服务地址绑定，保存在本机加密设置中。</p></div><span className="settings-source-tag">{sourceLabel(modelConfig?.key_source)}</span></div>
       <label className="settings-field"><span>密钥处理 <small>来源：{sourceLabel(modelConfig?.key_source)}</small></span><select {...validationProps('key_action')} aria-label="密钥处理" value={keyAction} disabled={keyLocked || settingsUnavailable} onChange={event => setKeyAction(event.target.value as typeof keyAction)}>
         <option value="keep">保留当前密钥</option><option value="replace">更换密钥</option><option value="remove">移除密钥</option>
       </select>{validationMessage('key_action')}</label>
@@ -281,14 +298,8 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
       {keyLocked ? <p className="settings-lock-note">密钥由环境变量提供，无法在此替换或移除。</p> : keyAction === 'remove' ? <p className="settings-lock-note">提交后会移除本机保存的密钥，不会连接服务商。</p> : <p className="settings-lock-note">密钥按服务地址绑定。页面不会回显已保存的密钥；输入的新密钥将在提交后从表单清空。</p>}
       </section>
 
-      <section className="settings-preferences" aria-labelledby="preferences-title">
-        <div><h3 id="preferences-title">界面偏好</h3><p>只保存在此浏览器，不包含文件信息。</p></div>
-        <label className="settings-field"><span>界面密度</span><select aria-label="界面密度" value={uiPreferences.density} onChange={event => changePreference({ density: event.target.value as Preferences['density'] })}><option value="comfortable">舒适</option><option value="compact">紧凑</option></select></label>
-        <label className="settings-toggle"><input type="checkbox" checked={uiPreferences.offlineFirst} onChange={event => changePreference({ offlineFirst: event.target.checked })} />优先使用离线识别</label>
-      </section>
-
       <section className="settings-test-panel" aria-labelledby="test-section-title">
-        <div><h3 id="test-section-title">测试连接</h3><p>目标服务地址</p><code>{effectiveTarget}</code></div>
+        <div><h4 id="test-section-title">测试连接</h4><p>目标服务地址</p><code>{effectiveTarget}</code></div>
         <div className="settings-cost-note"><ShieldCheck size={16} /><span>只发送固定文字样例，不会发送文件、图片或目录名。服务商可能按测试请求计费。</span></div>
         <label className="settings-consent"><input type="checkbox" checked={testConsent} onChange={event => setTestConsent(event.target.checked)} />我确认连接到上方服务地址，并知悉服务可能计费。</label>
         <button type="button" className="button secondary" onClick={() => void testConnection()} disabled={!canTest}>测试连接</button>
@@ -302,6 +313,12 @@ export function SettingsDialog({ config, onClose, onSaved, preferences, onPrefer
       <footer className="modal-footer"><button type="button" className="button secondary" onClick={onClose} disabled={busy}>取消</button><button type="submit" className="button primary" disabled={busy || settingsUnavailable}>{busy ? '处理中…' : '保存设置'}</button></footer>
       <p className="settings-save-note">保存只更新本机加密设置，不连接模型服务。</p>
       </form>
+      </section>
+
+      <section className="settings-preferences" aria-labelledby="preferences-title">
+        <div><h3 id="preferences-title">界面偏好</h3><p>立即生效，只保存在此浏览器，不包含文件信息。</p></div>
+        <label className="settings-field"><span>界面密度</span><select aria-label="界面密度" value={uiPreferences.density} onChange={event => changePreference({ density: event.target.value as Preferences['density'] })}><option value="comfortable">舒适</option><option value="compact">紧凑</option></select></label>
+      </section>
     </div>
   </Modal>
 }

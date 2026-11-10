@@ -110,7 +110,8 @@ function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onC
                 onViewport={value => { session.viewport = value }} onExpand={group => group.includes('/') ? expanded(group) : toggleCategory(group)}
                 onOpen={open} onRelation={id => { const relation = listing!.relations.find(item => item.id === id); if (relation) openRelationEvidence(relation) }} />
             </Suspense>
-            <p className="graph-legend">黑灰圆点：文件　曲线：文件间已有关系　实线：归档事实或人工关系　虚线：待核实候选　箭头：有方向关系。点击文件预览，点击曲线查看依据。</p>
+            <p className="graph-legend">圆点代表文件，颜色区分类别；同类区域表示分类归属。曲线表示已有关系，实线为事实或人工关系，虚线为待核实候选。悬停查看文件名，点击打开预览。</p>
+            {!listing?.relations.length && !listing?.index.count ? <p className="graph-unlinked-notice"><Network size={16} aria-hidden="true" /><span>文件已按类别排列。点击上方“分析关联”，可在本机查找文件之间的联系。</span></p> : null}
             {projection.hiddenFileCount ? <p className="graph-limit-notice">画布显示 {projection.nodes.filter(node => node.data.type === 'file').length} 个文件，另有 {projection.hiddenFileCount} 个文件保留在下方列表。按分组继续显示可展开更多，画布最多 {projection.maxNodes} 个节点。</p> : null}
             {view === 'relations' && !projection.focus ? <p className="graph-legend">当前筛选隐藏了聚焦文件，请从文件列表选择资料。</p> : null}
           </> : <div className="graph-canvas-wrap" role="status">正在读取本机归档记录…</div>}

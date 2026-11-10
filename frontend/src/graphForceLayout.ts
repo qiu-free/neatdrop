@@ -13,6 +13,9 @@ export function forceLayoutGraph(nodes: GraphNode[], edges: GraphEdge[], saved: 
     neighbors.get(data.source)!.add(data.target); neighbors.get(data.target)!.add(data.source)
   })
   const links = ordered.flatMap(node => [...neighbors.get(node.data.id)!].filter(id => id > node.data.id).sort().map(id => [node.data.id, id] as const))
+  // Category proximity is a browsing aid, never an inferred relationship.
+  // With no real links, individual satellite orbits waste the entire canvas.
+  if (!links.length) return layoutUnlinkedFiles(nodes, saved, settings)
   const seed = layoutGraph(ordered, links.map(([source, target], i) => ({ data: { id: `${i}`, source, target, kind: 'related' } })), saved)
   const point = new Map(seed.map(node => [node.data.id, { ...node.position }]))
   const anchored = new Set(ordered.filter(node => saved[node.data.id]).map(node => node.data.id))
@@ -89,4 +92,52 @@ export function forceLayoutGraph(nodes: GraphNode[], edges: GraphEdge[], saved: 
     else if (!anchored.has(b)) { q.x += ux * gap; q.y += uy * gap }
   }
   return nodes.map(node => ({ ...node, position: saved[node.data.id] ? { ...saved[node.data.id] } : { x: point.get(node.data.id)!.x, y: point.get(node.data.id)!.y } }))
+}
+
+function layoutUnlinkedFiles(nodes: GraphNode[], saved: Record<string, GraphPosition>, settings: GraphForceSettings): GraphNode[] {
+  const gap = Math.max(54, Math.min(84, settings.linkDistance * .64))
+  const groups = new Map<string, GraphNode[]>()
+  for (const node of [...nodes].sort((a, b) => a.data.id.localeCompare(b.data.id))) {
+    const key = node.data.category ?? ''
+    const members = groups.get(key) ?? []
+    members.push(node); groups.set(key, members)
+  }
+  const clusters = [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([, members]) => {
+    const points = members.map((node, index) => {
+      const angle = index * Math.PI * (3 - Math.sqrt(5))
+      const radius = members.length === 1 ? 0 : Math.sqrt(index + .5) * gap * .66
+      return { id: node.data.id, x: Math.cos(angle) * radius, y: Math.sin(angle) * radius }
+    })
+    const minX = Math.min(...points.map(point => point.x)), maxX = Math.max(...points.map(point => point.x))
+    const minY = Math.min(...points.map(point => point.y)), maxY = Math.max(...points.map(point => point.y))
+    return { points, minX, minY, width: maxX - minX + 100, height: maxY - minY + 112 }
+  })
+  const area = clusters.reduce((sum, cluster) => sum + cluster.width * cluster.height, 0)
+  const rowWidth = Math.max(...clusters.map(cluster => cluster.width), Math.sqrt(area * 1.8))
+  const result: Record<string, GraphPosition> = {}
+  let x = 0, y = 0, rowHeight = 0
+  for (const cluster of clusters) {
+    if (x && x + cluster.width > rowWidth) { x = 0; y += rowHeight; rowHeight = 0 }
+    for (const point of cluster.points) result[point.id] = { x: point.x - cluster.minX + x + 50, y: point.y - cluster.minY + y + 62 }
+    x += cluster.width; rowHeight = Math.max(rowHeight, cluster.height)
+  }
+  const centerX = (Math.min(...Object.values(result).map(point => point.x)) + Math.max(...Object.values(result).map(point => point.x))) / 2
+  const centerY = (Math.min(...Object.values(result).map(point => point.y)) + Math.max(...Object.values(result).map(point => point.y))) / 2
+  Object.values(result).forEach(point => { point.x -= centerX; point.y -= centerY })
+  const occupied = Object.entries(saved).filter(([id]) => id in result).map(([, point]) => point)
+  for (const cluster of clusters) {
+    const anchors = cluster.points.filter(point => saved[point.id])
+    const offset = anchors.reduce((sum, point) => ({ x: sum.x + (saved[point.id].x - result[point.id].x) / anchors.length, y: sum.y + (saved[point.id].y - result[point.id].y) / anchors.length }), { x: 0, y: 0 })
+    for (const { id } of cluster.points) {
+      if (saved[id]) { result[id] = { ...saved[id] }; continue }
+      const original = { x: result[id].x + offset.x, y: result[id].y + offset.y }
+      let point = original
+      for (let step = 1; step <= 800 && occupied.some(other => Math.hypot(point.x - other.x, point.y - other.y) < gap * .78); step++) {
+        const angle = step * 2.3999632297, radius = Math.sqrt(step) * gap * .6
+        point = { x: original.x + Math.cos(angle) * radius, y: original.y + Math.sin(angle) * radius }
+      }
+      result[id] = point; occupied.push(point)
+    }
+  }
+  return nodes.map(node => ({ ...node, position: result[node.data.id] }))
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { SettingsDialog } from './SettingsDialog'
 import { Modal } from './Modal'
 import { api } from '../api'
@@ -68,6 +68,37 @@ it('leaves other dialogs without a nested scroll region', () => {
 
 const offlineStatus = { offline: { ocr: { available: true, name: 'RapidOCR' },
   vision: { available: false, name: '量化 CLIP' }, network_required: false } } as unknown as Config
+
+it('separates offline capabilities and preference from the online service form and general appearance', async () => {
+  vi.mocked(api).mockResolvedValueOnce(unlocked)
+  render(<SettingsDialog config={offlineStatus} onClose={() => undefined} />)
+
+  const offline = screen.getByRole('region', { name: '离线模式' })
+  const online = screen.getByRole('region', { name: '在线模式' })
+  const general = screen.getByRole('region', { name: '界面偏好' })
+  expect(within(offline).getByText('中文 OCR：已就绪 · RapidOCR')).toBeInTheDocument()
+  expect(within(offline).getByRole('checkbox', { name: '优先使用离线识别' })).toBeInTheDocument()
+  expect(within(offline).queryByLabelText('服务地址')).not.toBeInTheDocument()
+  expect(await within(online).findByLabelText('服务地址')).toBeInTheDocument()
+  expect(within(online).getByLabelText('密钥处理')).toBeInTheDocument()
+  expect(within(online).getByRole('button', { name: '测试连接' })).toBeInTheDocument()
+  expect(within(online).getByRole('button', { name: '保存设置' })).toBeInTheDocument()
+  expect(within(general).getByLabelText('界面密度')).toBeInTheDocument()
+  expect(within(general).queryByRole('checkbox')).not.toBeInTheDocument()
+})
+
+it('keeps offline preferences usable if online configuration cannot be read and sends no model request for preference changes', async () => {
+  vi.mocked(api).mockRejectedValueOnce(new Error('在线配置读取失败'))
+  const onPreferencesChange = vi.fn()
+  renderSettings(DEFAULT_PREFERENCES, onPreferencesChange)
+  const online = screen.getByRole('region', { name: '在线模式' })
+  expect(await within(online).findByRole('alert')).toHaveTextContent('在线配置读取失败')
+  const priority = within(screen.getByRole('region', { name: '离线模式' })).getByRole('checkbox', { name: '优先使用离线识别' })
+  expect(priority).toBeEnabled()
+  fireEvent.click(priority)
+  expect(onPreferencesChange).toHaveBeenLastCalledWith({ ...DEFAULT_PREFERENCES, offlineFirst: false })
+  expect(api).toHaveBeenCalledExactlyOnceWith('/model-config')
+})
 
 it('shows offline status and locks environment-owned fields with their source', async () => {
   vi.mocked(api).mockResolvedValueOnce(environmentLocked)

@@ -11,7 +11,7 @@ it('projects only file dots, keeping unrelated files visible without inventing c
   expect(result.nodes.filter(node => node.data.type === 'file')).toHaveLength(2)
   expect(result.nodes[0].data).toMatchObject({ category: 'study', group: 'study/notes' })
   expect(result.nodes.find(node => node.data.id === 'file:one')?.data.size).toBeGreaterThan(0)
-  expect(result.nodes.every(node => (node.data.size ?? 0) <= 16)).toBe(true)
+  expect(result.nodes.every(node => (node.data.size ?? 0) >= 20)).toBe(true)
   expect(projectGraph({ ...data, items: [...data.items].reverse() }).nodes).toEqual(result.nodes)
 })
 it('keeps all search results outside the canvas limit and expands only 50 files per step', () => {
@@ -174,10 +174,10 @@ it('assigns logarithmic diameters from ordinary leaves through connected hubs an
   const result = projectGraph(data, { expanded: { 'study/notes': 50 } })
   const leaf = result.nodes.find(node => node.data.entry === 'leaf-0')!
   const hub = result.nodes.find(node => node.data.entry === 'hub')!
-  expect(leaf.data.size).toBeGreaterThanOrEqual(7)
-  expect(leaf.data.size).toBeLessThanOrEqual(9)
+  expect(leaf.data.size).toBeGreaterThanOrEqual(20)
+  expect(leaf.data.size).toBeLessThanOrEqual(24)
   expect(hub.data.degree).toBe(30)
-  expect(hub.data.size).toBeGreaterThanOrEqual(16)
-  expect(hub.data.size).toBeLessThanOrEqual(22)
+  expect(hub.data.size).toBeGreaterThan(leaf.data.size!)
+  expect(hub.data.size).toBeLessThanOrEqual(36)
   expect(hub.data.color).toBe(result.categoryColors.study)
 })

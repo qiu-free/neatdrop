@@ -12,8 +12,8 @@ const presets: Record<GraphVisualSettings['layoutPreset'], GraphForceSettings> =
 }
 export function graphLayoutPreset(preset: GraphVisualSettings['layoutPreset']): GraphForceSettings { return { ...presets[preset] } }
 export const defaultGraphVisualSettings: GraphVisualSettings = {
-  colorMode: 'neutral', showIsolates: true, showSuggested: true, nodeScale: 1, edgeOpacity: .55,
-  edgeWidth: 1, showDirections: false, layoutPreset: 'balanced', layout: graphLayoutPreset('balanced'),
+  colorMode: 'category', showIsolates: true, showSuggested: true, nodeScale: 1, edgeOpacity: .8,
+  edgeWidth: 1.6, showDirections: false, layoutPreset: 'balanced', layout: graphLayoutPreset('balanced'),
 }
 function clamp(value: unknown, fallback: number, min: number, max: number) {
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback
@@ -22,11 +22,11 @@ export function normalizeGraphVisualSettings(value: Partial<GraphVisualSettings>
   const preset = value.layoutPreset && value.layoutPreset in presets ? value.layoutPreset : 'balanced'
   const base = graphLayoutPreset(preset), layout = value.layout
   return {
-    colorMode: value.colorMode === 'category' ? 'category' : 'neutral',
+    colorMode: value.colorMode === 'neutral' ? 'neutral' : 'category',
     showIsolates: typeof value.showIsolates === 'boolean' ? value.showIsolates : true,
     showSuggested: typeof value.showSuggested === 'boolean' ? value.showSuggested : true,
-    nodeScale: clamp(value.nodeScale, 1, .5, 2), edgeOpacity: clamp(value.edgeOpacity, .55, 0, 1),
-    edgeWidth: clamp(value.edgeWidth, 1, .5, 4), showDirections: value.showDirections === true,
+    nodeScale: clamp(value.nodeScale, 1, .5, 2), edgeOpacity: clamp(value.edgeOpacity, .8, 0, 1),
+    edgeWidth: clamp(value.edgeWidth, 1.6, .5, 4), showDirections: value.showDirections === true,
     layoutPreset: preset,
     layout: {
       center: clamp(layout?.center, base.center, 0, .2), repulsion: clamp(layout?.repulsion, base.repulsion, 100, 10000),

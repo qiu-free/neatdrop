@@ -226,10 +226,10 @@ body { background: #fff; }
 .app-shell .settings-content .offline-status,
 .app-shell .settings-content .settings-preferences,
 .app-shell .settings-content .settings-test-panel { background: #f5f8fd; border-color: #dfe7f1; }
-.app-shell .settings-content .settings-form-heading h3,
-.app-shell .settings-content .settings-section-heading h3,
+.app-shell .settings-content .settings-form-heading h4,
+.app-shell .settings-content .settings-section-heading h4,
 .app-shell .settings-content .settings-preferences h3,
-.app-shell .settings-content .settings-test-panel h3 { color: #203a5a; }
+.app-shell .settings-content .settings-test-panel h4 { color: #203a5a; }
 .app-shell .settings-content :is(.settings-field,.settings-toggle,.settings-consent) { color: #263d57; }
 .app-shell .settings-content .settings-field > span small,
 .app-shell .settings-content .settings-lock-note,
@@ -273,11 +273,11 @@ body { background: #fff; }
 .modal-layer .learning-tour :is(p,span) { color: var(--muted); }
 .modal-layer .plan-item strong { color: var(--primary-ink); }
 .modal-layer .analysis-options label.chosen { border-color: #83a9dc; background: var(--primary-soft); color: var(--primary-ink); }
-.modal-layer .settings-form-heading h3,
-.modal-layer .settings-section-heading h3,
+.modal-layer .settings-form-heading h4,
+.modal-layer .settings-section-heading h4,
 .modal-layer .settings-preferences h3,
-.modal-layer .settings-test-panel h3,
-.modal-layer .offline-status h3 { color: #203a5a; }
+.modal-layer .settings-test-panel h4,
+.modal-layer .offline-status h4 { color: var(--ink); }
 .modal-layer .settings-form-heading p,
 .modal-layer .settings-section-heading p,
 .modal-layer .settings-preferences p,
@@ -294,8 +294,7 @@ body { background: #fff; }
 .modal-layer .settings-source-tag { color: var(--primary-ink); background: var(--primary-soft); border-color: #cadaf0; font-size: 12px; }
 .modal-layer .settings-key-section { border-top-color: var(--line); }
 .modal-layer .settings-preferences,
-.modal-layer .settings-test-panel,
-.modal-layer .offline-status { background: #f5f8fc; border-color: var(--line); }
+.modal-layer .settings-test-panel { background: var(--surface-soft); border-color: var(--line); }
 .modal-layer .settings-field input,
 .modal-layer .settings-field select { color: var(--ink); background: #fff; border-color: var(--control-line); }
 .modal-layer .settings-field input:disabled,
@@ -312,7 +311,7 @@ body { background: #fff; }
 .modal-layer .settings-field .field-error { color: var(--color-error-ink); font-size: 13px; font-weight: 500; }
 .modal-layer .settings-message.error { color: var(--color-error-ink); background: var(--color-error-surface); border-color: var(--color-error-line); }
 .modal-layer .settings-message.success { color: var(--color-success-ink); background: var(--color-success-surface); border-color: #bfe5d2; }
-.modal-layer .offline-status { padding: 17px; border-radius: var(--radius-control); }
+.modal-layer .offline-status { padding: 0; border: 0; border-radius: 0; background: transparent; }
 .modal-layer .offline-status p { font-size: 14px; line-height: 1.7; }
 .modal-layer .offline-status small { display: block; margin-top: 7px; font-size: 13px; line-height: 1.6; }
 .modal-layer .settings-form { gap: 16px; }

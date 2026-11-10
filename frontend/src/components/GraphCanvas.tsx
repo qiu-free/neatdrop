@@ -193,6 +193,30 @@ export function GraphCanvas(props: Props) {
   }
   const fit = (reset = false) => { const next = fitGraphCamera(Object.values(pointsRef.current).map(point => dimension === '2d' ? { ...point, z: 0 } : point), sizeRef.current, reset || dimension === '2d' ? { yaw: 0, pitch: 0 } : cameraRef.current.rotation); saveCamera(next); autoFit.current = true }
   const projected = useMemo(() => new Map(nodes.filter(node => points[node.data.id]).map(node => [node.data.id, { node, ...projectGraphPoint(dimension === '2d' ? { ...points[node.data.id], z: 0 } : points[node.data.id], dimension === '2d' ? { ...camera, rotation: { yaw: 0, pitch: 0 } } : camera, size) }])), [nodes, points, camera, size, dimension])
+  const nearestNodeDistances = useMemo(() => {
+    const values = [...projected.values()], distances = new Map(values.map(({ node }) => [node.data.id, Infinity]))
+    for (let i = 0; i < values.length; i++) for (let j = i + 1; j < values.length; j++) {
+      const first = values[i], second = values[j], distance = Math.hypot(first.x - second.x, first.y - second.y)
+      distances.set(first.node.data.id, Math.min(distances.get(first.node.data.id)!, distance))
+      distances.set(second.node.data.id, Math.min(distances.get(second.node.data.id)!, distance))
+    }
+    return distances
+  }, [projected])
+  const categoryRegions = useMemo(() => {
+    if (edges.length || view !== 'categories' || dimension !== '2d') return []
+    const groups = new Map<string, { label: string; color: string; xs: number[]; ys: number[] }>()
+    projected.forEach(({ node: { data }, x, y }) => {
+      const key = data.category ?? 'uncategorized'
+      const group = groups.get(key) ?? { label: data.categoryLabel ?? data.category ?? '未分类', color: data.color ?? 'var(--primary)', xs: [], ys: [] }
+      group.xs.push(x); group.ys.push(y); groups.set(key, group)
+    })
+    return [...groups].map(([id, group]) => {
+      const left = Math.min(...group.xs) - 36, top = Math.min(...group.ys) - 58
+      return { id, ...group, left, top, width: Math.max(136, Math.max(...group.xs) - left + 36), height: Math.max(...group.ys) - top + 36 }
+    })
+  }, [projected, edges.length, view, dimension])
+  const crowdedCategories = categoryRegions.some((first, i) => categoryRegions.slice(i + 1).some(second =>
+    first.left < second.left + second.width + 12 && first.left + first.width + 12 > second.left && first.top < second.top + second.height + 12 && first.top + first.height + 12 > second.top))
   const edgeOffsets = useMemo(() => {
     const pairs = new Map<string, GraphEdge[]>()
     edges.forEach(edge => { const key = [edge.data.source, edge.data.target].sort().join('|'); const pair = pairs.get(key) ?? []; pair.push(edge); pairs.set(key, pair) })
@@ -211,11 +235,15 @@ export function GraphCanvas(props: Props) {
   const statusNode = nodes.find(node => node.data.id === (hovered ?? selectedId))
   const statusNeighbors = statusNode ? new Set(edges.filter(edge => edge.data.source === statusNode.data.id || edge.data.target === statusNode.data.id).map(edge => edge.data.source === statusNode.data.id ? edge.data.target : edge.data.source).filter(id => id !== statusNode.data.id)).size : 0
 
-  return <section className="graph-canvas-wrap" aria-label="关系画布">
+  return <><section className="graph-canvas-wrap" aria-label="关系画布">
     <div className="graph-canvas-tools"><button className="button secondary" onClick={() => saveCamera(zoomGraphCamera(cameraRef.current, 1.2))} aria-label="放大画布" title="放大画布">+</button><button className="button secondary" onClick={() => saveCamera(zoomGraphCamera(cameraRef.current, 1 / 1.2))} aria-label="缩小画布" title="缩小画布">−</button><button className="button secondary" onClick={() => fit()}>适合画布</button><button className="button secondary" onClick={() => fit(true)}>重置视图</button></div>
     <button className="button secondary graph-touch-toggle" aria-pressed={operating} onClick={() => { finishGesture.current(undefined, true); touches.current.clear(); pinch.current = null; setOperating(!operating) }}>{operating ? '退出操作' : '操作图谱'}</button>
     <svg ref={svg} className={`graph-canvas graph-spatial-canvas${dragging ? ' is-dragging' : ''}${operating ? ' is-operating' : ''}`} style={{ touchAction: operating ? 'none' : 'auto' }} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="归档分类和资料关系图" aria-describedby={hintId} tabIndex={0} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={event => pointerEnd(event)} onPointerCancel={event => pointerEnd(event, true)} onLostPointerCapture={event => pointerEnd(event, true)} onKeyDown={canvasKey} onClick={() => { if (!suppressClick.current) { setSelected(null); setHovered(null) } suppressClick.current = false }}>
       <defs><marker id={markerId} viewBox="0 0 10 10" refX="14" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" /></marker></defs>
+      <g className="graph-category-regions" pointerEvents="none">{!crowdedCategories ? categoryRegions.map(region => <g key={region.id}>
+        <rect x={region.left} y={region.top} width={region.width} height={region.height} rx="20" fill={region.color} fillOpacity=".045" stroke={region.color} strokeOpacity=".2" />
+        <text x={region.left + 18} y={region.top + 27}>{region.label} · {region.xs.length}</text>
+      </g>) : null}</g>
       <g className="graph-edges">{edges.map(({ data }) => {
         const source = projected.get(data.source), target = projected.get(data.target)
         if (!source || !target) return null
@@ -230,12 +258,14 @@ export function GraphCanvas(props: Props) {
         </g>
       })}</g>
       <g className="graph-nodes">{[...projected.values()].sort((a, b) => a.depth - b.depth).map(({ node: { data }, x, y, scale, depth }) => {
-        const radius = (data.size ?? 7) / 2 * visual.nodeScale * (dimension === '3d' ? Math.max(.88, Math.min(1.28, scale / Math.max(.001, camera.zoom ** 1.2))) : 1), active = data.id === focused
-        const color = visual.colorMode === 'category' ? data.color ?? '#727b75' : (data.degree ?? 0) >= 8 ? '#3b4a47' : (data.degree ?? 0) >= 2 ? '#73817d' : '#a6afab'
+        const clearance = Math.max(6, (nearestNodeDistances.get(data.id) ?? Infinity) * .45)
+        const radius = Math.min(clearance * .8, Math.max(9.2, (data.size ?? 20) / 2) * visual.nodeScale * (dimension === '3d' ? Math.max(.88, Math.min(1.28, scale / Math.max(.001, camera.zoom ** 1.2))) : 1)), active = data.id === focused
+        const color = visual.colorMode === 'category' ? data.color ?? 'var(--graph-node)' : (data.degree ?? 0) >= 8 ? 'var(--graph-node-hub)' : 'var(--graph-node)'
         const action = () => { setHovered(null); setSelected(data.id); if (data.entry) props.onOpen(data.entry); else if (data.group) props.onExpand(data.group) }
         return <g key={data.id} transform={`translate(${x.toFixed(2)} ${y.toFixed(2)})`} className={`graph-spatial-node is-${data.type}${active ? ' is-focused' : ''}`} role="button" tabIndex={0} aria-label={data.entry ? `预览 ${data.label}` : `展开 ${data.label}`} aria-pressed={selectedId === data.id} data-graph-node={data.id} data-depth={depth.toFixed(2)} opacity={focused && !neighbors.has(data.id) ? .5 : 1} onClick={event => { event.stopPropagation(); activate(action) }} onKeyDown={event => keyboardActivate(event, action)} onMouseEnter={() => { if (!drag.current) setHovered(data.id) }} onMouseLeave={() => setHovered(null)} onFocus={() => { setHovered(data.id); setSelected(data.id) }} onBlur={() => setHovered(null)}>
-          <circle className="graph-node-hit" r={Math.max(12, radius)} />
-          <circle className="graph-node-halo" r={radius + 5} />
+          <circle className="graph-node-hit" r={Math.min(clearance, Math.max(22, radius + 6))} />
+          <circle className="graph-node-halo" r={Math.min(clearance, radius + 7)} pointerEvents="none" />
+          <circle className="graph-node-rim" r={Math.min(clearance, radius + 3)} fill={color} fillOpacity=".16" />
           <circle className="graph-node-dot" r={radius} fill={color} />
         </g>
       })}</g>
@@ -243,5 +273,5 @@ export function GraphCanvas(props: Props) {
     {statusNode?.data.entry ? <p className="graph-hover-status" role="status" aria-label="当前聚焦文件">当前聚焦文件：{statusNode.data.label} · {statusNode.data.categoryLabel ?? statusNode.data.category ?? '未分类'} · {statusNeighbors} 个相邻文件</p> : null}
     <p className="graph-interaction-hint" id={hintId}><span className="graph-depth-badge">{dimension === '2d' ? '2D' : '3D'}</span>{dimension === '2d' ? '拖动空白平移 · 拖动节点移动 · 聚焦画布后滚轮缩放' : '拖动空白旋转 · 拖动节点移动 · Shift 拖动平移 · 聚焦画布后滚轮缩放'}<span className="graph-keyboard-hint">；方向键{dimension === '2d' ? '平移' : '旋转'}，Home 重置</span></p>
     {!nodes.length ? <p className="graph-canvas-loading">当前分组已收起或没有匹配文件，请打开图谱设置调整筛选。</p> : null}
-  </section>
+  </section>{crowdedCategories ? <ul className="graph-category-legend" aria-label="图谱类别">{categoryRegions.map(region => <li key={region.id}><span style={{ backgroundColor: region.color }} aria-hidden="true" />{region.label} · {region.xs.length}</li>)}</ul> : null}</>
 }

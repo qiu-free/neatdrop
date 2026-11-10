@@ -9,3 +9,5 @@
 主动选择UTF8 TXT/MD≤10，512KiB/份，2MiB合计；分析≤12000字符。纯文本预览，无HTML执行/URL自动访问，不保存正文。结果只在页面内存，刷新即清空。JSON/CSV导出仅整理元数据，CSV公式前缀保护。
 
 本地构建别名排除本目录输入数据/Worker；网页构建别名替换API和能力对象、排除本地设置组件。构建后均有产物检查。网页使用经典静态资源与模块Worker，部署平台需要允许同源Worker。预览地址不是公开参赛链接。
+
+静态产物的`third-party-notices.txt`保留React、React DOM、Scheduler、Lucide、Cytoscape及Vite辅助代码的随包许可声明；本地原生依赖与模型的许可仍需随各自工程包保留。

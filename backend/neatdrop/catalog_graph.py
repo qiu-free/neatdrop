@@ -308,7 +308,7 @@ class CatalogGraph:
             state['relations'].append(relation)
             if candidate_id:
                 state['dismissed'] = list(dict.fromkeys([*state['dismissed'], candidate_id]))
-        self.catalog.relations.commit(revision, mutate)
+        self.catalog.commit_relations(revision, [snapshot['records'][key][3] for key in (source, target)], mutate)
         return self.listing()
 
     def dismiss(self, identifier, revision):
@@ -321,7 +321,7 @@ class CatalogGraph:
         for key in (relation['source'], relation['target']):
             _, item, identity, _, service = snapshot['records'][key]
             verify(service, item, identity, snapshot['budget'])
-        self.catalog.relations.commit(revision, lambda state: state.update(
+        self.catalog.commit_relations(revision, [snapshot['records'][key][3] for key in (relation['source'], relation['target'])], lambda state: state.update(
             dismissed=list(dict.fromkeys([*state['dismissed'], identifier]))))
         return self.listing()
 
@@ -333,6 +333,6 @@ class CatalogGraph:
             raise SafetyError('GRAPH_RELATION_NOT_FOUND')
         if relation['source'] not in snapshot['records'] or relation['target'] not in snapshot['records']:
             raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
-        self.catalog.relations.commit(revision, lambda current: current.update(
+        self.catalog.commit_relations(revision, [snapshot['records'][key][3] for key in (relation['source'], relation['target'])], lambda current: current.update(
             relations=[r for r in current['relations'] if r['id'] != identifier]))
         return self.listing()

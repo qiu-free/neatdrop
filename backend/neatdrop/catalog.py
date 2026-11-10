@@ -6,7 +6,7 @@ from .catalog_store import CatalogStore
 from .files import SafetyError
 from .graph import GraphService
 from .safe_io import protect_workspace
-from .trust import root_key
+from .trust import _LOCK, root_key
 
 
 def composite_id(root_id, entry_id):
@@ -24,6 +24,20 @@ class Catalog:
         if root is None:
             raise SafetyError('CATALOG_ROOT_NOT_FOUND')
         return root
+
+    def commit_relations(self, revision, roots, mutate):
+        """Serialize metadata membership checks with registry/relationship edits.
+
+        Callers perform file/grant checks before entering this short critical
+        section. No graph-job cancellation or workspace I/O runs under _LOCK.
+        """
+        with _LOCK:
+            current = {root['id']: root for root in self.store.require()['roots']}
+            for root in roots:
+                actual = current.get(root['id'])
+                if actual is None or any(actual[key] != root[key] for key in ('locator', 'identity')):
+                    raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
+            return self.relations.commit(revision, mutate)
 
     def _cancel(self, grant):
         ws = grant['workspace']
@@ -118,28 +132,29 @@ class Catalog:
             ws = pair[0]
             with protect_workspace(ws):
                 key = root_key(ws)
-                registry = self.store.require()
-                existing = next((r for r in registry['roots'] if r['id'] == root_id), None) if root_id else None
-                if root_id and existing is None:
-                    raise SafetyError('CATALOG_ROOT_NOT_FOUND')
-                matching = next((r for r in registry['roots'] if r['locator'] == key['path']), None)
-                if root_id is None and matching is not None:
-                    if matching['identity'] != key['identity']:
+                with _LOCK:
+                    registry = self.store.require()
+                    existing = next((r for r in registry['roots'] if r['id'] == root_id), None) if root_id else None
+                    if root_id and existing is None:
+                        raise SafetyError('CATALOG_ROOT_NOT_FOUND')
+                    matching = next((r for r in registry['roots'] if r['locator'] == key['path']), None)
+                    if root_id is None and matching is not None:
+                        if matching['identity'] != key['identity']:
+                            raise SafetyError('CATALOG_ROOT_IDENTITY_MISMATCH')
+                        if matching['id'] not in self.session.catalog_grants:
+                            raise SafetyError('CATALOG_REAUTHORIZATION_REQUIRED')
+                        existing = matching
+                    if existing and (existing['locator'] != key['path'] or existing['identity'] != key['identity']):
                         raise SafetyError('CATALOG_ROOT_IDENTITY_MISMATCH')
-                    if matching['id'] not in self.session.catalog_grants:
-                        raise SafetyError('CATALOG_REAUTHORIZATION_REQUIRED')
-                    existing = matching
-                if existing and (existing['locator'] != key['path'] or existing['identity'] != key['identity']):
-                    raise SafetyError('CATALOG_ROOT_IDENTITY_MISMATCH')
-                if existing is None and len(registry['roots']) >= 10:
-                    raise SafetyError('CATALOG_ROOT_LIMIT')
-                identifier = existing['id'] if existing else uuid.uuid4().hex
-                record = {'id': identifier, 'alias': alias, 'locator': key['path'], 'identity': key['identity']}
-                def mutate(state):
-                    state['roots'] = [record if r['id'] == identifier else r for r in state['roots']]
-                    if existing is None:
-                        state['roots'].append(record)
-                self.store.commit(registry['revision'], mutate)
+                    if existing is None and len(registry['roots']) >= 10:
+                        raise SafetyError('CATALOG_ROOT_LIMIT')
+                    identifier = existing['id'] if existing else uuid.uuid4().hex
+                    record = {'id': identifier, 'alias': alias, 'locator': key['path'], 'identity': key['identity']}
+                    def mutate(state):
+                        state['roots'] = [record if r['id'] == identifier else r for r in state['roots']]
+                        if existing is None:
+                            state['roots'].append(record)
+                    self.store.commit(registry['revision'], mutate)
                 if identifier in self.session.catalog_grants:
                     self._revoke(identifier)
                 self.session.catalog_statuses.pop(identifier, None)
@@ -158,21 +173,21 @@ class Catalog:
     def remove(self, root_id, revision, relations_revision, confirmed, remove_relations):
         if confirmed is not True:
             raise SafetyError('CONFIRMATION_REQUIRED')
-        self._root(root_id)
         if remove_relations is not True:
             raise SafetyError('CATALOG_RELATIONS_CONFIRMATION_REQUIRED')
         with self.session.catalog_lock:
-            # Check both snapshots before changing either. Relation cleanup is
-            # deliberately committed first so a failed registry write cannot
-            # leave user-requested manual links to a removed root.
-            state = self.store.require()
-            aggregate = self.relations.require()
-            if state['revision'] != revision or aggregate['revision'] != relations_revision:
-                raise SafetyError('CATALOG_REVISION_CONFLICT')
-            self.relations.commit(relations_revision, lambda current: current.update(
-                relations=[r for r in current['relations'] if root_id not in (r['source_root_id'], r['target_root_id'])]))
-            self.store.commit(revision, lambda current: current.update(
-                roots=[r for r in current['roots'] if r['id'] != root_id]))
+            # Across sessions these two metadata writes and their revision
+            # checks form one transaction. Cancellation stays outside _LOCK.
+            with _LOCK:
+                self._root(root_id)
+                state = self.store.require()
+                aggregate = self.relations.require()
+                if state['revision'] != revision or aggregate['revision'] != relations_revision:
+                    raise SafetyError('CATALOG_REVISION_CONFLICT')
+                self.relations.commit(relations_revision, lambda current: current.update(
+                    relations=[r for r in current['relations'] if root_id not in (r['source_root_id'], r['target_root_id'])]))
+                self.store.commit(revision, lambda current: current.update(
+                    roots=[r for r in current['roots'] if r['id'] != root_id]))
             self._revoke(root_id)
             self.session.catalog_statuses.pop(root_id, None)
             return self.states()

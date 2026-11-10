@@ -460,3 +460,79 @@ def test_catalog_revoke_does_not_invert_graph_publish_lock_order(catalog, monkey
     assert not worker.is_alive()
     assert response.status_code == 200
     assert result['publish_progress'] is True
+
+
+@pytest.mark.parametrize('competing_operation', ['register', 'add_relation'])
+def test_catalog_remove_metadata_transaction_cannot_interleave_across_sessions(catalog, monkeypatch, tmp_path, competing_operation):
+    import threading
+    from neatdrop.catalog import Catalog
+    from neatdrop.catalog_graph import CatalogGraph
+    from neatdrop.catalog_store import CatalogStore
+    from neatdrop.security import Session
+
+    client, first_session, archives = catalog
+    roots = [register(client, ws, str(index))['roots'][index]['id'] for index, (ws, _, _) in enumerate(archives)]
+    first = Catalog(first_session, client.app.state.catalog_path)
+    second_session = Session()
+    second_session.workspaces.update(first_session.workspaces)
+    second = Catalog(second_session, client.app.state.catalog_path)
+    for index, (ws, _, _) in enumerate(archives):
+        second.register(ws.id, str(index), True, roots[index])
+    listing = CatalogGraph(first).listing()
+    source, target = [item['id'] for item in listing['items']]
+    if competing_operation == 'register':
+        CatalogGraph(first).add(source, target, 'reference', 0)
+    extra_path = tmp_path / 'concurrent-root'
+    extra_path.mkdir()
+    extra = Workspace(extra_path)
+    second_session.workspaces[extra.id] = (extra, Executor(extra, TrustStore(tmp_path / 'receipts')))
+    before = first.states()
+    cleanup_written, competitor_finished = threading.Event(), threading.Event()
+    results, errors = {}, {}
+    original = CatalogStore.commit
+
+    def pause_after_cleanup(self, revision, mutate):
+        state = original(self, revision, mutate)
+        if self.path.name == 'relations.json' and threading.current_thread().name == 'catalog-remove':
+            cleanup_written.set()
+            # Old code lets the second session commit in this gap. Fixed code
+            # holds only the shared metadata lock, so the contender waits.
+            competitor_finished.wait(.5)
+        return state
+
+    monkeypatch.setattr(CatalogStore, 'commit', pause_after_cleanup)
+
+    def remove():
+        try:
+            results['remove'] = first.remove(roots[0], before['revision'], before['relations_revision'], True, True)
+        except Exception as exc:
+            errors['remove'] = exc
+
+    def compete():
+        assert cleanup_written.wait(3)
+        try:
+            if competing_operation == 'register':
+                results['compete'] = second.register(extra.id, '第三目录', True)
+            else:
+                # Cleanup has advanced relation revision while the old registry
+                # would still include both roots, permitting an orphan relation.
+                results['compete'] = CatalogGraph(second).add(source, target, 'reference', before['relations_revision'] + 1)
+        except Exception as exc:
+            errors['compete'] = exc
+        finally:
+            competitor_finished.set()
+
+    remover = threading.Thread(target=remove, name='catalog-remove', daemon=True)
+    competitor = threading.Thread(target=compete, name='catalog-compete', daemon=True)
+    remover.start(); competitor.start()
+    remover.join(5); competitor.join(5)
+    assert not remover.is_alive() and not competitor.is_alive()
+    assert 'remove' not in errors
+    registry, relations = first.store.require(), first.relations.require()
+    assert roots[0] not in {root['id'] for root in registry['roots']}
+    assert relations['relations'] == []
+    if competing_operation == 'register':
+        assert 'compete' not in errors
+        assert any(root['alias'] == '第三目录' for root in registry['roots'])
+    else:
+        assert 'compete' in errors

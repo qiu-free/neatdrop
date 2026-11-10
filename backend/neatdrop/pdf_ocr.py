@@ -127,6 +127,11 @@ def parse_local_pdf(data, *, cancelled=None, timeout=TOTAL_SECONDS):
         # insufficient text reaches the opt-in gate; cloud sampling is separate.
         if _text_layer_sufficient(parsed):
             return parsed
+        # Preserve the pre-OCR behavior for any selectable text when OCR is
+        # off. The normal content-quality pipeline already marks short or
+        # garbled text for review; no rendering or hidden OCR is performed.
+        if os.getenv('NEATDROP_SCANNED_PDF_OCR') != '1':
+            return parsed
     except SafetyError as exc:
         if exc.code != 'PDF_NO_TEXT':
             raise

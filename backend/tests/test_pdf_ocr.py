@@ -84,14 +84,28 @@ def test_opted_in_hybrid_scan_recovers_raster_text_despite_nonempty_text_layer(m
 
 
 @pytest.mark.parametrize('layer', ['1', 'Confidential'])
-def test_disabled_hybrid_scan_explicitly_reports_insufficient_text_without_ocr(monkeypatch, layer):
+def test_disabled_hybrid_scan_preserves_legacy_nonempty_text_without_ocr(monkeypatch, layer):
     from neatdrop import pdf_ocr, offline
+    from neatdrop.parsing import parse_pdf
+    data = hybrid_scanned_pdf(layer)
+    expected = parse_pdf(data, limit=12000)
     monkeypatch.delenv('NEATDROP_SCANNED_PDF_OCR', raising=False)
     monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
     monkeypatch.setattr(offline, 'analyze_image_bounded', lambda *a, **kw: pytest.fail('OCR called'))
 
-    with pytest.raises(SafetyError, match='PDF_OCR_DISABLED'):
-        pdf_ocr.parse_local_pdf(hybrid_scanned_pdf(layer))
+    assert pdf_ocr.parse_local_pdf(data) == expected
+
+
+@pytest.mark.parametrize('text', ['Short note.', 'Confidential'])
+def test_disabled_short_text_pdf_retains_legacy_payload(monkeypatch, text):
+    from neatdrop import pdf_ocr
+    from neatdrop.parsing import parse_pdf
+    data = text_pdf([text])
+    expected = parse_pdf(data, limit=12000)
+    monkeypatch.delenv('NEATDROP_SCANNED_PDF_OCR', raising=False)
+    monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
+
+    assert pdf_ocr.parse_local_pdf(data) == expected
 
 
 @pytest.mark.parametrize('enabled', [False, True])

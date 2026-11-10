@@ -122,5 +122,5 @@ def test_evaluation_uses_production_quality():
 - [x] Fresh full frontend/backend tests and local/experience builds; original digests unchanged in synthetic execution.
 - [x] Actual browser flow, input mutation, zero API/cloud, mobile/keyboard/reducedmotion and graph evidence.
 - [x] 产出独立静态构建、第三方声明及22份文件的提交/哈希清单；记录部署工具缺失和外部条件。
-- [x] Qoder Sites实际账户发布、公开URL、HTTPS/另一设备与回滚验收；不编造资格确认或Qoder工作历史。
+- [ ] Qoder Sites实际账户发布、公开URL、HTTPS/另一设备与回滚验收；不编造资格确认或Qoder工作历史。
 - [x] Record exact delivered vs remaining data/human/external checks, commits, commands and per-feature switches. Do not claim full optimization until all required gates achieved.

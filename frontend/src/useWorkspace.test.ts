@@ -38,6 +38,22 @@ it('starts a scanned workspace with an explicit empty selection', async () => {
   expect(result.current.selected.size).toBe(0)
 })
 
+it('holds the shared action lock until import preparation and scan finish', async () => {
+  const { result } = renderHook(() => useWorkspace())
+  await waitFor(() => expect(result.current.online).toBe(true))
+  let complete!: () => void
+  const prepare = vi.fn(() => new Promise<void>(resolve => { complete = resolve }))
+  let first!: Promise<unknown>
+  act(() => { first = result.current.scan('imported-text', prepare) })
+  await waitFor(() => expect(prepare).toHaveBeenCalledOnce())
+  const later = vi.fn()
+  await act(async () => { await result.current.scan('newer-work', later) })
+  expect(later).not.toHaveBeenCalled()
+  expect(api).not.toHaveBeenCalledWith('/workspaces', { path: 'newer-work' })
+  await act(async () => { complete(); await first })
+  expect(api).toHaveBeenCalledWith('/workspaces', { path: 'imported-text' })
+})
+
 it('loads the session and configuration once when React Strict Mode remounts the hook', async () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => createElement(StrictMode, null, children)
   const { result } = renderHook(() => useWorkspace(), { wrapper })

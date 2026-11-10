@@ -14,7 +14,9 @@ afterEach(() => { vi.unstubAllGlobals(); document.body.style.overflow = '' })
 
 it.each(['node', 'relation'])('returns keyboard focus to its SVG %s after closing the drawer', async kind => {
   render(<KnowledgeGraphPage workspace={workspace} history={[]} session={createGraphSession(workspace.id)} onWorkbench={vi.fn()} onLibrary={vi.fn()} />)
-  await waitFor(() => expect(document.querySelector('.graph-spatial-node')).not.toBeNull())
+  // The real canvas is a lazy chunk; full-suite worker contention can delay
+  // its initial import beyond Testing Library's default one-second wait.
+  await waitFor(() => expect(document.querySelector('.graph-spatial-node')).not.toBeNull(), { timeout: 5000 })
   const trigger = kind === 'node' ? document.querySelector<SVGGElement>('.graph-spatial-node[aria-label="预览 研究笔记.txt"]')! : document.querySelector<SVGPathElement>('.graph-edge-hit')!
   act(() => trigger.focus())
   fireEvent.keyDown(trigger, { key: 'Enter' })

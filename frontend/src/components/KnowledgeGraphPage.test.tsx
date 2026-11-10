@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import { KnowledgeGraphPage } from './KnowledgeGraphPage'
 import { createGraphSession, type GraphListing } from '../graphTypes'
 import type { Workspace } from '../types'
+import type { CatalogListing } from '../catalogTypes'
 vi.mock('./GraphCanvas', () => ({ GraphCanvas: (props: { visual?: { colorMode: string; nodeScale: number; showSuggested: boolean }; dimension?: string; viewport?: unknown; layoutRevision?: number }) => <div data-testid="canvas-props" data-color={props.visual?.colorMode} data-scale={props.visual?.nodeScale} data-suggested={String(props.visual?.showSuggested)} data-dimension={props.dimension} data-viewport={JSON.stringify(props.viewport)} data-revision={props.layoutRevision}>测试画布</div> }))
 const workspace: Workspace = { id: 'ws-one', name: '资料', path: 'C:\\资料', files: [] }
 const history: [] = []
@@ -335,4 +336,85 @@ it('uses the central viewport transition when opening evidence directly from the
   expect(p.session.view).toBe('relations')
   expect(p.session.viewport).toEqual({ zoom: 1.1, pan: { x: 50, y: 60 } })
   expect(p.session.viewports.categories).toEqual({ zoom: 1.4, pan: { x: 900, y: 800 } })
+})
+
+function makeCatalogPage(offset: number, ids: string[], nextOffset: number | null): CatalogListing {
+  const items = ids.map(id => ({ ...data.items[0], id, name: `${id}.txt`, workspace_id: 'ws-one', original_entry_id: id, source_alias: '资料目录' }))
+  return { ...data, items, relations: ids.length > 1 ? [{ ...data.relations[0], source: ids[0], target: ids[1] }] : [], related_items: [], total: 20, offset, limit: 2, next_offset: nextOffset, roots: [] }
+}
+
+it('uses the current opaque cursor after a later-page relationship mutation', async () => {
+  const urls: string[] = []
+  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => {
+    const url = String(input); urls.push(url)
+    if (url.endsWith('/catalog')) return Promise.resolve(json({ version: 1, revision: 0, relations_revision: 0, roots: [] }))
+    if (url.includes('/catalog/graph?offset=5')) return Promise.resolve(json(makeCatalogPage(5, ['five', 'six'], 11)))
+    if (url.includes('/catalog/graph?')) return Promise.resolve(json(makeCatalogPage(0, ['one', 'two'], 5)))
+    if (url.endsWith('/relations/r1/dismiss')) return Promise.resolve(json(makeCatalogPage(0, ['one', 'two'], 5)))
+    return Promise.resolve(json(data))
+  }))
+  render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'catalog' } })
+  await screen.findByRole('button', { name: '预览 one.txt' })
+  fireEvent.click(screen.getByRole('button', { name: '下一页' }))
+  await waitFor(() => expect(urls).toContain('/api/v1/catalog/graph?offset=5&limit=1000'))
+  await screen.findByRole('button', { name: '预览 five.txt' })
+  fireEvent.click(screen.getByRole('button', { name: 'five.txt 文本相似候选 six.txt' }))
+  fireEvent.click(screen.getByRole('button', { name: '忽略候选' }))
+  await waitFor(() => expect(urls).toContain('/api/v1/catalog/graph?offset=5&limit=1000'))
+  expect(await screen.findByRole('button', { name: '预览 five.txt' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '预览 one.txt' })).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '上一页' }))
+  expect(await screen.findByRole('button', { name: '预览 one.txt' })).toBeInTheDocument()
+})
+
+it('cancels an in-flight catalog job after the creation response arrives late', async () => {
+  let finishCreate!: (response: Response) => void
+  const urls: string[] = []
+  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => {
+    const url = String(input); urls.push(url)
+    if (url.endsWith('/catalog')) return Promise.resolve(json({ version: 1, revision: 0, relations_revision: 0, roots: [] }))
+    if (url.includes('/catalog/graph?')) return Promise.resolve(json(makeCatalogPage(0, ['one'], null)))
+    if (url.endsWith('/graph/jobs')) return new Promise<Response>(resolve => { finishCreate = resolve })
+    if (url.endsWith('/job-late/cancel')) return Promise.resolve(json({ id: 'job-late', status: 'cancelled', processed: 0, total: 1, current_file: null, errors: [] }))
+    return Promise.resolve(json(data))
+  }))
+  render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'catalog' } })
+  await screen.findByRole('button', { name: '预览 one.txt' })
+  fireEvent.click(screen.getByRole('button', { name: '分析关联' }))
+  fireEvent.click(await screen.findByLabelText('选择 one.txt'))
+  fireEvent.click(screen.getByLabelText(/我同意在本机保存/))
+  fireEvent.click(screen.getByRole('button', { name: '开始本机分析' }))
+  await waitFor(() => expect(urls.some(url => url.endsWith('/graph/jobs'))).toBe(true))
+  fireEvent.click(await screen.findByRole('button', { name: '取消分析' }))
+  await act(async () => finishCreate(json({ id: 'job-late', status: 'running', processed: 0, total: 1, current_file: 'one.txt', errors: [] })))
+  expect(await screen.findByText('分析已取消')).toBeInTheDocument()
+  expect(urls.filter(url => url.endsWith('/job-late/cancel'))).toHaveLength(1)
+  expect(urls.filter(url => url.endsWith('/graph/jobs'))).toHaveLength(1)
+})
+
+it('cancels a catalog server task when leaving its graph scope', async () => {
+  const urls: string[] = []
+  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => {
+    const url = String(input); urls.push(url)
+    if (url.endsWith('/catalog')) return Promise.resolve(json({ version: 1, revision: 0, relations_revision: 0, roots: [] }))
+    if (url.includes('/catalog/graph?')) return Promise.resolve(json(makeCatalogPage(0, ['one'], null)))
+    if (url.endsWith('/graph/jobs')) return Promise.resolve(json({ id: 'job-active', status: 'running', processed: 0, total: 1, current_file: 'one.txt', errors: [] }))
+    if (url.endsWith('/job-active/cancel')) return Promise.resolve(json({ id: 'job-active', status: 'cancelled', processed: 0, total: 1, current_file: null, errors: [] }))
+    if (url.endsWith('/job-active')) return Promise.resolve(json({ id: 'job-active', status: 'running', processed: 0, total: 1, current_file: 'one.txt', errors: [] }))
+    return Promise.resolve(json(data))
+  }))
+  const view = render(<KnowledgeGraphPage {...props()} />)
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'catalog' } })
+  await screen.findByRole('button', { name: '预览 one.txt' })
+  fireEvent.click(screen.getByRole('button', { name: '分析关联' }))
+  fireEvent.click(await screen.findByLabelText('选择 one.txt'))
+  fireEvent.click(screen.getByLabelText(/我同意在本机保存/))
+  fireEvent.click(screen.getByRole('button', { name: '开始本机分析' }))
+  await waitFor(() => expect(urls.some(url => url.endsWith('/graph/jobs'))).toBe(true))
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'workspace' } })
+  await waitFor(() => expect(urls).toContain('/api/v1/workspaces/ws-one/graph/jobs/job-active/cancel'))
+  expect(urls.filter(url => url.endsWith('/job-active/cancel'))).toHaveLength(1)
+  view.unmount()
 })

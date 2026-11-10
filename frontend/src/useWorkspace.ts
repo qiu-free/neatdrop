@@ -131,7 +131,7 @@ export function useWorkspace() {
     try {
       return await action()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '操作未完成，请重试。')
+      if (!(err instanceof DOMException && err.name === 'AbortError')) setError(err instanceof Error ? err.message : '操作未完成，请重试。')
     } finally {
       if (actionLock.current === label) {
         actionLock.current = ''
@@ -169,13 +169,20 @@ export function useWorkspace() {
     setExecution(null)
   }
 
-  const scan = async (path: string) => guard('scan', async () => {
+  const scan = async (path: string, prepare?: () => Promise<void>, signal?: AbortSignal) => guard('scan', async () => {
+    signal?.throwIfAborted()
+    await prepare?.()
+    signal?.throwIfAborted()
     const next = await api<Workspace>('/workspaces', { path })
+    // Once the adapter accepted a replacement, publish its matching workspace
+    // even if its importing view left. Read cancellation is checked beforehand.
+    if (!mounted.current) return
     setWorkspace(next)
     resetFiles(next.files)
     const records = await api<Transaction[]>(`/workspaces/${next.id}/transactions`)
     if (mounted.current) setHistory(records)
     setMessage(isWebExperience ? `已载入 ${next.files.length} 项，仅在本页内存处理。` : `已扫描 ${next.files.length} 项，内容未发送至云端。`)
+    return true
   })
 
   const openChild = async (fileId: string) => guard('scan', async () => {

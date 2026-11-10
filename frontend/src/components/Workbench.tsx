@@ -161,11 +161,14 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
     }
   }, [drawerVisible, active?.id])
 
-  async function runScan(nextPath: string) {
-    await state.scan(nextPath)
-    setStage('choose')
-    setDetailOpen(false)
-    returnFocusRef.current = null
+  async function runScan(nextPath: string, prepare?: () => Promise<void>, signal?: AbortSignal) {
+    const result = await (prepare || signal ? state.scan(nextPath, prepare, signal) : state.scan(nextPath))
+    if (!signal?.aborted && result) {
+      setStage('choose')
+      setDetailOpen(false)
+      returnFocusRef.current = null
+    }
+    return result
   }
 
   async function requestScan(nextPath: string) {
@@ -336,12 +339,12 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
           <label htmlFor="directory-path" className="sr-only">本地目录完整路径</label>
           <input id="directory-path" value={path} onChange={event => setPath(event.target.value)} placeholder="粘贴本地文件夹完整路径，例如 C:\Users\你的用户名\Downloads" autoComplete="off" spellCheck={false} disabled={!!busy} />
           <button className="button secondary" disabled={!path.trim() || !!busy || !state.online}>{busy === 'scan' ? <LoaderCircle size={15} className="spin" /> : <ArrowRight size={15} />}扫描目录</button>
-        </form> : <TextImport disabled={!!busy} hasWorkspace={!!workspace} onImported={value => { void state.scan(value) }} />}
+        </form> : <TextImport disabled={!!busy} hasWorkspace={!!workspace} onImported={runScan} />}
         <div className="directory-foot"><span>{isWebExperience ? '浏览器内存 · 不上传文本 · 刷新即清空' : '只扫描当前目录 · 单批 ≤50 项 / 200 MiB · 不永久删除'}</span><button className="text-button" disabled={!!busy || !config} onClick={() => { if (config) void requestScan(config.demo_path) }}>试用人工样例 <ArrowUpRightIcon /></button></div>
       </div>
     </section>
 
-    {isWebExperience ? <><RecordedExamples /><BoundaryExamples disabled={!!busy} onLoaded={value => { void state.scan(value) }} /></> : null}
+    {isWebExperience ? <><RecordedExamples /><BoundaryExamples disabled={!!busy} onLoaded={runScan} /></> : null}
     {!workspace ? <section className="empty-landing" aria-label="开始使用">
       <div className="empty-landing-icon"><FolderOpen size={27} /></div>
         <div><h2>{isWebExperience ? '整理一组学习资料' : '从一个本地文件夹开始'}</h2><p>{isWebExperience ? '载入样例或选择文本，查看真实分类依据，确认后加入浏览器资料库，再探索词项关系。' : '先扫描当前目录，再挑选要整理的文件。分析、复核和生成副本都由你确认。'}</p>

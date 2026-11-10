@@ -32,22 +32,22 @@ def split_manifest(manifest, *, seed='neatdrop-v1', ratios=None):
             if group in declared and declared[group] != existing:
                 raise ValueError('GROUP_SPLIT_LEAK')
             declared[group] = existing
-    ordered = sorted(groups, key=lambda group: (hashlib.sha256(f'{seed}\0{group}'.encode('utf-8')).digest(), group))
-    group_splits = {}
-    assigned = 0
+    group_splits = dict(declared)
+    unassigned = groups - set(declared)
+    ordered = sorted(unassigned, key=lambda group: (hashlib.sha256(f'{seed}\0{group}'.encode('utf-8')).digest(), group))
     boundaries = (ratios['development'], ratios['development'] + ratios['calibration'])
     for index, group in enumerate(ordered):
         fraction = (index + .5) / max(1, len(ordered))
         split = 'development' if fraction < boundaries[0] else 'calibration' if fraction < boundaries[1] else 'test'
         group_splits[group] = split
-        assigned += 1
     result = dict(manifest)
     result['records'] = [dict(record, split=group_splits[record['group']]) for record in manifest['records']]
     row_counts = Counter(record['split'] for record in result['records'])
     group_counts = Counter(group_splits.values())
     result['split_metadata'] = {'algorithm': 'sha256(seed + NUL + group), sorted-rank proportional assignment v1',
                                 'seed': str(seed), 'ratios': dict(ratios),
-                                'input_group_count': len(groups), 'assigned_group_count': assigned,
+                                'input_group_count': len(groups), 'assigned_group_count': len(ordered),
+                                'preserved_group_count': len(declared), 'new_group_count': len(ordered),
                                 'group_counts': dict(group_counts), 'record_counts': dict(row_counts),
                                 'source_groups_remain_intact': True,
                                 'quality_claim': 'Assignment metadata only; no samples or accuracy evidence are created.'}

@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import importlib.metadata
 import json
+import os
 import platform
 import sys
 import time
@@ -15,7 +16,7 @@ from neatdrop.classification_pipeline import classify_payload
 from neatdrop.evaluation import validate_manifest, summarize
 
 
-def evaluate(manifest_path, stages, split=None):
+def evaluate(manifest_path, stages, split=None, *, semantic_mode='product'):
     data = manifest_path.read_bytes()
     rows = validate_manifest(json.loads(data))
     if split:
@@ -28,11 +29,15 @@ def evaluate(manifest_path, stages, split=None):
               'scope': 'Development fixtures; not independent production accuracy evidence.',
               'baseline_scope': 'Frozen v2 classifier. Inline text uses v2 first-12000 sampling; explicit file paths share v3 extraction across stages. Path results compare classifiers only, not v2/v3 extraction.',
               'semantic_experiment': {'rules_uses_product_toggle': True,
-                                      'semantic_stage': 'Explicit experimental comparison stage; not product-default evidence.'},
+                                      'semantic_stage': 'Explicit experimental comparison stage; not product-default evidence.',
+                                      'rules_toggle': semantic_mode,
+                                      'rules_semantic_enabled': (os.getenv('NEATDROP_SEMANTIC_CANDIDATES') == '1'
+                                                                 if semantic_mode == 'product' else semantic_mode == 'on')},
               'sample_sha256': {},
               'engine_fingerprints': {name: hashlib.sha256((PROJECT / 'backend/neatdrop' / name).read_bytes()).hexdigest()
                                       for name in ('analysis.py', 'classifier.py', 'classification_pipeline.py', 'content_quality.py',
                                                    'decision.py', 'extraction.py', 'offline.py', 'semantic.py',
+                                                   'parsing.py', 'document_formats.py', 'pdf_ocr.py',
                                                    'classification_profiles.json')},
               'evaluation_tool_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               'split_tool_sha256': hashlib.sha256((PROJECT / 'scripts/evaluation/make_group_splits.py').read_bytes()).hexdigest(),
@@ -91,8 +96,12 @@ def evaluate(manifest_path, stages, split=None):
                         from neatdrop.semantic import classify_semantic
                         semantic = classify_semantic(text)
                     elif stage == 'rules':
-                        from neatdrop.analysis import local_semantic
-                        semantic = local_semantic(text)
+                        if semantic_mode == 'product':
+                            from neatdrop.analysis import local_semantic
+                            semantic = local_semantic(text)
+                        elif semantic_mode == 'on':
+                            from neatdrop.semantic import classify_semantic
+                            semantic = classify_semantic(text)
                     result = classify_payload({'id': row['id'], 'name': row['name'],
                                                'extension': Path(row['name']).suffix.lower()},
                                               payload, semantic=semantic)
@@ -115,14 +124,7 @@ def main():
     parser.add_argument('--semantic', choices=['product', 'off', 'on'], default='product',
                         help='rules-stage semantic candidates: product env toggle, forced off, or explicit experiment')
     args = parser.parse_args()
-    if args.semantic != 'product':
-        import os
-        if args.semantic == 'on':
-            os.environ['NEATDROP_SEMANTIC_CANDIDATES'] = '1'
-        else:
-            os.environ.pop('NEATDROP_SEMANTIC_CANDIDATES', None)
-    result = evaluate(args.manifest.resolve(), args.stages, args.split)
-    result['semantic_experiment']['rules_toggle'] = args.semantic
+    result = evaluate(args.manifest.resolve(), args.stages, args.split, semantic_mode=args.semantic)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
     lines = ['# 离线分类开发集对照', '', result['scope'], '',

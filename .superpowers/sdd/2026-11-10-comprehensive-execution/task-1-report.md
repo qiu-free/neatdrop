@@ -25,3 +25,27 @@
 - Semantic behavior is split into the product-toggle rules run and a separately labeled explicit semantic experiment. Semantic candidates remain experimental and do not gain calibration from this work.
 - Scanned PDF OCR and embedded Office image extraction are still outside the supported evaluation path.
 - Temporary evaluation artifacts were written under ignored `.cache/task1-*` paths and are not part of this change.
+
+## Review round 1 fixes
+
+- Preserved every consistent existing group split assignment when a manifest is extended; only groups without a split receive deterministic SHA-256-ranked assignments. Existing within-group conflicts still raise `GROUP_SPLIT_LEAK`. Metadata now records preserved and newly assigned group counts.
+- Added `parsing.py` and `document_formats.py` to evaluation engine fingerprints so Office/CSV extraction changes are represented in reports.
+- Reports now distinguish the requested rules toggle mode (`product`, `off`, or `on`) from the effective semantic-enabled boolean. `evaluate(..., semantic_mode=...)` makes this state testable and the CLI passes the requested mode directly.
+- Added regression tests for frozen assignment stability after appending a group, both parser fingerprints, and enabled/disabled semantic state reporting.
+- Added the Task 7 `pdf_ocr.py` extraction module to the fingerprint set and asserted that it appears in reports; Task 7 implementation files remain untouched.
+
+Verification commands and observed output:
+
+```text
+.venv/Scripts/python.exe -m pytest backend/tests/test_evaluation.py -q --tb=short -p no:cacheprovider
+20 passed in 4.82s
+```
+
+The two parser fingerprint assertions failed with `KeyError: 'parsing.py'` before the fix. The semantic-state tests failed with missing report keys before the fix. The initial frozen-group test failed because `preserved_group_count` was absent and group assignments were recalculated; after the fix, its existing group-to-split mapping stayed unchanged when a new group was appended.
+
+Final focused verification after adding the PDF OCR extraction fingerprint:
+
+```text
+.venv/Scripts/python.exe -m pytest backend/tests/test_evaluation.py backend/tests/test_classification_pipeline.py backend/tests/test_analysis.py backend/tests/test_analysis_v3.py backend/tests/test_document_formats_v7.py -q --tb=short -p no:cacheprovider
+117 passed in 56.21s
+```

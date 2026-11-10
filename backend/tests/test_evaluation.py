@@ -10,6 +10,12 @@ def row(identifier='a', group='one', split='development', **extra):
             'must_review': False, **extra}
 
 
+def unassigned_row(identifier='a', group='one', **extra):
+    record = row(identifier, group, **extra)
+    record.pop('split')
+    return record
+
+
 def test_same_template_cannot_leak_between_splits():
     with pytest.raises(ValueError, match='GROUP_SPLIT_LEAK'):
         validate_manifest({'version': 1, 'records': [row(), row('b', split='test')]})
@@ -73,19 +79,26 @@ def test_cli_exercises_manifest_and_anonymous_report(tmp_path):
     import subprocess
     import sys
     from pathlib import Path
+    import os
     manifest = tmp_path / 'input.json'
     output = tmp_path / 'report.json'
     manifest.write_text(json.dumps({'version': 1, 'records': [row(text='PRIVATE BODY')]}), encoding='utf-8')
     command = [sys.executable, str(Path(__file__).resolve().parents[2] / 'scripts/evaluate_offline.py'),
                '--manifest', str(manifest), '--output', str(output), '--stages', 'baseline', 'rules']
-    result = subprocess.run(command, capture_output=True, timeout=20)
+    environment = dict(os.environ)
+    environment.pop('NEATDROP_SEMANTIC_CANDIDATES', None)
+    result = subprocess.run(command, capture_output=True, timeout=20, env=environment)
     assert result.returncode == 0, result.stderr.decode(errors='replace')
     report = json.loads(output.read_text('utf-8'))
     assert report['stages']['baseline']['count'] == 1
     assert report['stages']['rules']['processing_failures'] == 0
     assert report['sample_sha256']['a'] == __import__('hashlib').sha256(b'PRIVATE BODY').hexdigest()
     assert report['engine_fingerprints']['classifier.py']
+    assert report['engine_fingerprints']['parsing.py']
+    assert report['engine_fingerprints']['document_formats.py']
+    assert report['engine_fingerprints']['pdf_ocr.py']
     assert report['semantic_experiment']['rules_toggle'] == 'product'
+    assert report['semantic_experiment']['rules_semantic_enabled'] is False
     assert 'PRIVATE BODY' not in output.read_text('utf-8')
 
 
@@ -133,7 +146,7 @@ def test_evaluator_processes_supported_csv_and_docx_paths_with_production_pipeli
         row('docx', 'docx-source', path='notes.docx', name='notes.docx'),
     ]}), encoding='utf-8')
 
-    report = evaluate(manifest, ['rules'])
+    report = evaluate(manifest, ['rules'], semantic_mode='product')
 
     assert report['stages']['rules']['processing_failures'] == 0
     assert report['stages']['rules']['suggestion_diagnostics']['quality_state_counts']['acceptable'] == 2
@@ -153,15 +166,30 @@ def test_rules_stage_observes_product_semantic_toggle_and_reports_semantic_evide
         'candidates': [{'category': 'study', 'subcategory': 'notes', 'score': .8}],
         'warnings': [], 'version': 'fixture', 'truncated': False})
 
-    report = evaluate(manifest, ['rules'])
+    report = evaluate(manifest, ['rules'], semantic_mode='product')
 
     assert report['stages']['rules']['suggestion_diagnostics']['evidence_source_counts']['semantic'] == 1
+    assert report['semantic_experiment']['rules_semantic_enabled'] is True
+
+
+def test_product_semantic_toggle_report_records_environment_disabled(tmp_path, monkeypatch):
+    import json
+    from scripts.evaluate_offline import evaluate
+
+    manifest = tmp_path / 'manifest.json'
+    manifest.write_text(json.dumps({'version': 1, 'records': [row()]}), encoding='utf-8')
+    monkeypatch.delenv('NEATDROP_SEMANTIC_CANDIDATES', raising=False)
+
+    report = evaluate(manifest, ['rules'], semantic_mode='product')
+
+    assert report['semantic_experiment']['rules_toggle'] == 'product'
+    assert report['semantic_experiment']['rules_semantic_enabled'] is False
 
 
 def test_group_split_assignment_is_repeatable_and_keeps_groups_together():
     from scripts.evaluation.make_group_splits import split_manifest
 
-    manifest = {'version': 1, 'records': [row(f'item-{i}', f'group-{i // 2}') for i in range(20)]}
+    manifest = {'version': 1, 'records': [unassigned_row(f'item-{i}', f'group-{i // 2}') for i in range(20)]}
 
     first = split_manifest(manifest, seed='test-seed')
     second = split_manifest(manifest, seed='test-seed')
@@ -171,6 +199,24 @@ def test_group_split_assignment_is_repeatable_and_keeps_groups_together():
                for group in {r['group'] for r in first['records']})
     assert first['split_metadata']['group_counts'] == {'development': 6, 'calibration': 2, 'test': 2}
     assert 'no samples or accuracy evidence' in first['split_metadata']['quality_claim']
+
+
+def test_group_split_keeps_frozen_assignments_when_new_groups_are_added():
+    from scripts.evaluation.make_group_splits import split_manifest
+
+    original = {'version': 1, 'records': [unassigned_row(f'item-{i}', f'group-{i}') for i in range(10)]}
+    frozen = split_manifest(original, seed='frozen-test')
+    frozen_assignments = {record['group']: record['split'] for record in frozen['records']}
+    augmented = dict(frozen)
+    augmented['records'] = [*frozen['records'], unassigned_row('new-item', 'new-source')]
+
+    reassigned = split_manifest(augmented, seed='frozen-test')
+    assignments = {record['group']: record['split'] for record in reassigned['records']}
+
+    assert {group: assignments[group] for group in frozen_assignments} == frozen_assignments
+    assert assignments['new-source'] in {'development', 'calibration', 'test'}
+    assert reassigned['split_metadata']['preserved_group_count'] == 10
+    assert reassigned['split_metadata']['new_group_count'] == 1
 
 
 def test_group_split_tool_rejects_input_group_leakage():
@@ -189,7 +235,7 @@ def test_group_split_cli_writes_reproducible_assignments_and_input_metadata(tmp_
 
     source = tmp_path / 'input.json'
     source.write_text(json.dumps({'version': 1, 'records': [
-        row(f'item-{i}', f'group-{i // 2}') for i in range(20)]}), encoding='utf-8')
+        unassigned_row(f'item-{i}', f'group-{i // 2}') for i in range(20)]}), encoding='utf-8')
     output = tmp_path / 'split.json'
     script = Path(__file__).resolve().parents[2] / 'scripts/evaluation/make_group_splits.py'
 

@@ -20,7 +20,9 @@
 .\.venv\Scripts\python.exe scripts/evaluation/make_group_splits.py --input docs/evaluation/development.json --output .cache/development-split.json --seed review-v1
 ```
 
-切分按 `group` 用种子和 SHA-256 排序后按比例分配。同组记录始终留在一个 split；输入清单已有同组跨 split 时拒绝运行。输出元数据记录输入摘要、算法版本、种子、比例和分组/记录计数。切分工具只分配现有记录，不收集样本，也不产生分类质量证据。
+切分按 `group` 用种子和 SHA-256 排序后按比例分配。同组记录始终留在一个 split；输入清单已有同组跨 split 时拒绝运行。已有的一致分组分配会被保留，只为尚未分配的组生成新 split，因此向清单追加新组不会移动既有冻结组。输出元数据记录保留组/新分组数量、输入摘要、算法版本、种子、比例和分组/记录计数。切分工具只分配现有记录，不收集样本，也不产生分类质量证据。
+
+评测 JSON 会在 `semantic_experiment` 中同时记录 `rules_toggle`（产品开关或命令覆盖模式）和 `rules_semantic_enabled`（本次运行实际是否启用语义候选）。`engine_fingerprints` 包括 Office 文档解析与可选本地 PDF OCR 的实现，文件格式路径结果可对应到具体提取源码版本。
 
 `baseline` 固定使用 `scripts/evaluation/baseline_v2.py`。内联文本沿用 v2 前 12000 字符；文件路径样本共用新版安全读取和提取，因此只能比较分类器，不能用来证明 v2/v3 图片或 PDF 提取收益。报告的 `baseline_scope` 同时写入 JSON 和 Markdown。
 

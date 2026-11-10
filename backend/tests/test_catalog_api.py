@@ -234,6 +234,49 @@ def test_paging_is_deterministic_and_root_registry_limit_is_ten(catalog, tmp_pat
             assert response.json()['code'] == 'CATALOG_ROOT_LIMIT'
 
 
+def test_catalog_listing_omits_root_lost_between_page_snapshots(catalog, monkeypatch):
+    from neatdrop.catalog import Catalog
+    from neatdrop.catalog_graph import CatalogGraph
+
+    client, session, archives = catalog
+    roots = [register(client, ws, str(index))['roots'][index]['id']
+             for index, (ws, _, _) in enumerate(archives)]
+    catalog_service = Catalog(session, client.app.state.catalog_path)
+    initial = CatalogGraph(catalog_service).snapshot(metadata_only=True)
+    primary_root = initial['records'][initial['ordered'][0]][0]['root_id']
+    original_grant = catalog_service.grant
+    root_calls = {root_id: 0 for root_id in roots}
+
+    def grant(root):
+        root_calls[root['id']] += 1
+        # The initial metadata snapshot calls grant twice per root (read and
+        # generation check). Revoke the root at the selected snapshot boundary.
+        if root['id'] == primary_root and root_calls[root['id']] == 3:
+            session.catalog_grants.pop(root['id'])
+            from neatdrop.files import SafetyError
+            raise SafetyError('CATALOG_AUTHORIZATION_REQUIRED')
+        return original_grant(root)
+
+    monkeypatch.setattr(catalog_service, 'grant', grant)
+
+    listing = CatalogGraph(catalog_service).listing(limit=1)
+
+    returned_ids = {item['id'] for item in listing['items'] + listing['related_items']}
+    assert len(listing['items']) == 0
+    assert len(listing['related_items']) == 1
+    assert listing['effective_limit'] == 1
+    assert listing['next_offset'] == 1
+    assert listing['total'] == 2
+    assert listing['truncated'] is True
+    assert listing['relations_truncated'] is True
+    assert listing['relations'] == []
+    assert all(relation['source'] in returned_ids and relation['target'] in returned_ids
+               for relation in listing['relations'])
+    assert next(root for root in listing['roots'] if root['id'] == primary_root)['status'] == 'pending_reauthorization'
+    assert len(listing['roots']) == 2
+    assert next(root for root in listing['roots'] if root['id'] != primary_root)['status'] == 'authorized'
+
+
 def test_tampered_registry_cannot_redirect_current_grant_or_reauthorize(catalog):
     from neatdrop.catalog_store import CatalogStore
     client, _, archives = catalog

@@ -19,14 +19,40 @@ def sample_pages(count):
 
 def _text_layer_sufficient(payload):
     from .content_quality import assess_content
-    quality = assess_content(payload, image_input=False)
-    segments = payload.get('sampling', {}).get('segments', [])[:4]
-    # The naming-quality floor (<8 readable chars) also accepts common
-    # watermarks. Require a conservative average of 32 letters/numbers per
-    # sampled page so repeated page numbers/short labels cannot pass it.
-    # This bounded heuristic does not establish complete document coverage.
-    return (quality['metrics']['readable_chars'] >= MIN_READABLE_PER_SAMPLED_PAGE * max(1, len(segments))
-            and 'text_garbled' not in quality['issues'])
+    text = payload.get('text', '')
+    sampling = payload.get('sampling')
+    segments = sampling.get('segments') if isinstance(sampling, dict) else None
+    if not segments:
+        quality = assess_content(payload, image_input=False)
+        # Standalone payloads without page metadata retain the bounded whole-
+        # text fallback. This heuristic does not establish document coverage.
+        return (quality['metrics']['readable_chars'] >= MIN_READABLE_PER_SAMPLED_PAGE
+                and 'text_garbled' not in quality['issues'])
+    if not isinstance(text, str) or not isinstance(segments, list) or len(segments) > 4:
+        return False
+
+    # Parser segments retain page lengths while the sampled text uses one
+    # newline between pages. Assess each body independently so a cover cannot
+    # mask scanned or nearly blank pages.
+    cursor = 0
+    for index, segment in enumerate(segments):
+        if (not isinstance(segment, dict) or segment.get('start') != 0 or
+                not isinstance(segment.get('end'), int) or isinstance(segment.get('end'), bool) or
+                segment['end'] < 0):
+            return False
+        end = cursor + segment['end']
+        if end > len(text):
+            return False
+        quality = assess_content({'text': text[cursor:end]}, image_input=False)
+        if (quality['metrics']['readable_chars'] < MIN_READABLE_PER_SAMPLED_PAGE or
+                'text_garbled' in quality['issues']):
+            return False
+        cursor = end
+        if index < len(segments) - 1:
+            if cursor >= len(text) or text[cursor] != '\n':
+                return False
+            cursor += 1
+    return True
 
 
 def pdf_ocr_status():

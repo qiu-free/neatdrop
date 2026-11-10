@@ -220,14 +220,22 @@ class CatalogGraph:
             page_issues.append({'code': 'CATALOG_RELATED_LIMIT'})
         state = snapshot['state']
         selected = members | set(related)
-        return {'items': [snapshot['records'][key][0] for key in page],
-            'related_items': [snapshot['records'][key][0] for key in related],
+        present = set(snapshot['records'])
+        returned_page = [key for key in page if key in present]
+        returned_related = [key for key in related if key in present]
+        missing_page = len(returned_page) != len(page)
+        missing_related = len(returned_related) != len(related)
+        if missing_page or missing_related:
+            page_issues.append({'code': 'CATALOG_ROOT_CHANGED'})
+        return {'items': [snapshot['records'][key][0] for key in returned_page],
+            'related_items': [snapshot['records'][key][0] for key in returned_related],
             'relations': [r for r in snapshot['relations'] if (r['source'] in members or r['target'] in members)
-                          and r['source'] in selected and r['target'] in selected],
+                          and r['source'] in present and r['target'] in present and
+                          r['source'] in selected and r['target'] in selected],
             'total': total, 'offset': offset, 'limit': limit, 'effective_limit': effective_limit,
-            'next_offset': offset + len(page) if offset + len(page) < total else None,
-            'truncated': snapshot['root_truncated'] or total > len(page),
-            'relations_truncated': relations_truncated or snapshot['budget'].limited,
+            'next_offset': offset + effective_limit if offset + effective_limit < total else None,
+            'truncated': snapshot['root_truncated'] or total > len(page) or missing_page,
+            'relations_truncated': relations_truncated or snapshot['budget'].limited or missing_page or missing_related,
             'verification': {'bytes': snapshot['budget'].bytes, 'max_bytes': VERIFY_MAX_BYTES,
                              'max_seconds': VERIFY_SECONDS, 'limited': snapshot['budget'].limited},
             'roots': self.catalog.states()['roots'], 'root_revisions': snapshot['root_revisions'],

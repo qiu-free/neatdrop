@@ -121,6 +121,42 @@ def test_adequate_text_pdf_retains_exact_legacy_payload_without_optional_depende
     assert pdf_ocr.parse_local_pdf(data) == expected
 
 
+def test_mixed_sampled_text_pages_reach_ocr_but_disabled_path_is_exact_legacy(monkeypatch):
+    from neatdrop import pdf_ocr, offline
+    from neatdrop.parsing import parse_pdf
+
+    data = text_pdf(['Selectable cover ' + 'A' * 140, 'Short', '', ''])
+    expected = parse_pdf(data, limit=12000)
+    assert len(expected['sampling']['segments']) == 3
+    assert expected['sampling']['segments'][0]['end'] >= 32
+
+    monkeypatch.delenv('NEATDROP_SCANNED_PDF_OCR', raising=False)
+    monkeypatch.setattr(pdf_ocr, 'render_page', lambda *a, **kw: pytest.fail('renderer called'))
+    assert pdf_ocr.parse_local_pdf(data) == expected
+
+    monkeypatch.setenv('NEATDROP_SCANNED_PDF_OCR', '1')
+    rendered, recognized = [], []
+
+    def render(_data, page, **_kwargs):
+        rendered.append(page)
+        return Image.new('RGB', (100, 100), 'white'), 4
+
+    def ocr(_image, **_kwargs):
+        recognized.append(len(recognized) + 1)
+        return {'text': f'Recovered sampled page {recognized[-1]} with readable text.',
+                'ocr_lines': [], 'warnings': []}
+
+    monkeypatch.setattr(pdf_ocr, 'render_page', render)
+    monkeypatch.setattr(offline, 'analyze_image_bounded', ocr)
+
+    result = pdf_ocr.parse_local_pdf(data)
+
+    assert rendered == [0, 1, 3]
+    assert recognized == [1, 2, 3]
+    assert [segment['page'] for segment in result['sampling']['segments']] == [1, 2, 4]
+    assert all(f'Recovered sampled page {page}' in result['text'] for page in recognized)
+
+
 def test_cloud_pdf_sampling_bypasses_local_ocr_even_when_enabled(monkeypatch):
     from neatdrop import pdf_ocr
     from neatdrop.analysis import decode_input

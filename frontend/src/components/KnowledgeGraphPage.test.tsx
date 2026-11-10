@@ -225,9 +225,10 @@ it('preserves running job when navigating away and resumes cancellation on revis
 })
 it('shows completed job errors and refreshes indexed listing after terminal job response', async () => {
   setup(); const original = vi.mocked(fetch).getMockImplementation()!
+  const p = props()
   let completed = false
   vi.stubGlobal('fetch', vi.fn((url: string, init?: RequestInit) => { if (url.endsWith('/jobs')) { completed = true; return Promise.resolve(json({ id: 'job1', status: 'completed', processed: 1, total: 1, current_file: null, errors: [{ entry_id: 'one', code: 'GRAPH_CONTENT_LIMITED' }] })) } return url.endsWith('/graph') && completed ? Promise.resolve(json({ ...data, index: { ...data.index, count: 3 } })) : original(url, init) }))
-  render(<KnowledgeGraphPage {...props()} />)
+  render(<KnowledgeGraphPage {...p} />)
   fireEvent.click(await screen.findByRole('button', { name: '分析关联' }))
   fireEvent.click(screen.getByLabelText('选择 研究笔记.txt'))
   fireEvent.click(screen.getByLabelText(/我同意在本机保存/))
@@ -417,4 +418,48 @@ it('cancels a catalog server task when leaving its graph scope', async () => {
   await waitFor(() => expect(urls).toContain('/api/v1/workspaces/ws-one/graph/jobs/job-active/cancel'))
   expect(urls.filter(url => url.endsWith('/job-active/cancel'))).toHaveLength(1)
   view.unmount()
+})
+
+it('keeps catalog cancellation retryable across registry refresh and scope return after create resolves late', async () => {
+  let finishCreate!: (response: Response) => void
+  let cancelAttempts = 0
+  const urls: string[] = []
+  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => {
+    const url = String(input); urls.push(url)
+    if (url.endsWith('/catalog')) return Promise.resolve(json({ version: 1, revision: 0, relations_revision: 0, roots: [] }))
+    if (url.includes('/catalog/graph?')) return Promise.resolve(json(makeCatalogPage(0, ['one'], null)))
+    if (url.endsWith('/workspaces/ws-one/graph/jobs')) return new Promise<Response>(resolve => { finishCreate = resolve })
+    if (url.endsWith('/job-late/cancel')) {
+      cancelAttempts += 1
+      if (cancelAttempts === 1) return Promise.resolve(json({ code: 'TEMPORARY_FAILURE' }, false))
+      return Promise.resolve(json({ id: 'job-late', status: 'cancelled', processed: 0, total: 1, current_file: null, errors: [] }))
+    }
+    if (url.endsWith('/catalog/roots')) return Promise.resolve(json({ version: 1, revision: 1, relations_revision: 0, roots: [] }))
+    if (url.endsWith('/job-late')) return Promise.resolve(json({ id: 'job-late', status: 'running', processed: 0, total: 1, current_file: 'one.txt', errors: [] }))
+    if (url.endsWith('/workspaces/ws-one/graph')) return Promise.resolve(json(data))
+    return Promise.resolve(json(data))
+  }))
+  const p = props()
+  const view = render(<KnowledgeGraphPage {...p} />)
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'catalog' } })
+  await screen.findByRole('button', { name: '预览 one.txt' })
+  fireEvent.click(screen.getByRole('button', { name: '分析关联' }))
+  fireEvent.click(await screen.findByLabelText('选择 one.txt'))
+  fireEvent.click(screen.getByLabelText(/我同意在本机保存/))
+  fireEvent.click(screen.getByRole('button', { name: '开始本机分析' }))
+  await waitFor(() => expect(urls.some(url => url.endsWith('/workspaces/ws-one/graph/jobs'))).toBe(true))
+
+  fireEvent.click(screen.getByRole('button', { name: '将当前目录加入资料集合' }))
+  await waitFor(() => expect(urls.some(url => url.endsWith('/catalog/roots'))).toBe(true))
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'workspace' } })
+  view.unmount()
+  render(<KnowledgeGraphPage {...p} />)
+  fireEvent.change(screen.getByLabelText('图谱范围'), { target: { value: 'catalog' } })
+  await screen.findByRole('button', { name: '预览 one.txt' })
+  await act(async () => finishCreate(json({ id: 'job-late', status: 'running', processed: 0, total: 1, current_file: 'one.txt', errors: [] })))
+  await waitFor(() => expect(urls.filter(url => url.endsWith('/job-late/cancel'))).toHaveLength(1))
+  expect(screen.getByText(/正在分析/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '取消分析' }))
+  await waitFor(() => expect(urls.filter(url => url.endsWith('/job-late/cancel'))).toHaveLength(2))
+  expect(screen.getByText('分析已取消')).toBeInTheDocument()
 })

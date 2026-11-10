@@ -18,8 +18,9 @@ import { GraphImageEvidence } from './GraphImageEvidence'
 import { LibraryDrawer } from './LibraryPage'
 import './graph.css'
 const GraphCanvas = lazy(() => import('./GraphCanvas').then(module => ({ default: module.GraphCanvas })))
-type Props = { workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void; onLibrary: (entryId?: string) => void; session: GraphSession; onContentReady?: (workspaceId: string) => void; catalog?: boolean }
-function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onContentReady, catalog = false }: Props) {
+type Props = { workspace: Workspace | null; history: Transaction[]; taxonomy?: Taxonomy; onWorkbench: () => void; onLibrary: (entryId?: string) => void; session: GraphSession; onContentReady?: (workspaceId: string) => void; catalog?: boolean; catalogRevision?: number }
+const catalogSessions = new WeakMap<GraphSession, GraphSession>()
+function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onContentReady, catalog = false, catalogRevision = 0 }: Props) {
   session.visual ??= normalizeGraphVisualSettings()
   session.dimension ??= '2d'
   const { categories, subcategories } = useTaxonomy(), [listing, setListing] = useState<GraphListing | null>(null), [error, setError] = useState(''), [reload, setReload] = useState(0)
@@ -34,9 +35,19 @@ function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onC
   const settingsTrigger = useRef<HTMLButtonElement>(null)
   const lifetime = useRef(new AbortController()), evidenceRequest = useRef<AbortController | null>(null), trigger = useRef<HTMLElement | SVGElement | null>(null), base = catalog ? '/catalog/graph' : `/workspaces/${encodeURIComponent(workspace?.id ?? '')}/graph`, selectedRelation = listing?.relations.find(relation => relation.id === selected), active = listing?.items.find(item => item.id === activeId)
   const refresh = useCallback(async (signal?: AbortSignal) => { if (!workspace && !catalog) return; setError(''); try { const effective = signal ?? lifetime.current.signal; const result = await api<GraphListing>(catalog ? `${base}?offset=${offset}&limit=1000` : base, undefined, effective); if (!effective.aborted) { if (catalog) { const page = result as CatalogListing; setListing({ ...page, primary_count: page.items.length, items: [...page.items, ...page.related_items ?? []] } as CatalogListing) } else setListing(result) } } catch (reason) { if (!signal?.aborted) setError(reason instanceof Error ? reason.message : '无法读取本机图谱。') } }, [workspace, base, catalog, offset])
-  useEffect(() => { const controller = new AbortController(); void refresh(controller.signal); return () => controller.abort() }, [refresh, history, reload])
+  useEffect(() => { const controller = new AbortController(); void refresh(controller.signal); return () => controller.abort() }, [refresh, history, reload, catalogRevision])
   useEffect(() => { onContentReady?.(workspace?.id ?? '') }, [workspace?.id, onContentReady])
   useEffect(() => { lifetime.current = new AbortController(); return () => { lifetime.current.abort(); evidenceRequest.current?.abort(); catalogTask.current?.abort() } }, [])
+  useEffect(() => {
+    if (!catalog) return
+    session.catalogListeners ??= new Set()
+    const listener = () => {
+      catalogJobPath.current = session.catalogJobPath ?? null
+      if (session.job) setJob({ ...session.job })
+    }
+    session.catalogListeners.add(listener)
+    return () => { session.catalogListeners?.delete(listener) }
+  }, [catalog, session])
   useEffect(() => {
     if (!catalog || !catalogJobPath.current || !job || !['queued', 'running'].includes(job.status)) return
     let live = true
@@ -78,7 +89,7 @@ function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onC
     if (!listing || !checked.length || !consent || busy) return
     const controller = new AbortController(); catalogTask.current = controller; setBusy(true); session.job = { id: 'catalog-index', status: 'running', processed: 0, total: checked.length, current_file: '准备分析…', errors: [] }; setJob(session.job)
     try {
-      const task = indexCatalog(listing.items.filter(item => checked.includes(item.id)), controller.signal, value => { session.job = value; if (!lifetime.current.signal.aborted) setJob(value) }, path => { catalogJobPath.current = path; session.catalogJobPath = path })
+      const task = indexCatalog(listing.items.filter(item => checked.includes(item.id)), controller.signal, value => { session.job = value; session.catalogListeners?.forEach(listener => listener()); if (!lifetime.current.signal.aborted) setJob(value) }, path => { catalogJobPath.current = path; session.catalogJobPath = path; session.catalogListeners?.forEach(listener => listener()) })
       catalogTaskResult.current = task
       const result = await task
       if (!lifetime.current.signal.aborted) { session.job = result; setJob(result); setAnalysisOpen(false); if (result.status === 'completed') { await refresh(lifetime.current.signal); setMessage('已完成所选目录的本地索引与集合关系汇总。') } else setMessage(result.status === 'cancelled' ? '分析已取消。' : explain(result.error ?? 'GRAPH_JOB_FAILED')) }
@@ -173,9 +184,13 @@ function GraphContent({ workspace, history, session, onLibrary, onWorkbench, onC
 }
 export function KnowledgeGraphPage(props: Props) {
   const [scope, setScope] = useState<'workspace' | 'catalog'>('workspace'), [catalogRevision, setCatalogRevision] = useState(0)
-  const catalogSession = useRef(createGraphSession('catalog'))
+  const catalogSession = useRef<GraphSession | null>(null)
+  if (!catalogSession.current) {
+    catalogSession.current = catalogSessions.get(props.session) ?? createGraphSession('catalog')
+    catalogSessions.set(props.session, catalogSession.current)
+  }
   if (props.session.workspace !== (props.workspace?.id ?? null)) Object.assign(props.session, createGraphSession(props.workspace?.id ?? null))
-  return <TaxonomyProvider taxonomy={props.taxonomy}>{runtimeCapabilities.canAggregateRoots ? <><label className="catalog-scope">图谱范围<select aria-label="图谱范围" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="workspace">当前目录归档资料</option><option value="catalog">全部已授权资料集合</option></select></label>{scope === 'catalog' ? <CatalogPanel workspace={props.workspace} onChanged={() => { Object.assign(catalogSession.current, createGraphSession('catalog')); setCatalogRevision(value => value + 1) }} /> : null}</> : null}<GraphContent key={scope === 'catalog' ? `catalog-${catalogRevision}` : props.workspace?.id ?? 'empty'} {...props} catalog={scope === 'catalog'} session={scope === 'catalog' ? catalogSession.current : props.session} /></TaxonomyProvider>
+  return <TaxonomyProvider taxonomy={props.taxonomy}>{runtimeCapabilities.canAggregateRoots ? <><label className="catalog-scope">图谱范围<select aria-label="图谱范围" value={scope} onChange={event => setScope(event.target.value as typeof scope)}><option value="workspace">当前目录归档资料</option><option value="catalog">全部已授权资料集合</option></select></label>{scope === 'catalog' ? <><CatalogPanel workspace={props.workspace} onChanged={() => setCatalogRevision(value => value + 1)} /><GraphContent key="catalog" {...props} catalog catalogRevision={catalogRevision} session={catalogSession.current} /></> : <GraphContent key={props.workspace?.id ?? 'empty'} {...props} session={props.session} />}</> : null}{!runtimeCapabilities.canAggregateRoots ? <GraphContent {...props} /> : null}</TaxonomyProvider>
 }
 
 function focusedTrigger() {

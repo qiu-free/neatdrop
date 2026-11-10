@@ -467,6 +467,7 @@ def test_catalog_remove_metadata_transaction_cannot_interleave_across_sessions(c
     import threading
     from neatdrop.catalog import Catalog
     from neatdrop.catalog_graph import CatalogGraph
+    from neatdrop import catalog_store
     from neatdrop.catalog_store import CatalogStore
     from neatdrop.security import Session
 
@@ -489,18 +490,18 @@ def test_catalog_remove_metadata_transaction_cannot_interleave_across_sessions(c
     before = first.states()
     cleanup_written, competitor_finished = threading.Event(), threading.Event()
     results, errors = {}, {}
-    original = CatalogStore.commit
+    original = catalog_store._atomic_write
 
-    def pause_after_cleanup(self, revision, mutate):
-        state = original(self, revision, mutate)
-        if self.path.name == 'relations.json' and threading.current_thread().name == 'catalog-remove':
+    def pause_after_cleanup(path, raw):
+        state = original(path, raw)
+        if path.name == 'relations.json' and threading.current_thread().name == 'catalog-remove':
             cleanup_written.set()
             # Old code lets the second session commit in this gap. Fixed code
             # holds only the shared metadata lock, so the contender waits.
             competitor_finished.wait(.5)
         return state
 
-    monkeypatch.setattr(CatalogStore, 'commit', pause_after_cleanup)
+    monkeypatch.setattr(catalog_store, '_atomic_write', pause_after_cleanup)
 
     def remove():
         try:
@@ -536,3 +537,45 @@ def test_catalog_remove_metadata_transaction_cannot_interleave_across_sessions(c
         assert any(root['alias'] == '第三目录' for root in registry['roots'])
     else:
         assert 'compete' in errors
+
+
+def test_interrupted_catalog_remove_recovers_both_metadata_files_on_fresh_catalog(catalog, monkeypatch):
+    from neatdrop import catalog_store
+    from neatdrop.catalog import Catalog
+    from neatdrop.catalog_graph import CatalogGraph
+    from neatdrop.security import Session
+
+    client, session, archives = catalog
+    roots = [register(client, ws, str(index))['roots'][index]['id'] for index, (ws, _, _) in enumerate(archives)]
+    initial = client.get('/api/v1/catalog/graph').json()
+    source, target = [item['id'] for item in initial['items']]
+    added = client.post('/api/v1/catalog/graph/relations', json={'source': source, 'target': target,
+        'kind': 'reference', 'revision': 0})
+    assert added.status_code == 200
+    registry = client.get('/api/v1/catalog').json()
+    original = getattr(catalog_store, '_atomic_write', None)
+    failure = {'raised': False}
+
+    def fail_registry_replace(path, raw):
+        if path.name == 'roots.json' and not failure['raised']:
+            failure['raised'] = True
+            raise OSError('injected second catalog metadata replace failure')
+        return original(path, raw)
+
+    monkeypatch.setattr(catalog_store, '_atomic_write', fail_registry_replace, raising=False)
+    response = client.request('DELETE', '/api/v1/catalog/roots/' + roots[0], json={
+        'revision': registry['revision'], 'relations_revision': registry['relations_revision'],
+        'confirmed': True, 'remove_relations': True})
+    assert response.status_code == 409
+    assert failure['raised'] is True
+    monkeypatch.undo()
+
+    # A new Catalog object simulates the next request after process restart.
+    fresh_session = Session()
+    fresh = Catalog(fresh_session, client.app.state.catalog_path)
+    recovered = fresh.states()
+    assert roots[0] not in {root['id'] for root in recovered['roots']}
+    assert recovered['relations_revision'] == registry['relations_revision'] + 1
+    state = fresh.relations.require()
+    assert state['relations'] == []
+    assert len(recovered['roots']) == 1

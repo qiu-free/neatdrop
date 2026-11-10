@@ -2,7 +2,7 @@
 import hashlib
 import uuid
 
-from .catalog_store import CatalogStore
+from .catalog_store import CatalogStore, commit_catalog_removal
 from .files import SafetyError
 from .graph import GraphService
 from .safe_io import protect_workspace
@@ -179,15 +179,7 @@ class Catalog:
             # Across sessions these two metadata writes and their revision
             # checks form one transaction. Cancellation stays outside _LOCK.
             with _LOCK:
-                self._root(root_id)
-                state = self.store.require()
-                aggregate = self.relations.require()
-                if state['revision'] != revision or aggregate['revision'] != relations_revision:
-                    raise SafetyError('CATALOG_REVISION_CONFLICT')
-                self.relations.commit(relations_revision, lambda current: current.update(
-                    relations=[r for r in current['relations'] if root_id not in (r['source_root_id'], r['target_root_id'])]))
-                self.store.commit(revision, lambda current: current.update(
-                    roots=[r for r in current['roots'] if r['id'] != root_id]))
+                commit_catalog_removal(self.store, self.relations, root_id, revision, relations_revision)
             self._revoke(root_id)
             self.session.catalog_statuses.pop(root_id, None)
             return self.states()

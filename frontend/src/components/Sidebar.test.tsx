@@ -6,8 +6,9 @@ it('keeps every workspace destination available inside the glass navigation rail
   const navigation = screen.getByRole('navigation', { name: '主导航' })
 
   expect(screen.getByRole('complementary')).toHaveClass('sidebar-glass')
-  expect(navigation.querySelectorAll('button')).toHaveLength(6)
-  expect(screen.getByRole('button', { name: '产品说明' })).toBeEnabled()
+  expect(navigation.querySelectorAll('button')).toHaveLength(5)
+  expect(screen.queryByRole('button', { name: '产品说明' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '使用说明' })).toBeEnabled()
   expect(screen.getByRole('button', { name: '资料库' })).toHaveAttribute('aria-current', 'page')
   expect(screen.getByText('整理有序，原件安心')).toBeInTheDocument()
   expect(screen.getByText('本地服务已连接')).toBeInTheDocument()

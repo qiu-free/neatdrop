@@ -17,7 +17,7 @@ export function createPageSession() {
     library: { workspace: null, category: 'all', query: '' } as LibrarySession,
     help: { query: '' } as HelpSession,
     graph: createGraphSession(),
-    scroll: { workbench: 0, library: 0, graph: 0, history: 0, help: 0, product: 0 } as Record<Page, number>,
+    scroll: { workbench: 0, library: 0, graph: 0, history: 0, help: 0 } as Record<Page, number>,
   }
 }
 

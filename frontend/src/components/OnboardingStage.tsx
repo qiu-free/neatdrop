@@ -9,6 +9,6 @@ export const onboardingSteps: Record<WorkflowStage, { image: string; task: strin
   history: { image: 'history', task: '可选：查看记录，再练习一次副本撤回。', result: '撤回把副本移入撤回区，不改动原件，也不释放磁盘空间。' },
 }
 
-export function OnboardingStage({ stage, title, showCaption = true }: { stage: WorkflowStage; title: string; showCaption?: boolean }) {
-  return <figure className="onboarding-stage-art"><img src={`/help/${onboardingSteps[stage].image}.svg`} alt={`${title}阶段示意图`} />{showCaption ? <figcaption>{onboardingSteps[stage].result}</figcaption> : null}</figure>
+export function OnboardingStage({ stage, title }: { stage: WorkflowStage; title: string }) {
+  return <figure className="onboarding-stage-art"><img src={`/help/${onboardingSteps[stage].image}.svg`} alt={`${title}阶段示意图`} /><figcaption>{onboardingSteps[stage].result}</figcaption></figure>
 }

@@ -16,23 +16,24 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 }) })
 
-it('opens product explanation from the sidebar without touching the current draft or requesting files', async () => {
+it('keeps help and practice accessible after removing product explanation without losing the current draft', async () => {
   render(<App />)
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
   await screen.findByText('本地服务已连接')
   fireEvent.change(screen.getByLabelText('本地目录完整路径'), { target: { value: 'C:/尚未扫描的草稿' } })
   const requests = vi.mocked(fetch).mock.calls.length
-  fireEvent.click(within(screen.getByRole('navigation', { name: '主导航' })).getByRole('button', { name: '产品说明' }))
-  const heading = screen.getByRole('heading', { level: 1, name: '认识 NeatDrop' })
+  const navigation = within(screen.getByRole('navigation', { name: '主导航' }))
+  expect(navigation.queryByRole('button', { name: '产品说明' })).not.toBeInTheDocument()
+  fireEvent.click(navigation.getByRole('button', { name: '使用说明' }))
+  const heading = screen.getByRole('heading', { level: 1, name: /一份清晰的使用指南/ })
   expect(heading).toHaveFocus()
-  expect(screen.getByRole('button', { name: '产品说明' })).toHaveAttribute('aria-current', 'page')
-  expect(screen.getByRole('heading', { name: '文件会保存在哪里' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: '离线分析与在线分析' })).toBeInTheDocument()
+  expect(navigation.getByRole('button', { name: '使用说明' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('heading', { name: '六个阶段，把文件理清楚' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls).toHaveLength(requests)
   fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
   expect(screen.getByRole('dialog', { name: '安全练习' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: '关闭弹窗' }))
-  fireEvent.click(screen.getByRole('button', { name: '进入整理工作台' }))
+  fireEvent.click(navigation.getByRole('button', { name: '整理工作台' }))
   expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('C:/尚未扫描的草稿')
 })
 

@@ -51,10 +51,10 @@ function evidenceLocation(item: EvidenceItem) {
   return ''
 }
 
-export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, onEdit, position, total, onPrevious, onNext, checked = false, editingDisabled = false, reviewed = false, onApprove, onClose, drawerOpen = false, analysisError, previewEnabled = true }: {
+export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, onEdit, position, total, onPrevious, onNext, checked = false, editingDisabled = false, editingHint, reviewed = false, onApprove, onClose, drawerOpen = false, analysisError, previewEnabled = true }: {
   workspaceId: string; workspacePath?: string; file: FileRecord; suggestion?: Suggestion; edit?: Edit; onEdit: (edit: Edit) => void
   position?: number; total?: number; onPrevious?: () => void; onNext?: () => void; checked?: boolean
-  editingDisabled?: boolean; reviewed?: boolean; onApprove?: () => void; onClose?: () => void; drawerOpen?: boolean
+  editingDisabled?: boolean; editingHint?: string; reviewed?: boolean; onApprove?: () => void; onClose?: () => void; drawerOpen?: boolean
   analysisError?: string; previewEnabled?: boolean
 }) {
   const { taxonomy, categories, subcategories, contentForms } = useTaxonomy()
@@ -110,7 +110,7 @@ export function Inspector({ workspaceId, workspacePath, file, suggestion, edit, 
       {suggestion ? <div className="classification-decision"><span className={`decision-badge ${decisionLevel}`}>{decisionLabels[decisionLevel]}</span>{category !== 'other' && subtype === null ? <p>主分类已有依据，二级分类待确认；可仅按主分类归档。</p> : null}</div> : null}
       {suggestion && !reviewed ? <p className="review-task" aria-label="本项核对任务">{category === 'other' ? '请选择归档分类，或按原名称归到待分类。' : '核对内容与归档位置，再确认此项。'}</p> : null}
       <ContentQuality quality={suggestion?.quality} />
-      <div className="copy-destination"><strong>建议放哪里</strong><p aria-label="归档副本位置">{destination}</p><small>{isWebExperience ? '这里是浏览器整理结果中的建议位置；不会创建磁盘副本。' : '确认后在此生成副本，原件保留。最终路径以整理计划为准。'}</small></div><fieldset className="inspector-fields" disabled={editingDisabled}><CategoryPicker key={identity} category={category} subcategory={subtype} disabled={editingDisabled} onChange={(nextCategory, nextSubtype) => change({ category: nextCategory, subcategory: nextSubtype })} /><label htmlFor="suggested-name">归档副本名称<span>{editingDisabled ? '分析中，稍后编辑' : '可编辑'}</span></label><input id="suggested-name" value={name} maxLength={150} onChange={e => change({ name: e.target.value })} /></fieldset>
+      <div className="copy-destination"><strong>建议放哪里</strong><p aria-label="归档副本位置">{destination}</p><small>{isWebExperience ? '这里是浏览器整理结果中的建议位置；不会创建磁盘副本。' : '确认后在此生成副本，原件保留。最终路径以整理计划为准。'}</small></div><fieldset className="inspector-fields" disabled={editingDisabled}><CategoryPicker key={identity} category={category} subcategory={subtype} disabled={editingDisabled} onChange={(nextCategory, nextSubtype) => change({ category: nextCategory, subcategory: nextSubtype })} /><label htmlFor="suggested-name">归档副本名称<span>{editingDisabled ? editingHint ?? '分析中，稍后编辑' : '可编辑'}</span></label><input id="suggested-name" value={name} maxLength={150} onChange={e => change({ name: e.target.value })} /></fieldset>
       {candidates.length ? <div className="classification-candidates" role="group" aria-label="其他可能的归档用途"><h3>其他可能的归档用途</h3><p>选择候选会更新分类，仍需逐项确认。</p><div className="candidate-list">{candidates.map(candidate => {
         const label = `${categories[candidate.category]} / ${candidate.subcategory === null ? '仅按主分类归档' : subcategories[candidate.category][candidate.subcategory]}`
         return <button key={`${candidate.category}/${candidate.subcategory ?? ''}`} type="button" className="candidate-choice"

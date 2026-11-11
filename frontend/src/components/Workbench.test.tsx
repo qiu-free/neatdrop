@@ -4,6 +4,7 @@ import { afterEach, beforeEach } from 'vitest'
 import { Workbench } from './Workbench'
 import type { useWorkspace } from '../useWorkspace'
 import { api } from '../api'
+import { createPageSession } from '../pageSession'
 import type { Config, ExecutionSnapshot, FileRecord, Plan, Suggestion, Workspace } from '../types'
 
 vi.mock('../api', async importOriginal => ({ ...await importOriginal<typeof import('../api')>(), api: vi.fn() }))
@@ -73,23 +74,123 @@ function makeState(overrides: Record<string, unknown> = {}) {
   } as unknown as ReturnType<typeof useWorkspace>
 }
 
+it('locks every later workflow step until a directory and files are selected', () => {
+  const onLibrary = vi.fn(), onHistory = vi.fn()
+  render(<Workbench state={makeState({ workspace: null, selected: new Set() })} onLibrary={onLibrary} onHistory={onHistory} />)
+  const navigation = within(screen.getByRole('navigation', { name: '整理步骤' }))
+  expect(navigation.getByRole('button', { name: /选择/ })).toBeEnabled()
+  for (const name of [/分析/, /复核/, /计划与复制/, /资料库/, /记录与撤回/]) {
+    const step = navigation.getByRole('button', { name })
+    expect(step).toBeDisabled()
+    expect(step).toHaveAttribute('title', expect.stringMatching(/先|完成/))
+    fireEvent.click(step)
+  }
+  expect(onLibrary).not.toHaveBeenCalled()
+  expect(onHistory).not.toHaveBeenCalled()
+})
+
+it('allows only the next analysis step from selection and keeps the preview read-only', () => {
+  const current = makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })
+  render(<Workbench state={current} />)
+  const navigation = within(screen.getByRole('navigation', { name: '整理步骤' }))
+  expect(navigation.getByRole('button', { name: /分析/ })).toBeEnabled()
+  for (const name of [/复核/, /计划与复制/, /资料库/, /记录与撤回/]) expect(navigation.getByRole('button', { name })).toBeDisabled()
+  fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
+  expect(screen.getByRole('textbox', { name: /归档副本名称/ })).toBeDisabled()
+  const confirm = screen.queryByRole('button', { name: /确认此项/ })
+  if (confirm) expect(confirm).toBeDisabled()
+  expect(current.approve).not.toHaveBeenCalled()
+})
+
+it('requires completed analysis of every selected file before entering review', () => {
+  const current = makeState({ selected: new Set(['a', 'b']), suggestions: { a: reviewSuggestion }, edits: { b: { file_id: 'b', category: 'study', name: 'b.md' } } })
+  const view = render(<Workbench state={current} />)
+  fireEvent.click(screen.getByRole('button', { name: /下一步：分析/ }))
+  expect(screen.getByRole('button', { name: '查看建议' })).toBeDisabled()
+  expect(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ })).toBeDisabled()
+  view.rerender(<Workbench state={{ ...current, suggestions: { a: reviewSuggestion, b: { ...reviewSuggestion, file_id: 'b' } } }} />)
+  fireEvent.click(screen.getByRole('button', { name: '查看建议' }))
+  expect(screen.getByRole('heading', { name: /检查建议并确认/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '生成整理计划' })).toBeDisabled()
+})
+
+it('keeps partial or cancelled analysis from unlocking review for unfinished selected files', () => {
+  const current = makeState({ selected: new Set(['a', 'b']), suggestions: { a: reviewSuggestion }, job: { id: 'job', status: 'running', total: 2, processed: 1, results: [reviewSuggestion], errors: [], mode: 'local' } })
+  const view = render(<Workbench state={current} />)
+  fireEvent.click(screen.getByRole('button', { name: /下一步：分析/ }))
+  expect(screen.getByRole('button', { name: '查看建议' })).toBeDisabled()
+  view.rerender(<Workbench state={{ ...current, suggestions: { a: reviewSuggestion, b: { ...reviewSuggestion, file_id: 'b' } } }} />)
+  expect(screen.getByRole('button', { name: '查看建议' })).toBeDisabled()
+  view.rerender(<Workbench state={{ ...current, job: { ...current.job!, status: 'cancelled' } }} />)
+  expect(screen.getByRole('button', { name: '查看建议' })).toBeDisabled()
+})
+
+it('opens copy through a successful reviewed plan instead of an empty result step', async () => {
+  const current = makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })
+  render(<Workbench state={current} />)
+  fireEvent.click(screen.getByRole('button', { name: /下一步：分析/ }))
+  fireEvent.click(screen.getByRole('button', { name: '查看建议' }))
+  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /计划与复制/ }))
+  expect(current.createPlan).toHaveBeenCalledOnce()
+  await act(async () => undefined)
+  expect(screen.getByRole('heading', { name: /检查建议并确认/ })).toBeInTheDocument()
+  expect(screen.queryByText('整理结果会显示在这里')).not.toBeInTheDocument()
+})
+
+it('returns to analysis when a new unfinished file invalidates the current review step', () => {
+  const session = createPageSession().workbench; session.stage = 'review'; session.workspace = workspace.id
+  const current = makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })
+  const view = render(<Workbench state={current} session={session} />)
+  expect(screen.getByRole('button', { name: '生成整理计划' })).toBeEnabled()
+  view.rerender(<Workbench state={{ ...current, selected: new Set(['a', 'b']) }} session={session} />)
+  expect(screen.getByRole('heading', { name: /分析与进度/ })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '生成整理计划' })).not.toBeInTheDocument()
+  expect(session.stage).toBe('analyze')
+})
+
+it('rejects a restored results stage without an actual plan or execution', () => {
+  const session = createPageSession().workbench; session.stage = 'results'
+  render(<Workbench state={makeState({ selected: new Set() })} session={session} />)
+  expect(screen.getByRole('heading', { name: /选择需要整理的文件/ })).toBeInTheDocument()
+  expect(screen.queryByText('整理结果会显示在这里')).not.toBeInTheDocument()
+})
+
+it.each(['planned', 'queued', 'running'])('keeps %s execution in recovery even when a connection failure clears busy', status => {
+  const execution = { plan_id: 'uncertain', status, processed: 0, total: 1, current_file: null,
+    items: [{ file_id: 'a', source: 'a.md', target: 'out/a.md', sha256: 'a', size: 100, stage: 'planned' }], error: null }
+  const current = makeState({ execution, busy: '', suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })
+  render(<Workbench state={current} />)
+  const navigation = within(screen.getByRole('navigation', { name: '整理步骤' }))
+  for (const name of [/选择/, /分析/, /复核/, /计划与复制/, /资料库/, /记录与撤回/]) {
+    const step = navigation.getByRole('button', { name })
+    expect(step).toBeDisabled()
+    fireEvent.click(step)
+  }
+  expect(screen.getByRole('button', { name: '扫描目录' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '重新扫描目录' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '重新查询状态' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: '重新查询状态' }))
+  expect(current.checkExecution).toHaveBeenCalledOnce()
+  expect(current.createPlan).not.toHaveBeenCalled()
+})
+
 it('allows selecting visible review items but requires approval before planning', () => {
   const current = makeState({ suggestions: { a: reviewSuggestion }, selected: new Set() })
   render(<Workbench state={current} />)
   fireEvent.click(screen.getByRole('button', { name: '选择可见项' }))
   expect(current.setSelected).toHaveBeenCalledWith(new Set(['a', 'b', 'c']))
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ }))
-  expect(screen.getByRole('button', { name: '生成整理计划' })).toBeDisabled()
+  expect(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ })).toBeDisabled()
+  expect(screen.getByRole('button', { name: /下一步：分析/ })).toBeDisabled()
   expect(screen.getByText(/副本位置：当前文件夹内的分类子目录/)).toBeInTheDocument()
 })
 
-it('keeps workflow stage changes disabled during active work while library navigation remains available', () => {
+it('keeps all workflow navigation locked during active work', () => {
   const onLibrary = vi.fn()
   render(<Workbench state={makeState({ busy: 'analysis' })} onLibrary={onLibrary} />)
   const navigation = screen.getByRole('navigation', { name: '整理步骤' })
-  for (const name of [/选择/, /分析/, /复核/, /计划与复制/]) expect(within(navigation).getByRole('button', { name })).toBeDisabled()
+  for (const name of [/选择/, /分析/, /复核/, /计划与复制/, /资料库/, /记录与撤回/]) expect(within(navigation).getByRole('button', { name })).toBeDisabled()
   fireEvent.click(within(navigation).getByRole('button', { name: /资料库/ }))
-  expect(onLibrary).toHaveBeenCalledOnce()
+  expect(onLibrary).not.toHaveBeenCalled()
 })
 
 beforeEach(() => {
@@ -137,10 +238,9 @@ it('clears the previous picker error and scans the returned folder', async () =>
 
 it('returns from a fixed plan dialog to review instead of a blank results view', () => {
   const plan: Plan = { id: 'plan', digest: 'digest', created: '', mode: 'copy', items: [] }
-  const workspace: Workspace = { id: 'w', name: 'Test', path: 'C:/test', files: [] }
   function Harness() {
     const [openPlan, setOpenPlan] = useState<Plan | null>(plan)
-    const currentState = { ...state, workspace, plan: openPlan, setPlan: setOpenPlan, execution: null } as unknown as ReturnType<typeof useWorkspace>
+    const currentState = makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']), plan: openPlan, setPlan: setOpenPlan })
     return <Workbench state={currentState} />
   }
   render(<Harness />)
@@ -372,12 +472,12 @@ it('opens the fixed mobile detail drawer without scrolling the background into v
 })
 
 it('makes selected pending review the main action and keeps bulk edits inside collapsed more actions', () => {
-  const current = makeState({ suggestions: { a: reviewSuggestion, b: { ...reviewSuggestion, file_id: 'b' } }, selected: new Set(['a', 'c']) })
+  const current = makeState({ suggestions: { a: reviewSuggestion, b: { ...reviewSuggestion, file_id: 'b' }, c: { ...reviewSuggestion, file_id: 'c' } }, selected: new Set(['a', 'c']) })
   render(<Workbench state={current} />)
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ }))
+  fireEvent.click(screen.getByRole('button', { name: /下一步：分析/ }))
+  fireEvent.click(screen.getByRole('button', { name: '查看建议' }))
   expect(screen.getByText(/确认已选文件的当前分类与名称.*筛选外已选项和待复核候选/)).toBeInTheDocument()
-  expect(screen.getByText(/1 项尚未分析或存在未处理错误/)).toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: '一键审核已选项（1）' }))
+  fireEvent.click(screen.getByRole('button', { name: '一键审核已选项（2）' }))
   expect(current.approveSelected).toHaveBeenCalledOnce()
   expect(screen.getByRole('combobox', { name: '批量分类' })).not.toBeVisible()
   expect(screen.getByRole('button', { name: /重新分析所选/ })).not.toBeVisible()
@@ -388,7 +488,8 @@ it('makes selected pending review the main action and keeps bulk edits inside co
 
 it('disables approval once all eligible selected files are confirmed', () => {
   render(<Workbench state={makeState({ suggestions: { a: reviewSuggestion }, reviewed: new Set(['a']) })} />)
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /复核/ }))
+  fireEvent.click(screen.getByRole('button', { name: /下一步：分析/ }))
+  fireEvent.click(screen.getByRole('button', { name: '查看建议' }))
   expect(screen.getByRole('button', { name: '一键审核已选项（0）' })).toBeDisabled()
   expect(screen.getByText(/已确认 1 项 · 剩余待确认 0 项/)).toBeInTheDocument()
 })
@@ -404,7 +505,7 @@ it('closes a desktop drawer on page navigation and results without reopening it 
   rerender(<Workbench state={current} active />)
   expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('row', { name: /a\.md/ }))
-  fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤', hidden: true })).getByRole('button', { name: /计划与复制/, hidden: true }))
+  rerender(<Workbench state={{ ...current, execution: { plan_id: 'p', status: 'running', items: [], total: 0, processed: 0, current_file: null } }} active />)
   expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
 })
 
@@ -428,7 +529,7 @@ it('closes with the backdrop, inerts the background and retains the same cached 
 
 it('offers a library entry after execution completes', () => {
   const onLibrary = vi.fn()
-  const execution = { plan_id: 'p', status: 'completed', processed: 1, total: 1, current_file: null, items: [], error: null }
+  const execution = { plan_id: 'p', status: 'completed', processed: 1, total: 1, current_file: null, items: [{ file_id: 'a', source: 'a.md', target: 'out/a.md', sha256: 'a', size: 1, stage: 'completed' }], error: null }
   render(<Workbench state={makeState({ execution })} onLibrary={onLibrary} />)
   fireEvent.click(within(screen.getByRole('navigation', { name: '整理步骤' })).getByRole('button', { name: /计划与复制/ }))
   fireEvent.click(screen.getByRole('button', { name: '查看资料库' }))

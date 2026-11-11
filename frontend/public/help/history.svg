@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 132" fill="none">
-  <circle cx="165" cy="66" r="48" fill="#F3F6EE" stroke="#9EB597" stroke-width="2"/>
-  <path d="M165 37v31l22 13" stroke="#628463" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M75 60a43 43 0 0 1 72-27" stroke="#6F9471" stroke-width="5" stroke-linecap="round"/>
-  <path d="m145 22 4 16-16-2" fill="#6F9471"/>
-  <path d="M245 75a43 43 0 0 1-72 27" stroke="#B7C9AE" stroke-width="5" stroke-linecap="round"/>
-  <path d="m175 112-4-16 16 2" fill="#9DB394"/>
+  <circle cx="165" cy="66" r="48" fill="#F5F8FC" stroke="#91B0D9" stroke-width="2"/>
+  <path d="M165 37v31l22 13" stroke="#2468C5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M75 60a43 43 0 0 1 72-27" stroke="#3979CA" stroke-width="5" stroke-linecap="round"/>
+  <path d="m145 22 4 16-16-2" fill="#3979CA"/>
+  <path d="M245 75a43 43 0 0 1-72 27" stroke="#B9CCE6" stroke-width="5" stroke-linecap="round"/>
+  <path d="m175 112-4-16 16 2" fill="#91B0D9"/>
   <rect x="48" y="79" width="43" height="34" rx="7" fill="#FCFBF7" stroke="#C9BEA6" stroke-width="2"/>
   <path d="M58 91h23M58 99h17" stroke="#BAAE92" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

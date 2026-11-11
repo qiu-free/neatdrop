@@ -84,7 +84,7 @@ export function HelpPage({ onPractice, onReplayTour, exerciseCompleted = false, 
     </section>
     <section className="help-content">
       <section className="help-practice-card" aria-label="安全练习">
-        <div><span className="intro-label">内置样例 · 约 2 分钟</span><h2>先在练习里熟悉每一步</h2><p>体验选择、分析、审核、计划确认、资料库和记录撤回；不会读取本机文件或访问 API。</p></div>
+        <div><span className="intro-label">内置样例 · 分步练习</span><h2>先在练习里熟悉每一步</h2><p>用一个样例完成选择、分析、审核、计划确认和副本查看；记录与撤回可选。不会读取本机文件或访问 API。</p></div>
         {exerciseCompleted ? <span className="practice-badge"><ShieldCheck size={14} />练习已完成</span> : null}
         {onPractice ? <button className="button primary" onClick={onPractice}>开始安全练习<ArrowRight size={14} /></button> : null}
       </section>

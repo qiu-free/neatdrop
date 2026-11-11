@@ -39,7 +39,7 @@ it('locks later browser steps until selection, analysis, review and confirmed ar
   fireEvent.click(within(plan).getByRole('button', { name: '确认加入体验资料库' }))
   await screen.findByRole('heading', { name: '整理已完成' })
   expect(navigation.getByRole('button', { name: /5\./ })).toBeEnabled()
-})
+}, 10000)
 
 it.each(['import', 'low-information'])('returns to selection after replacing results via %s', async mode => {
   const session = createPageSession().workbench

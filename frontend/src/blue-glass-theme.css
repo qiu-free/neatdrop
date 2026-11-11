@@ -364,12 +364,12 @@ body { background: #fff; }
   .app-shell .sidebar.sidebar-glass .safety-note,
   .app-shell .sidebar.sidebar-glass .local-status { display: none; }
   .app-shell .sidebar.sidebar-glass .nav-label { display: none; }
-  .app-shell .sidebar.sidebar-glass nav { flex-direction: row; justify-content: space-between; gap: 2px; margin-top: 14px; }
+  .app-shell .sidebar.sidebar-glass nav { flex-direction: row; justify-content: space-between; flex-wrap: wrap; gap: 2px; margin-top: 14px; }
   .app-shell .sidebar.sidebar-glass nav button {
     width: auto;
     min-width: 0;
     min-height: 64px;
-    flex: 1 1 20%;
+    flex: 1 1 calc(33.333% - 4px);
     flex-direction: column;
     justify-content: center;
     gap: 4px;

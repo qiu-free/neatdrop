@@ -73,3 +73,46 @@
 .exercise-actions { display: flex; gap: 10px; flex-wrap: wrap; }.exercise-back { margin-top: 18px; }
 .exercise-source { overflow-wrap: anywhere; }.exercise-state { flex-wrap: wrap; }
 @media (max-width: 600px) { .tutorial-exercise { padding: 14px; }.tutorial-exercise-head { flex-wrap: wrap; gap: 8px; }.learning-tour-art { height: 70px; }.exercise-actions > .button { flex: 1 1 100%; }.learning-tour-actions > span { width: 100%; }.exercise-stage > .button { white-space: normal; } }
+
+/* Guided practice: one task per stage; the close control stays outside scrolling. */
+.modal:has(.tutorial-exercise), .modal:has(.learning-tour) { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.modal:has(.tutorial-exercise) .modal-header, .modal:has(.learning-tour) .modal-header { flex-shrink: 0; margin: 0; padding: 20px 24px 16px; border-bottom: 1px solid var(--line); }
+.modal:has(.tutorial-exercise) .modal-scroll-region, .modal:has(.learning-tour) .modal-scroll-region { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding: 24px; }
+.modal-scroll-region .tutorial-exercise { border: 0; border-radius: 0; padding: 0; }
+.modal-scroll-region .learning-tour { padding: 0; }
+.onboarding-stage-art { display: flex; align-items: center; gap: 20px; margin: 0; padding: 16px; background: var(--surface-soft); border-radius: 12px; min-width: 0; }
+.onboarding-stage-art img { width: 112px; height: 80px; object-fit: contain; flex-shrink: 0; }
+.onboarding-stage-art figcaption { font-size: 14px; line-height: 1.8; color: var(--text-secondary); }
+.exercise-task { display: grid; gap: 8px; }
+.tutorial-exercise .exercise-progress { margin: 16px 0; font-size: 14px; color: var(--text-secondary); }
+.exercise-progress progress { width: 120px; max-width: 35%; accent-color: var(--primary); height: 7px; }
+.exercise-review-files { display: grid; gap: 0; }
+.exercise-review-file { padding: 20px 0; border-top: 1px solid var(--line); min-width: 0; }
+.exercise-review-file:first-child { padding-top: 0; border-top: 0; }
+.exercise-review-file > strong { font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
+.exercise-review-file > p { margin-top: 8px; color: var(--text-secondary); font-size: 14px; line-height: 1.8; }
+.exercise-review-file blockquote { margin: 10px 0 16px; padding: 12px 14px; background: var(--surface-soft); color: var(--text-secondary); border-radius: 8px; font-size: 14px; line-height: 1.8; }
+.exercise-copy-list { display: grid; gap: 12px; }
+.exercise-copy-list > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.exercise-copy-list > div > div { min-width: 0; }
+.exercise-copy-list p { margin-top: 6px; overflow-wrap: anywhere; color: var(--text-secondary); font-size: 14px; line-height: 1.8; }
+.exercise-copy-list .button { flex-shrink: 0; }
+.exercise-next-hint { color: var(--primary-ink); font-size: 14px; line-height: 1.8; }
+.exercise-core-done { display: flex; align-items: flex-start; gap: 12px; color: var(--success, #176346); }
+.exercise-core-done svg { flex-shrink: 0; margin-top: 4px; }
+.exercise-core-done p { font-size: 14px; line-height: 1.8; }
+.exercise-navigation { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+.exercise-navigation .exercise-back { margin: 0; }
+.tour-direct-practice { margin-top: 20px; }
+.tour-detail { margin-top: 12px; font-size: 14px; line-height: 1.8; color: var(--text-secondary); }
+.tour-detail summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.tutorial-exercise-head h2 { color: var(--text-primary); font-family: var(--font-ui); }
+.exercise-stage .exercise-file { border-color: var(--line); border-radius: 8px; background: var(--surface); }
+.exercise-core-done { color: var(--status-success); }
+@media (max-width: 600px) {
+  .modal:has(.tutorial-exercise) .modal-header, .modal:has(.learning-tour) .modal-header { padding: 16px; }
+  .modal:has(.tutorial-exercise) .modal-scroll-region, .modal:has(.learning-tour) .modal-scroll-region { padding: 16px; }
+  .onboarding-stage-art { gap: 12px; padding: 12px; }.onboarding-stage-art img { width: 76px; height: 66px; }
+  .exercise-copy-list > div { flex-direction: column; align-items: flex-start; }
+  .exercise-navigation { flex-wrap: wrap; }.tutorial-exercise-head h2 { max-width: 100%; }
+}

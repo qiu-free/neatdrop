@@ -1,0 +1,29 @@
+.product-intro h1 { margin-bottom: 12px; }
+.product-start { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 24px 0 32px; border-bottom: 1px solid var(--line); }
+.product-start > div:first-child { max-width: 70ch; }
+.product-start h2, .product-explainer h2, .product-workflow > h2, .product-boundaries h2 { margin: 0 0 12px; font-size: 22px; line-height: 1.45; color: var(--text-primary); }
+.product-start p, .product-workflow > p, .product-explainer p, .product-boundaries li { color: var(--text-secondary); font-size: 16px; line-height: 1.85; }
+.product-start p + p { margin-top: 10px; }
+.product-start-actions { display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; }
+.product-workflow { padding: 32px 0; }
+.product-workflow > ol { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 28px 32px; }
+.product-workflow li { display: flex; align-items: flex-start; gap: 16px; min-width: 0; }
+.product-workflow .onboarding-stage-art { flex: 0 0 100px; padding: 0; margin: 0; border: 0; background: none; display: block; }
+.product-workflow .onboarding-stage-art img { width: 100%; height: 82px; }
+.product-workflow figcaption { display: none; }
+.product-workflow li > div { min-width: 0; }
+.product-step-number { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--primary-ink); }
+.product-workflow h3 { margin: 3px 0 8px; font-size: 17px; line-height: 1.5; }
+.product-workflow li p { font-size: 14px; line-height: 1.8; color: var(--text-secondary); }
+.product-explainer { padding: 28px 0; border-top: 1px solid var(--line); }
+.product-explainer p { max-width: 75ch; overflow-wrap: anywhere; }
+.product-explainer p + p { margin-top: 10px; }
+.product-explainer code { font-size: .9em; overflow-wrap: anywhere; }
+.product-boundaries { padding: 24px; margin-top: 12px; display: flex; align-items: flex-start; gap: 16px; background: var(--primary-soft); border-radius: 12px; color: var(--primary-ink); }
+.product-boundaries > svg { flex-shrink: 0; margin-top: 3px; }
+.product-boundaries h2 { font-size: 18px; }
+.product-boundaries ul { padding-left: 20px; margin: 0; }
+.product-boundaries li { font-size: 14px; }
+.product-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 28px 0; }
+@media (max-width: 900px) { .product-start { align-items: flex-start; flex-direction: column; gap: 20px; }.product-start-actions { flex-direction: row; flex-wrap: wrap; }.product-workflow > ol { grid-template-columns: minmax(0,1fr); gap: 24px; } }
+@media (max-width: 480px) { .product-start h2, .product-explainer h2, .product-workflow > h2 { font-size: 20px; }.product-workflow .onboarding-stage-art { flex-basis: 76px; }.product-workflow li { gap: 12px; }.product-start-actions { width: 100%; }.product-start-actions .button { flex: 1 1 100%; }.product-boundaries { padding: 16px; gap: 12px; } }

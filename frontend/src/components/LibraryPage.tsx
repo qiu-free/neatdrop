@@ -118,7 +118,7 @@ function LibraryContent({ workspace, history, session, onContentReady, onGraph }
   const active = items.find(item => item.id === activeId)
   const position = visible.findIndex(item => item.id === activeId)
   return <section className="library-panel" aria-label="资料库文件">
-    {isWebExperience && items.length ? <div className="experience-export"><button className="button secondary" onClick={() => downloadManifest(items, 'json')}>导出 JSON 整理清单</button><button className="button secondary" onClick={() => downloadManifest(items, 'csv')}>导出 CSV 整理清单</button></div> : null}
+    {isWebExperience && items.length ? <div className="experience-export"><button className="button secondary" onClick={() => downloadManifest(items, 'json')}>导出全部已加载记录（JSON）</button><button className="button secondary" onClick={() => downloadManifest(items, 'csv')}>导出全部已加载记录（CSV）</button><p className="library-export-scope">导出范围不受当前筛选影响{listing?.truncated ? '，且仅包含最近加载的 1000 项' : ''}。</p></div> : null}
     <header className="library-panel-heading"><div><h2><Archive size={21} />{isWebExperience ? "内存整理结果" : "归档副本"}</h2><p aria-live="polite">{listing ? hasFilters ? `显示 ${visible.length} / ${items.length} 项` : `共 ${items.length} 项` : isWebExperience ? '正在读取本页结果' : '正在读取本地记录'}</p></div><button className="button secondary" aria-label="重新加载资料库" onClick={() => setReload(value => value + 1)}><RotateCw size={16} />刷新</button></header>
     <div className="library-filters">
       <label>主分类<select aria-label="主分类" value={category} onChange={event => { setCategory(event.target.value); setSubcategory('all') }}><option value="all">全部分类</option>{Object.entries(categories).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>

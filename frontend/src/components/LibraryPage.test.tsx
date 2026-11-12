@@ -53,7 +53,7 @@ it('intersects library filters and includes both local calendar date endpoints',
   const earlyOnEnd = new Date(2026, 10, 4, 0, 0, 0).toISOString()
   const filteredItems = [
     { ...items[0], name: '项目笔记.PDF', subcategory: 'chart', created: lateOnStart },
-    { ...items[0], id: 'second', name: '项目笔记.pdf', subcategory: null, created: earlyOnEnd },
+    { ...items[0], id: 'second', name: '项目笔记结束日.pdf', subcategory: 'chart', created: earlyOnEnd },
     { ...items[0], id: 'outside', name: '项目笔记.pdf', subcategory: 'chart', created: new Date(2026, 10, 5, 12).toISOString() },
     { ...items[0], id: 'bad-date', name: '项目笔记.pdf', subcategory: 'chart', created: 'not-a-date' },
   ]
@@ -71,7 +71,9 @@ it('intersects library filters and includes both local calendar date endpoints',
   fireEvent.change(screen.getByLabelText('搜索资料库文件名'), { target: { value: '项目' } })
 
   expect(screen.getByRole('button', { name: '查看 项目笔记.PDF' })).toBeInTheDocument()
-  expect(screen.getByText('显示 1 / 4 项')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '查看 项目笔记结束日.pdf' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: '查看 项目笔记.pdf' })).not.toBeInTheDocument()
+  expect(screen.getByText('显示 2 / 4 项')).toBeInTheDocument()
   fireEvent.change(screen.getByLabelText('结束日期'), { target: { value: '2026-11-02' } })
   expect(screen.getByRole('alert')).toHaveTextContent('结束日期不能早于开始日期')
   expect(screen.getByRole('button', { name: '清除筛选' })).toBeInTheDocument()

@@ -236,6 +236,20 @@ it('clears the previous picker error and scans the returned folder', async () =>
   expect(current.setError).toHaveBeenCalledWith('')
 })
 
+it.each(['文件列表', '图片网格'])('opens a listed subfolder from %s after confirming the current draft reset', async view => {
+  const child: FileRecord = { id: 'child', name: '课程资料', extension: '', size: 0, modified: 1, supported: false, reason: 'DIRECTORY_SKIPPED', sha256: null }
+  const openChild = vi.fn().mockResolvedValue(undefined)
+  const current = makeState({ workspace: { ...workspace, files: [...files, child] }, openChild })
+  render(<Workbench state={current} />)
+  fireEvent.click(screen.getByRole('button', { name: view }))
+  fireEvent.click(screen.getByRole('button', { name: '打开文件夹 课程资料' }))
+  expect(screen.getByRole('dialog', { name: '切换目录并清除当前草稿？' })).toBeInTheDocument()
+  expect(openChild).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '清除草稿并继续' }))
+  await waitFor(() => expect(openChild).toHaveBeenCalledExactlyOnceWith('child'))
+  expect(screen.queryByRole('dialog', { name: '文件详情' })).not.toBeInTheDocument()
+})
+
 it('returns from a fixed plan dialog to review instead of a blank results view', () => {
   const plan: Plan = { id: 'plan', digest: 'digest', created: '', mode: 'copy', items: [] }
   function Harness() {

@@ -21,16 +21,11 @@ def test_csrf_and_origin_and_host_are_guarded(tmp_path):
 
 
 def test_stale_tab_csrf_is_rejected_before_picker_opens_and_current_token_preserves_workspace(tmp_path, monkeypatch):
-    from types import SimpleNamespace
-    import sys
-
     picker_calls = []
-    class Window:
-        def withdraw(self): pass
-        def attributes(self, *args): pass
-        def destroy(self): pass
-    monkeypatch.setitem(sys.modules, 'tkinter', SimpleNamespace(
-        Tk=Window, filedialog=SimpleNamespace(askdirectory=lambda **kwargs: picker_calls.append(kwargs) or str(tmp_path))))
+    def pick():
+        picker_calls.append(True)
+        return str(tmp_path)
+    monkeypatch.setattr('neatdrop.app.choose_directory', pick)
 
     with TestClient(create_app(), base_url="http://127.0.0.1:8765", client=('127.0.0.1', 43210)) as client:
         headers = session(client)

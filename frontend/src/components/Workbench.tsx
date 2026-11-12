@@ -264,6 +264,11 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
     state.setActiveId(id)
   }
 
+  function openDirectory(id: string) {
+    if (workflowLocked || busy || isWebExperience) return
+    setResetRequest({ type: 'child', fileId: id })
+  }
+
   function closeDetails() {
     setDetailOpen(false)
   }
@@ -389,7 +394,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
       <span className="empty-kbd"><ShieldCheck size={14} />{isWebExperience ? '文本只在浏览器中处理，不改动原始文件' : '文件保留在本机，原件始终保留'}</span>
     </section> : <>
       <div className="workspace-path"><FolderOpen size={13} /><span>{workspace.path}</span><button className="icon-button" aria-label="重新扫描目录" title="重新扫描，清除旧建议" disabled={workflowLocked} onClick={() => setResetRequest({ type: 'rescan' })}><RotateCw size={14} /></button></div>
-      <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>{isWebExperience ? '结果位置：浏览器内存资料库；不创建真实文件副本。' : '副本位置：当前文件夹内的分类子目录，原件保留。'}</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹（当前不进入） · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
+      <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>{isWebExperience ? '结果位置：浏览器内存资料库；不创建真实文件副本。' : '副本位置：当前文件夹内的分类子目录，原件保留。'}</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹{isWebExperience ? '（不递归扫描）' : '（点击名称进入，不递归扫描）'} · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
 
       <div ref={stageSurface} className="workbench-stage-surface">
       {stage !== 'results' ? <section className="work-area">
@@ -422,7 +427,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
           <div className="safe-banner"><ShieldCheck size={14} /><span>{isWebExperience ? '浏览器计算 / 内存整理 / 不创建磁盘副本' : <>保留原件<span className="separator">/</span>生成归档副本<span className="separator">/</span>执行前再次确认</>}</span></div>
           <div className="selection-legend"><span><i className="legend-active" />点击文件查看详情</span><span><i className="legend-checked" />勾选加入整理批次</span></div>
           <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可{isWebExperience ? '加入资料库' : '生成副本'}。</span></div>
-          {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} />}
+          {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} onOpenDirectory={!isWebExperience ? openDirectory : undefined} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} onOpenDirectory={!isWebExperience ? openDirectory : undefined} />}
           <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>{isWebExperience ? '预录资料仅供查看' : '不递归扫描'}</span></div>
           {!isWebExperience && files.some(file => file.reason === 'DIRECTORY_SKIPPED') ? <details className="child-directories"><summary>打开子文件夹（单独授权，不递归）</summary><p>将清除当前草稿并打开所选子目录。原件和既有副本保持不变。</p>{files.filter(file => file.reason === 'DIRECTORY_SKIPPED').map(file => <button key={file.id} className="button secondary" disabled={!!busy} onClick={() => setResetRequest({ type: 'child', fileId: file.id })}><FolderOpen size={16} />在此目录中打开：{file.name}</button>)}</details> : null}
         </div>

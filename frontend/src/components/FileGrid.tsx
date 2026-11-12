@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { Check, CircleAlert, Eye } from 'lucide-react'
+import { Check, CircleAlert, Eye, FolderOpen } from 'lucide-react'
 import { requestPreview } from '../previewRequests'
 import type { Edit, FileRecord, Suggestion } from '../types'
 import { FileIcon } from './FileTable'
@@ -18,6 +18,7 @@ export interface FileGridProps {
   selectionDisabled?: boolean
   onSelect: (id: string) => void
   onActive: (id: string) => void
+  onOpenDirectory?: (id: string) => void
 }
 
 function Thumbnail({ workspaceId, file, identity }: { workspaceId: string; file: FileRecord; identity: string }) {
@@ -53,14 +54,15 @@ function Thumbnail({ workspaceId, file, identity }: { workspaceId: string; file:
   </span>
 }
 
-export function FileGrid({ workspaceId, files, suggestions, edits, selected, activeId, reviewed, errors, taxonomy, selectionDisabled = false, onSelect, onActive }: FileGridProps) {
+export function FileGrid({ workspaceId, files, suggestions, edits, selected, activeId, reviewed, errors, taxonomy, selectionDisabled = false, onSelect, onActive, onOpenDirectory }: FileGridProps) {
   const buttons = useRef(new Map<string, HTMLButtonElement>())
   const navigate = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
     let destination = index
+    let stride = 1
     if (event.key === 'Home') destination = 0
-    else if (event.key === 'End') destination = files.length - 1
-    else if (event.key === 'ArrowLeft') destination = Math.max(0, index - 1)
+    else if (event.key === 'End') { destination = files.length - 1; stride = -1 }
+    else if (event.key === 'ArrowLeft') { destination = Math.max(0, index - 1); stride = -1 }
     else if (event.key === 'ArrowRight') destination = Math.min(files.length - 1, index + 1)
     else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       const firstTop = buttons.current.get(files[0].id)?.getBoundingClientRect().top
@@ -69,13 +71,18 @@ export function FileGrid({ workspaceId, files, suggestions, edits, selected, act
         return top !== undefined && firstTop !== undefined && Math.abs(top - firstTop) > 1
       })
       const columns = nextRow > 0 ? nextRow : 1
-      const nextIndex = index + (event.key === 'ArrowDown' ? columns : -columns)
+      stride = event.key === 'ArrowDown' ? columns : -columns
+      const nextIndex = index + stride
       if (nextIndex >= 0 && nextIndex < files.length) destination = nextIndex
     } else return
     event.preventDefault()
+    while (buttons.current.get(files[destination].id)?.disabled) {
+      destination += stride
+      if (destination < 0 || destination >= files.length) return
+    }
     const target = files[destination]
     buttons.current.get(target.id)?.focus({ preventScroll: true })
-    if (destination !== index) onActive(target.id)
+    if (destination !== index && !(target.reason === 'DIRECTORY_SKIPPED' && onOpenDirectory)) onActive(target.id)
   }
   return <div className="file-grid-region">
     <ul className="file-grid" aria-label="文件网格">{files.map((file, index) => {
@@ -92,13 +99,14 @@ export function FileGrid({ workspaceId, files, suggestions, edits, selected, act
       const identity = JSON.stringify([workspaceId, file.id, file.sha256 ?? `${file.modified}:${file.size}`])
       const active = activeId === file.id
       const checked = selected.has(file.id)
+      const directory = file.reason === 'DIRECTORY_SKIPPED' && Boolean(onOpenDirectory)
       return <li key={file.id} className={`file-grid-card${active ? ' is-active' : ''}${checked ? ' is-selected' : ''}`}>
-        <button type="button" className="file-grid-view" aria-label={`查看 ${file.name}`} aria-current={active ? 'true' : undefined}
+        <button type="button" className="file-grid-view" aria-label={`${directory ? '打开文件夹' : '查看'} ${file.name}`} aria-current={active ? 'true' : undefined} disabled={directory && selectionDisabled}
           ref={button => { if (button) buttons.current.set(file.id, button); else buttons.current.delete(file.id) }}
-          onClick={event => { event.currentTarget.focus({ preventScroll: true }); onActive(file.id) }} onKeyDown={event => navigate(event, index)}>
+          onClick={event => { event.currentTarget.focus({ preventScroll: true }); if (directory) onOpenDirectory?.(file.id); else onActive(file.id) }} onKeyDown={event => navigate(event, index)}>
           {isImage ? <Thumbnail key={identity} workspaceId={workspaceId} file={file} identity={identity} /> : <span className="file-grid-preview file-grid-document"><FileIcon file={file} /><span>{file.extension.slice(1).toUpperCase() || '文件'}</span></span>}
           <span className="file-grid-info"><strong title={file.name}>{file.name}</strong><span className="file-grid-category" title={label}>{label}</span></span>
-          <span className="file-grid-view-label"><Eye size={14} aria-hidden="true" />{active ? '正在查看' : '查看详情'}</span>
+          <span className="file-grid-view-label">{directory ? <FolderOpen size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}{directory ? '进入文件夹' : active ? '正在查看' : '查看详情'}</span>
         </button>
         <div className="file-grid-footer"><label className={`file-grid-select${!file.supported || selectionDisabled ? ' is-disabled' : ''}`}>
           <input type="checkbox" aria-label={`选择 ${file.name}`} checked={checked} disabled={!file.supported || selectionDisabled} onChange={() => { if (file.supported && !selectionDisabled) onSelect(file.id) }} /><span>{checked ? '已选择' : '选择'}</span>

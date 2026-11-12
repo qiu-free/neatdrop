@@ -259,3 +259,52 @@ it('keeps the current column when an arrow reaches the first or last grid row', 
   expect(buttons[2]).toHaveFocus()
   expect(options.onActive).not.toHaveBeenCalled()
 })
+
+it('focuses a folder with arrow keys without opening file details before activation', () => {
+  const document = { ...file, name: '说明.md', extension: '.md' }
+  const directory = { ...file, id: 'folder', name: '课程资料', extension: '', supported: false, reason: 'DIRECTORY_SKIPPED' }
+  const options = props({ files: [document, directory], onOpenDirectory: vi.fn() })
+  render(<FileGrid {...options} />)
+  const source = screen.getByRole('button', { name: '查看 说明.md' })
+  const folder = screen.getByRole('button', { name: '打开文件夹 课程资料' })
+  source.focus()
+  fireEvent.keyDown(source, { key: 'ArrowRight' })
+  expect(folder).toHaveFocus()
+  expect(options.onActive).not.toHaveBeenCalled()
+  expect(options.onOpenDirectory).not.toHaveBeenCalled()
+  expect(screen.getByRole('checkbox', { name: '选择 课程资料' })).toBeDisabled()
+  fireEvent.click(folder)
+  expect(options.onOpenDirectory).toHaveBeenCalledExactlyOnceWith('folder')
+  expect(options.onActive).not.toHaveBeenCalled()
+})
+
+it('disables opening a folder while a batch is running', () => {
+  const directory = { ...file, id: 'folder', name: '课程资料', extension: '', supported: false, reason: 'DIRECTORY_SKIPPED' }
+  const options = props({ files: [directory], selectionDisabled: true, onOpenDirectory: vi.fn() })
+  render(<FileGrid {...options} />)
+  const folder = screen.getByRole('button', { name: '打开文件夹 课程资料' })
+  expect(folder).toBeDisabled()
+  fireEvent.click(folder)
+  expect(options.onOpenDirectory).not.toHaveBeenCalled()
+  expect(options.onActive).not.toHaveBeenCalled()
+})
+
+it('skips disabled folders during keyboard navigation while a batch is running', () => {
+  const document = { ...file, name: '说明.md', extension: '.md' }
+  const directory = { ...file, id: 'folder', name: '课程资料', extension: '', supported: false, reason: 'DIRECTORY_SKIPPED' }
+  const next = { ...document, id: 'next', name: '下一份.md' }
+  const options = props({ files: [directory, document, { ...directory, id: 'middle' }, next, { ...directory, id: 'last' }], selectionDisabled: true, onOpenDirectory: vi.fn() })
+  render(<FileGrid {...options} />)
+  const first = screen.getByRole('button', { name: '查看 说明.md' })
+  const last = screen.getByRole('button', { name: '查看 下一份.md' })
+  first.focus()
+  fireEvent.keyDown(first, { key: 'ArrowRight' })
+  expect(last).toHaveFocus()
+  fireEvent.keyDown(last, { key: 'Home' })
+  expect(first).toHaveFocus()
+  fireEvent.keyDown(first, { key: 'End' })
+  expect(last).toHaveFocus()
+  fireEvent.keyDown(last, { key: 'ArrowLeft' })
+  expect(first).toHaveFocus()
+  expect(options.onOpenDirectory).not.toHaveBeenCalled()
+})

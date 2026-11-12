@@ -136,6 +136,8 @@ export const errorMessages: Record<string, string> = {
   IO_FAILED: '文件写入失败，原件未改动。请到操作记录检查可用副本。',
   LOCAL_IO_FAILED: '本地读写失败，可能没有权限或文件被占用。请检查操作记录。',
   PICKER_UNAVAILABLE: '系统目录选择器不可用，请手动粘贴完整目录路径。',
+  PICKER_BUSY: '目录选择窗口已打开，请先在系统窗口中选择或取消，再重新尝试。',
+  PICKER_TIMEOUT: '目录选择已超时并关闭，请点击“选择本地目录”重试。',
   SESSION_REQUIRED: '会话已过期，请刷新页面后重新选择目录。',
   UNDO_CONFLICT: '无法安全撤回副本，可能被占用。现有文件保持不变。',
   UNDO_UNSUPPORTED: '当前平台未验证安全撤回，请手动管理归档副本。',

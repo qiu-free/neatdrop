@@ -22,6 +22,7 @@ from .taxonomy import taxonomy_config, FORMS
 from .configuration import public_model_config, test_model_snapshot, update_model_config
 from . import model as model_api
 from .safe_io import directory_pin, protect_workspace
+from .directory_picker import choose_directory
 
 PROJECT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT / ".env")
@@ -320,19 +321,7 @@ def create_app():
 
     @app.post("/api/v1/pick-directory")
     def pick_directory():
-        try:
-            import tkinter
-            from tkinter import filedialog
-            window = tkinter.Tk()
-            window.withdraw()
-            window.attributes("-topmost", True)
-            try:
-                path = filedialog.askdirectory(title="NeatDrop - 选择待整理目录", mustexist=True)
-            finally:
-                window.destroy()
-            return {"path": path or None}
-        except Exception as exc:
-            raise SafetyError("PICKER_UNAVAILABLE") from exc
+        return {"path": choose_directory()}
 
     @app.post("/api/v1/workspaces")
     def open_workspace(body: Directory, request: Request):

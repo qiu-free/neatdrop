@@ -8,5 +8,6 @@ import './theme.css'
 import './blue-glass-theme.css'
 import './sidebar.css'
 import './workspace-surfaces.css'
+import './review-usability.css'
 
 createRoot(document.getElementById('root')!).render(<App />)

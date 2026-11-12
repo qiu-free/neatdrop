@@ -166,7 +166,7 @@ it.each(['planned', 'queued', 'running'])('keeps %s execution in recovery even w
     expect(step).toBeDisabled()
     fireEvent.click(step)
   }
-  expect(screen.getByRole('button', { name: '扫描目录' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '扫描目录', hidden: true })).toBeDisabled()
   expect(screen.getByRole('button', { name: '重新扫描目录' })).toBeDisabled()
   expect(screen.getByRole('button', { name: '重新查询状态' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: '重新查询状态' }))
@@ -506,6 +506,59 @@ it('disables approval once all eligible selected files are confirmed', () => {
   fireEvent.click(screen.getByRole('button', { name: '查看建议' }))
   expect(screen.getByRole('button', { name: '一键审核已选项（0）' })).toBeDisabled()
   expect(screen.getByText(/已确认 1 项 · 剩余待确认 0 项/)).toBeInTheDocument()
+})
+
+it('starts individual review with the pending selected batch even when search hides those files', async () => {
+  vi.mocked(api).mockResolvedValue({ text: 'Selected review preview', sample: 'text' })
+  const session = createPageSession().workbench
+  session.stage = 'review'; session.workspace = workspace.id; session.query = 'b.md'
+  function Harness() {
+    const [activeId, setActiveId] = useState('b')
+    return <Workbench session={session} state={makeState({ selected: new Set(['a', 'c']), activeId, setActiveId,
+      suggestions: { a: reviewSuggestion, c: { ...reviewSuggestion, file_id: 'c' } } })} />
+  }
+  render(<Harness />)
+  const actions = screen.getByRole('region', { name: '本步操作' })
+  expect(actions).toHaveTextContent('筛选外已选 2 项')
+  fireEvent.click(within(actions).getByRole('button', { name: '逐项核对' }))
+  const details = screen.getByRole('dialog', { name: '文件详情' })
+  expect(within(details).getByText('a.md')).toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: '搜索文件' })).toHaveValue('')
+  expect(within(details).getByText('已勾选待整理', { exact: false })).toBeInTheDocument()
+  expect(within(details).getByRole('button', { name: '逐项确认此项' })).toBeEnabled()
+  await screen.findByText('Selected review preview')
+})
+
+it('keeps selection and completed suggestions when returning from analysis to selection', () => {
+  const session = createPageSession().workbench
+  session.stage = 'analyze'; session.workspace = workspace.id
+  const current = makeState({ suggestions: { a: reviewSuggestion } })
+  render(<Workbench state={current} session={session} />)
+  fireEvent.click(within(screen.getByRole('region', { name: '本步操作' })).getByRole('button', { name: '返回选择' }))
+  expect(screen.getByRole('heading', { name: /选择需要整理的文件/ })).toBeInTheDocument()
+  expect(screen.getByRole('checkbox', { name: '选择 a.md' })).toBeChecked()
+  expect(screen.getByRole('button', { name: /下一步：分析/ })).toBeEnabled()
+  expect(current.scan).not.toHaveBeenCalled()
+  expect(current.analyze).not.toHaveBeenCalled()
+})
+
+it('returns keyboard focus to plan creation after the last selected file is confirmed in the drawer', async () => {
+  vi.mocked(api).mockImplementation((path) => path.endsWith('/preview') ? Promise.resolve({ text: 'Final review preview', sample: 'text' }) : new Promise(() => undefined))
+  const session = createPageSession().workbench
+  session.stage = 'review'; session.workspace = workspace.id
+  function Harness() {
+    const [reviewed, setReviewed] = useState(new Set<string>())
+    return <Workbench session={session} state={makeState({ selected: new Set(['a']), reviewed, suggestions: { a: reviewSuggestion }, approve: () => setReviewed(new Set(['a'])) })} />
+  }
+  render(<Harness />)
+  const opener = screen.getByRole('button', { name: '逐项核对' })
+  opener.focus()
+  fireEvent.click(opener)
+  await screen.findByText('Final review preview')
+  fireEvent.click(screen.getByRole('button', { name: '逐项确认此项' }))
+  fireEvent.click(screen.getByRole('button', { name: '关闭文件详情' }))
+  expect(opener).toBeDisabled()
+  expect(screen.getByRole('button', { name: '生成整理计划' })).toHaveFocus()
 })
 
 it('closes a desktop drawer on page navigation and results without reopening it when returning', () => {

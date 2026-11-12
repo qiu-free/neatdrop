@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
-export function Modal({ title, children, onClose, busy = false, scrollContent = false }: {
-  title: string; children: ReactNode; onClose: () => void; busy?: boolean; scrollContent?: boolean
+export function Modal({ title, children, onClose, busy = false, scrollContent = false, footer }: {
+  title: string; children: ReactNode; onClose: () => void; busy?: boolean; scrollContent?: boolean; footer?: ReactNode
 }) {
   const panel = useRef<HTMLDivElement>(null)
   const layerRef = useRef<HTMLDivElement>(null)
@@ -55,9 +55,10 @@ export function Modal({ title, children, onClose, busy = false, scrollContent = 
     }
   }, [])
   const layerNode = <div className="modal-layer" ref={layerRef}><div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget && !busy) onClose() }}>
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panel} tabIndex={-1}>
+    <div className={`modal${footer ? ' modal-with-fixed-actions' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panel} tabIndex={-1}>
       <header className="modal-header"><h2 id={titleId}>{title}</h2><button type="button" className="icon-button" aria-label="关闭弹窗" onClick={onClose} disabled={busy}><X size={19} aria-hidden="true" /></button></header>
       {scrollContent ? <div className="modal-scroll-region">{children}</div> : children}
+      {footer ? <footer className="modal-fixed-actions">{footer}</footer> : null}
     </div>
   </div></div>
   return createPortal(layerNode, document.body)

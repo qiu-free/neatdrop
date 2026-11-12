@@ -14,6 +14,7 @@ import type { useWorkspace } from '../useWorkspace'
 import { visibleFiles } from '../fileSelection'
 import { useSessionState, type WorkbenchSession } from '../pageSession'
 import { WorkflowOverview } from './WorkflowOverview'
+import { WorkbenchActions } from './WorkbenchActions'
 import { supportedFormats } from '../supportedFormats'
 import { runtimeCapabilities, isWebExperience } from '../runtimeCapabilities'
 import { TextImport } from '../experience/TextImport'
@@ -50,6 +51,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
   const [consent, setConsent] = useState<ConsentRequest | null>(null)
   const [resetRequest, setResetRequest] = useState<ResetRequest | null>(null)
   const [picking, setPicking] = useState(false)
+  const [directoryExpanded, setDirectoryExpanded] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailVisited, setDetailVisited] = useState(false)
   const [rulesOpen, setRulesOpen] = useState(false)
@@ -83,6 +85,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
   const failedCount = retryIds.length
   const unreviewedCount = files.filter(file => (suggestions[file.id] || edits[file.id]) && !reviewed.has(file.id)).length
   const visibleSupported = visible.filter(file => file.supported)
+  const hiddenSelected = selected.size - visible.filter(file => selected.has(file.id)).length
   const visibleSelectable = visibleSupported
   const imageCount = supported.filter(file => ['.png', '.jpg', '.jpeg', '.webp'].includes(file.extension.toLowerCase())).length
   const view = viewChoice && viewChoice.workspace === workspace?.id ? viewChoice.view : imageCount > 0 && imageCount >= supported.length / 2 ? 'grid' : 'list'
@@ -111,6 +114,16 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
       : stage === 'review' ? !canCreatePlan ? '第3步：核对并审核全部已选文件后，才能生成整理计划。修改后需要重新审核。' : '第3步已完成：生成计划后，还须独立核对并勾选执行确认。'
         : !executionFinished ? '第4步：核对计划并独立确认，执行期间请等待结果；状态不明确时只查询原计划。' : copiesReady ? '本次整理已有成功结果，可查看资料库和操作记录。' : '本次整理没有成功项，请从操作记录核对失败原因。'
   const drawerVisible = pageActive && stage !== 'results' && detailOpen && Boolean(active)
+  const selectedErrors = selectedFiles.filter(file => errors[file.id]).length
+  const actionHint = stage === 'choose' ? selectionReady ? '已勾选本批文件。进入分析后，再由你启动识别。' : '先勾选文件左侧的复选框，再进入分析。点击文件名只查看内容。'
+    : stage === 'analyze' ? activeAnalysis ? `正在分析 ${state.job?.processed ?? 0} / ${state.job?.total ?? selected.size} 项，请等待完成；尚未复制文件。`
+      : !selectionReady ? '本批尚未选择文件，请返回选择并勾选要整理的资料。'
+        : selectedErrors ? `已选文件中有 ${selectedErrors} 项分析失败。请重试失败项，或返回选择后取消勾选这些文件。`
+          : !analysisReady ? `还有 ${unfinishedAnalysis} 项未完成分析。点击“分析选中文件”，完成后再查看建议。` : '名称和分类建议已生成。点击“查看建议”进入人工复核，文件尚未复制。'
+      : canCreatePlan ? '本批已全部确认。生成整理计划只预览目标路径；核对并独立确认后才会执行。'
+        : !selectionReady ? '本批尚未选择文件，请返回选择需要整理的资料。'
+          : !config?.execution_supported && !runtimeCapabilities.canOrganizeInMemory ? '当前平台不支持生成归档副本，仍可查看和核对分类建议。'
+            : '确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。先逐项查看，有疑问时修改；一键审核会确认本批全部待确认项，尚未复制文件。'
 
   useLayoutEffect(() => { if (savedStage !== stage) setStage(stage) }, [savedStage, stage, setStage])
 
@@ -166,7 +179,11 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
       document.removeEventListener('focusin', containFocus)
       document.body.style.overflow = previousOverflow
       background.forEach((node, index) => { if (!previouslyInert[index]) node.removeAttribute('inert') })
-      if (pageActiveRef.current && returnFocusRef.current?.isConnected) returnFocusRef.current.focus({ preventScroll: true })
+      if (pageActiveRef.current) {
+        const trigger = returnFocusRef.current
+        if (trigger?.isConnected && !trigger.matches(':disabled') && !trigger.closest('[hidden], [inert]')) trigger.focus({ preventScroll: true })
+        else (scrollRoot.current?.querySelector<HTMLElement>('.workbench-action-buttons .primary:not(:disabled)') ?? scrollRoot.current?.querySelector<HTMLElement>('.workbench-action-buttons button:not(:disabled)'))?.focus({ preventScroll: true })
+      }
       returnFocusRef.current = null
     }
   }, [drawerVisible])
@@ -262,6 +279,15 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
   function activate(id: string) {
     openDetails()
     state.setActiveId(id)
+  }
+
+  function inspectPending() {
+    if (workflowLocked || stage !== 'review') return
+    const next = approvalEligible.find(file => !reviewed.has(file.id))
+    if (!next) return
+    setQuery('')
+    setFilter('selected')
+    activate(next.id)
   }
 
   function openDirectory(id: string) {
@@ -363,8 +389,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
   return <div ref={scrollRoot} className="workbench-content" onScrollCapture={event => {
     if (session && event.target instanceof HTMLElement && event.target.matches('.table-scroll, .file-grid-region')) session.listScroll = event.target.scrollTop
   }}>
-    <section className="page-intro">
-      <div><span className="intro-label">一点秩序，更多从容</span><h1>给文件，一个清晰的归处<span>。</span></h1><p>把杂乱交给净匣，把决定留给你。先预览，再安心整理。</p></div>
+    <section className={`page-intro${workspace ? ' has-workspace' : ''}`}>
+      <div><h1>{workspace ? '整理工作台' : <>给文件，一个清晰的归处<span>。</span></>}</h1><p>{workspace ? '先分析、再核对，最后确认归档位置。' : '把杂乱交给净匣，把决定留给你。先预览，再安心整理。'}</p></div>
       {isWebExperience ? <button className="button primary" disabled={workflowLocked || !config} onClick={() => config && void requestScan(config.demo_path)}>载入学习样例</button> : null}
     </section>
 
@@ -372,16 +398,18 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
     {!isWebExperience ? <WorkflowOverview current={stage === 'results' ? 'copy' : stage} label="整理步骤" working={workflowLocked} blocked={stepLocks} describedBy="workbench-step-hint" onNavigate={navigateStep} /> : null}
     <p id="workbench-step-hint" className="workbench-step-hint" aria-live="polite">{stepHint}</p>
 
-    <section className="directory-panel">
+    <section className={`directory-panel${workspace ? ' has-workspace' : ''}`}>
       <div className="directory-icon"><FolderInput size={30} strokeWidth={1.35} /></div>
       <div className="directory-content">
-        <div className="directory-heading"><h2>{workspace ? workspace.name : isWebExperience ? '从学习资料开始' : '从一个文件夹开始'}</h2>{workspace ? <span className="small-badge">{files.length} 项 · {supported.length} 项可处理</span> : <span className="small-badge">{isWebExperience ? '浏览器计算' : '仅在本机处理'}</span>}</div>
+        <div className="directory-heading"><h2>{workspace ? workspace.name : isWebExperience ? '从学习资料开始' : '从一个文件夹开始'}</h2>{workspace ? <span className="small-badge">{files.length} 项 · {supported.length} 项可处理</span> : <span className="small-badge">{isWebExperience ? '浏览器计算' : '仅在本机处理'}</span>}{workspace && stage !== 'choose' ? <button type="button" className="text-button" aria-expanded={directoryExpanded} aria-controls="directory-controls" onClick={() => setDirectoryExpanded(value => !value)}>{directoryExpanded ? '收起目录设置' : '更换目录'}</button> : null}</div>
+        <div id="directory-controls" hidden={!!workspace && stage !== 'choose' && !directoryExpanded}>
         {!isWebExperience ? <form onSubmit={event => { event.preventDefault(); void requestScan(path) }} className="path-form">
-          <label htmlFor="directory-path" className="sr-only">本地目录完整路径</label>
+          <label htmlFor="directory-path" className="directory-path-label">本地目录完整路径</label>
           <input id="directory-path" value={path} onChange={event => setPath(event.target.value)} placeholder="粘贴本地文件夹完整路径，例如 C:\Users\你的用户名\Downloads" autoComplete="off" spellCheck={false} disabled={workflowLocked} />
           <button className="button primary choose-directory" type="button" disabled={workflowLocked || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button><button className="button secondary" disabled={!path.trim() || workflowLocked || !state.online}>{busy === 'scan' ? <LoaderCircle size={15} className="spin" /> : <ArrowRight size={15} />}扫描目录</button>
         </form> : <TextImport disabled={workflowLocked} hasWorkspace={!!workspace} onImported={runScan} />}
         <div className="directory-foot"><span>{isWebExperience ? '浏览器内存 · 不上传文本 · 刷新即清空' : '只扫描当前目录 · 单批 ≤50 项 / 200 MiB · 不永久删除'}</span><button className="text-button" disabled={workflowLocked || !config} onClick={() => { if (config) void requestScan(config.demo_path) }}>试用人工样例 <ArrowUpRightIcon /></button></div>
+        </div>
       </div>
     </section>
 
@@ -393,8 +421,9 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
       </div>
       <span className="empty-kbd"><ShieldCheck size={14} />{isWebExperience ? '文本只在浏览器中处理，不改动原始文件' : '文件保留在本机，原件始终保留'}</span>
     </section> : <>
-      <div className="workspace-path"><FolderOpen size={13} /><span>{workspace.path}</span><button className="icon-button" aria-label="重新扫描目录" title="重新扫描，清除旧建议" disabled={workflowLocked} onClick={() => setResetRequest({ type: 'rescan' })}><RotateCw size={14} /></button></div>
-      <div className="workspace-summary"><p><strong>整理来源：</strong>{workspace.path}</p><p>{isWebExperience ? '结果位置：浏览器内存资料库；不创建真实文件副本。' : '副本位置：当前文件夹内的分类子目录，原件保留。'}</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹{isWebExperience ? '（不递归扫描）' : '（点击名称进入，不递归扫描）'} · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></div>
+      <div className="workspace-context"><details className="workspace-summary"><summary><FolderOpen size={16} aria-hidden="true" />查看来源与副本位置</summary><p><strong>整理来源：</strong>{workspace.path}</p><p>{isWebExperience ? '结果位置：浏览器内存资料库；不创建真实文件副本。' : '副本位置：当前文件夹内的分类子目录，原件保留。'}</p><p>{supported.length} 个可处理文件 · {files.filter(file => file.reason === 'DIRECTORY_SKIPPED').length} 个子文件夹{isWebExperience ? '（不递归扫描）' : '（点击名称进入，不递归扫描）'} · {files.filter(file => !file.supported && file.reason !== 'DIRECTORY_SKIPPED').length} 项暂不支持或已跳过</p></details><button type="button" className="text-button" aria-label="重新扫描目录" title="重新扫描，清除旧建议" disabled={workflowLocked} onClick={() => setResetRequest({ type: 'rescan' })}><RotateCw size={14} aria-hidden="true" />重新扫描</button></div>
+
+      {stage !== 'results' ? <WorkbenchActions stage={stage} selected={selected.size} visible={visible.length} hiddenSelected={hiddenSelected} reviewed={selectedReviewed} approvalCount={approvalCount} selectionReady={selectionReady} analysisReady={analysisReady} canCreatePlan={canCreatePlan} working={workflowLocked} activeAnalysis={activeAnalysis} planning={busy === 'plan'} hint={actionHint} onBack={() => navigateStep(stage === 'analyze' ? 'choose' : 'analyze')} onAnalyze={() => beginAnalysis()} onReview={() => navigateStep('review')} onInspect={inspectPending} onApprove={() => state.approveSelected()} onPlan={createPlan} onNext={() => navigateStep('analyze')} /> : null}
 
       <div ref={stageSurface} className="workbench-stage-surface">
       {stage !== 'results' ? <section className="work-area">
@@ -413,8 +442,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
             <button className="text-button select-all" disabled={!!busy || !visibleSelectable.length} onClick={toggleVisibleSelection}>{visibleAllSelected ? '取消选择可见项' : '选择可见项'}</button>
           </div>
           {stage === 'review' ? <div className="review-toolbar review-toolbar-v6">
-            <div className="review-main"><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
-            <p>确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。当前包含 {eligibility.candidates.length} 项待复核、{eligibility.mainOnly.length} 项仅主类或待分类；人工确认不代表算法已判定可靠。修改后需要重新审核；{isWebExperience ? '加入资料库' : '生成副本'}前仍需独立确认。</p>
+            <ol className="review-checklist" aria-label="复核方法"><li><strong>看内容</strong><span>点击文件名，打开右侧预览</span></li><li><strong>核对建议</strong><span>检查分类、名称与归档位置</span></li><li><strong>确认本批</strong><span>逐项确认或一键审核，再生成计划</span></li></ol>
+            <p className="review-scope-note">本批包含 {eligibility.candidates.length} 项待复核候选、{eligibility.mainOnly.length} 项仅主类或待分类（可能重叠）。人工确认不代表算法已判定可靠。修改后需要重新审核；{isWebExperience ? '加入资料库' : '生成副本'}前仍需独立确认。</p>
             {approvalSkipped ? <p className="review-skipped">{approvalSkipped} 项尚未分析或存在未处理错误，请先分析或编辑，错误项需重新分析。</p> : null}
             <details className="review-more"><summary>更多操作</summary><div className="review-advanced">
               <label>批量分类<select aria-label="批量分类" value={bulkCategory} onChange={event => setBulkCategory(event.target.value as Category)}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
@@ -424,9 +453,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
               <span>更改分类后需要重新审核。</span>
             </div></details>
           </div> : null}
-          <div className="safe-banner"><ShieldCheck size={14} /><span>{isWebExperience ? '浏览器计算 / 内存整理 / 不创建磁盘副本' : <>保留原件<span className="separator">/</span>生成归档副本<span className="separator">/</span>执行前再次确认</>}</span></div>
-          <div className="selection-legend"><span><i className="legend-active" />点击文件查看详情</span><span><i className="legend-checked" />勾选加入整理批次</span></div>
-          <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>勾选加入批次，核对确认后才可{isWebExperience ? '加入资料库' : '生成副本'}。</span></div>
+          <div className="file-view-switch" role="group" aria-label="文件显示方式"><button type="button" aria-pressed={view === 'grid'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'grid' })}>图片网格</button><button type="button" aria-pressed={view === 'list'} onClick={() => setViewChoice({ workspace: workspace.id, view: 'list' })}>文件列表</button><span>{stage === 'review' ? '点击文件名核对内容；修改后需重新确认。' : '点击文件名查看内容，勾选框加入本批。'}</span></div>
           {view === 'grid' ? <FileGrid workspaceId={workspace.id} files={visible} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} reviewed={reviewed} errors={errors} selectionDisabled={!!busy} taxonomy={taxonomy} onSelect={state.toggle} onActive={activate} onOpenDirectory={!isWebExperience ? openDirectory : undefined} /> : <FileTable files={files} suggestions={suggestions} edits={edits} selected={selected} activeId={drawerVisible ? effectiveId : null} filter={filter} query={query} errors={errors} reviewed={reviewed} selectionDisabled={!!busy} onSelect={state.toggle} onActive={activate} onOpenDirectory={!isWebExperience ? openDirectory : undefined} />}
           <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>{isWebExperience ? '预录资料仅供查看' : '不递归扫描'}</span></div>
           {!isWebExperience && files.some(file => file.reason === 'DIRECTORY_SKIPPED') ? <details className="child-directories"><summary>打开子文件夹（单独授权，不递归）</summary><p>将清除当前草稿并打开所选子目录。原件和既有副本保持不变。</p>{files.filter(file => file.reason === 'DIRECTORY_SKIPPED').map(file => <button key={file.id} className="button secondary" disabled={!!busy} onClick={() => setResetRequest({ type: 'child', fileId: file.id })}><FolderOpen size={16} />在此目录中打开：{file.name}</button>)}</details> : null}
@@ -440,14 +467,6 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings,
       {busy !== 'analysis' && state.job && ['running', 'queued'].includes(state.job.status) ? <div className="progress-region recovery-progress" role="status"><div><CircleAlert size={16} /><span>进度连接已中断。已完成的建议保留；可继续查询同一分析任务。</span><button className="button secondary" onClick={() => void state.resumeAnalysis()}><RotateCw size={14} />继续查询进度</button><button className="text-button" onClick={() => void state.cancel()}>取消任务</button></div><progress value={state.job.processed} max={Math.max(state.job.total, 1)} /></div> : null}
       {config && !config.execution_supported && !runtimeCapabilities.canOrganizeInMemory ? <div className="notice">当前平台可以扫描、预览和分析，不能生成归档副本。</div> : null}
 
-      {stage !== 'results' ? <footer className="action-bar">
-        <div><strong>已选择 <em>{selected.size}</em> 个文件</strong><span>{selected.size ? `${[...selected].filter(id => reviewed.has(id)).length} 项已确认；建议不会自动应用` : '从可见列表中明确选择需要处理的文件'}</span></div>
-        <div className="action-buttons">
-          {stage === 'choose' ? <button className="button primary" disabled={!selectionReady || !!busy || picking} onClick={() => navigateStep('analyze')}>下一步：分析 <ArrowRight size={16} /></button> : null}
-          {stage === 'analyze' ? <><button className="button secondary" disabled={!selected.size || !!busy || activeAnalysis} onClick={() => beginAnalysis() }><Sparkles size={16} />分析选中文件</button><button className="button primary" disabled={!analysisReady || !!busy} onClick={() => navigateStep('review')}>查看建议</button></> : null}
-          {stage === 'review' ? <button className="button primary" disabled={!canCreatePlan} onClick={createPlan}>{busy === 'plan' ? <LoaderCircle size={16} className="spin" /> : <ArrowRight size={16} />}生成整理计划</button> : null}
-        </div>
-      </footer> : null}
     </>}
 
     {detailVisited && workspace && active ? createPortal(<div ref={inspectorColumnRef} className="app-shell workbench-detail-layer" hidden={!drawerVisible} aria-hidden={!drawerVisible} onKeyDown={handleDrawerKeyDown}>

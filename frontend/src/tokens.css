@@ -91,7 +91,7 @@
   --nav-width-expanded: 240px;
   --workspace-radius: 24px;
   --workspace-surface: #fbfdff;
-  --workspace-background: radial-gradient(ellipse at 8% 0%, #dceaff 0%, transparent 48%), radial-gradient(ellipse at 100% 100%, #dbe9ff 0%, transparent 44%), var(--canvas);
+  --workspace-background: url('/backgrounds/neatdrop-paper-flow.webp') center / cover no-repeat var(--canvas);
   --workspace-shadow: 0 12px 36px #284f8512;
   --panel-shadow: 0 3px 12px #264c7b0c;
   --motion-layout: 260ms;

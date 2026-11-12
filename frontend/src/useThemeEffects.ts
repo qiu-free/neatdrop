@@ -1,49 +1,51 @@
 import { useEffect } from 'react'
 
-/** Subtle pointer light on existing surfaces. No new elements or input handling. */
+/** A short reveal for explicit disclosures. Never delays content or handles clicks. */
 export function useThemeEffects() {
   useEffect(() => {
     if (typeof window.matchMedia !== 'function') return
-    const enabled = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)')
-    let surface: HTMLElement | null = null
-    let frame = 0
-    let x = 0, y = 0
-    const selector = '.directory-panel, .file-grid-card, .help-topic, .help-practice-card, .settings-preferences'
+    const enabled = matchMedia('(prefers-reduced-motion: no-preference)')
+    const active = new Map<HTMLDetailsElement, Animation[]>()
+    const cancel = (details: HTMLDetailsElement) => {
+      active.get(details)?.forEach(animation => animation.cancel())
+      active.delete(details)
+    }
     const clear = () => {
-      cancelAnimationFrame(frame)
-      frame = 0
-      surface?.style.removeProperty('--theme-pointer-x')
-      surface?.style.removeProperty('--theme-pointer-y')
-      surface = null
+      active.forEach(animations => animations.forEach(animation => animation.cancel()))
+      active.clear()
     }
-    const move = (event: PointerEvent) => {
-      if (!enabled.matches || event.pointerType !== 'mouse') { clear(); return }
-      const target = event.target instanceof Element ? event.target.closest<HTMLElement>(selector) : null
-      if (!target) { clear(); return }
-      if (surface !== target) { clear(); surface = target }
-      x = event.clientX; y = event.clientY
-      if (frame) return
-      frame = requestAnimationFrame(() => {
-        frame = 0
-        if (!surface?.isConnected) { clear(); return }
-        const rect = surface.getBoundingClientRect()
-        surface.style.setProperty('--theme-pointer-x', `${Math.round(x - rect.left)}px`)
-        surface.style.setProperty('--theme-pointer-y', `${Math.round(y - rect.top)}px`)
-      })
+    const reveal = (event: Event) => {
+      const details = event.target
+      if (!(details instanceof HTMLDetailsElement) || !details.matches('.help-topic, .sidebar-directory-path, .review-more, .recognition-details')) return
+      cancel(details)
+      if (!details.open || !enabled.matches || document.visibilityState === 'hidden') return
+      const animations: Animation[] = []
+      for (const child of details.children) {
+        if (!(child instanceof HTMLElement) || child.tagName === 'SUMMARY' || typeof child.animate !== 'function') continue
+        try {
+          const animation = child.animate([
+            { opacity: .4, transform: 'translateY(-4px)' },
+            { opacity: 1, transform: 'none' },
+          ], { duration: 180, easing: 'cubic-bezier(.16, 1, .3, 1)' })
+          animations.push(animation)
+          const settle = () => {
+            if (active.get(details) !== animations) return
+            const index = animations.indexOf(animation)
+            if (index >= 0) animations.splice(index, 1)
+            if (!animations.length) active.delete(details)
+          }
+          void animation.finished.then(settle, settle)
+        } catch { /* Native disclosure remains open when animation is unavailable. */ }
+      }
+      if (animations.length) active.set(details, animations)
     }
-    document.addEventListener('pointermove', move, { passive: true })
-    document.addEventListener('pointerleave', clear)
-    document.addEventListener('scroll', clear, { passive: true, capture: true })
-    document.addEventListener('pointerdown', clear, { passive: true })
-    window.addEventListener('blur', clear)
+    document.addEventListener('toggle', reveal, true)
+    document.addEventListener('visibilitychange', clear)
     enabled.addEventListener('change', clear)
     return () => {
       clear()
-      document.removeEventListener('pointermove', move)
-      document.removeEventListener('pointerleave', clear)
-      document.removeEventListener('scroll', clear, true)
-      document.removeEventListener('pointerdown', clear)
-      window.removeEventListener('blur', clear)
+      document.removeEventListener('toggle', reveal, true)
+      document.removeEventListener('visibilitychange', clear)
       enabled.removeEventListener('change', clear)
     }
   }, [])

@@ -71,7 +71,7 @@ body { background: var(--workspace-background); background-attachment: fixed; }
 .app-shell .file-grid-card { transition: border-color var(--motion-state), background-color var(--motion-state), box-shadow var(--motion-state); }
 .app-shell .file-grid-card:focus-within { border-color: var(--focus); }
 .page-transition { animation: workspace-content-enter var(--motion-enter) var(--theme-ease); }
-@keyframes workspace-content-enter { from { opacity: .65; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes workspace-content-enter { from { opacity: .82; } to { opacity: 1; } }
 @keyframes workspace-snapshot-leave { to { opacity: 0; } }
 @keyframes workspace-snapshot-enter { from { opacity: 0; } }
 ::view-transition { pointer-events: none; }
@@ -105,6 +105,18 @@ body { background: var(--workspace-background); background-attachment: fixed; }
   .app-shell .button.primary:hover:not(:disabled) > .lucide-arrow-right { transform: translateX(2px); }
   .app-shell .button.primary:active:not(:disabled) { transform: translateY(1px); }
 }
+/* Feedback follows deliberate actions; large work surfaces remain still. */
+.app-shell :is(.directory-panel, .empty-landing, .file-grid-card, .help-topic, .help-practice-card, .settings-preferences) { background-image: none; }
+.app-shell :is(.file-grid-card, .help-topic, .help-practice-card, .settings-preferences):hover { background-image: none; }
+.app-shell .sidebar-glass nav button.nav-active > svg { animation: nav-selection-arrive 220ms var(--theme-ease); }
+.app-shell .alert { animation: status-feedback-arrive 180ms var(--theme-ease); }
+.app-shell .help-topic > p { animation: none; }
+.app-shell .file-view-switch button { transition: color var(--motion-state), background-color var(--motion-state), box-shadow var(--motion-state); }
+.app-shell .file-view-switch button[aria-pressed="true"] { box-shadow: inset 0 -2px var(--primary); }
+.sidebar-icon-hint { animation: icon-hint-arrive 120ms var(--theme-ease); }
+@keyframes nav-selection-arrive { from { opacity: .5; transform: translateX(-3px); } to { opacity: 1; transform: none; } }
+@keyframes status-feedback-arrive { from { opacity: .4; } to { opacity: 1; } }
+@keyframes icon-hint-arrive { from { opacity: .3; transform: translateX(-2px); } to { opacity: 1; transform: none; } }
 @media (max-width: 600px) {
   .app-shell > .main-shell:has(.graph-tools) { position: relative; z-index: 50; }
 }
@@ -115,6 +127,7 @@ body { background: var(--workspace-background); background-attachment: fixed; }
   .app-shell .button.primary > .lucide-arrow-right,
   .app-shell .sidebar-toggle svg { transform: none; transition: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0s !important; }
+  .sidebar-icon-hint { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
   body { background: var(--canvas); }

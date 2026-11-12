@@ -14,10 +14,10 @@ describe('learning preferences', () => {
     const storage = memoryStorage(JSON.stringify({ version: 1, density: 'compact', offlineFirst: true,
       tutorial: { tourCompleted: true, exerciseCompleted: false }, secret: 'must-not-survive' }))
 
-    expect(loadPreferences(storage)).toEqual({ version: 2, density: 'compact', offlineFirst: true,
+    expect(loadPreferences(storage)).toEqual({ version: 2, density: 'compact', offlineFirst: true, sidebarCollapsed: false,
       tutorial: { tourCompleted: false, tourStatus: 'legacy-dismissed', exerciseCompleted: false } })
     expect(loadPreferences(memoryStorage('{broken'))).toEqual({ version: 2, density: 'comfortable',
-      offlineFirst: true, tutorial: { tourCompleted: false, tourStatus: 'unseen', exerciseCompleted: false } })
+      offlineFirst: true, sidebarCollapsed: false, tutorial: { tourCompleted: false, tourStatus: 'unseen', exerciseCompleted: false } })
   })
 
   it('tolerates storage that throws while reading or writing', () => {
@@ -37,7 +37,7 @@ describe('learning preferences', () => {
       tutorial: { tourCompleted: false, tourStatus: 'skipped', exerciseCompleted: true }, path: 'C:\\private', apiKey: 'secret' }
 
     expect(savePreferences(withUnexpectedFields as never, storage)).toBe(true)
-    expect(storage.value).toBe(JSON.stringify({ version: 2, density: 'comfortable', offlineFirst: false,
+    expect(storage.value).toBe(JSON.stringify({ version: 2, density: 'comfortable', offlineFirst: false, sidebarCollapsed: false,
       tutorial: { tourCompleted: false, tourStatus: 'skipped', exerciseCompleted: true } }))
   })
 
@@ -57,6 +57,16 @@ describe('learning preferences', () => {
 
     expect(listener).toHaveBeenCalledOnce()
     expect((listener.mock.calls[0][0] as CustomEvent).detail).toMatchObject({ density: 'compact' })
+  })
+
+  it('persists only a boolean sidebar choice while older preferences default to expanded', () => {
+    const storage = memoryStorage()
+    expect(loadPreferences(storage).sidebarCollapsed).toBe(false)
+    const next = { ...loadPreferences(storage), sidebarCollapsed: true, path: 'C:/private-file' }
+    expect(savePreferences(next, storage)).toBe(true)
+    expect(loadPreferences(storage).sidebarCollapsed).toBe(true)
+    expect(storage.value).not.toContain('private-file')
+    expect(loadPreferences(memoryStorage(JSON.stringify({ version: 2, sidebarCollapsed: 'true' }))).sidebarCollapsed).toBe(false)
   })
 
   it('retains skipped and completed as distinct statuses and ignores unknown future versions', () => {

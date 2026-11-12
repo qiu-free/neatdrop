@@ -1,0 +1,131 @@
+/* Extend the existing blue glass navigation without changing page structure. */
+.app-shell .sidebar.sidebar-glass {
+  padding: var(--space-4) var(--space-3);
+  overflow: hidden;
+}
+.app-shell .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+.app-shell .sidebar-header .brand { min-width: 0; padding: 0; gap: var(--space-2); font-size: 20px; letter-spacing: 0; }
+.app-shell .sidebar-header .brand-mark { flex-shrink: 0; }
+.app-shell .sidebar-brand-name { white-space: nowrap; }
+.app-shell .sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  color: var(--nav-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  transition: color var(--motion-state), background-color var(--motion-state);
+}
+.app-shell .sidebar-toggle:hover { color: var(--primary-ink); background: var(--nav-active-surface); }
+.app-shell .sidebar-toggle:active { color: var(--primary-pressed); background: var(--primary-soft); }
+.app-shell .sidebar-tagline { margin: var(--space-2) var(--space-1) 0; font-size: 12px; color: var(--nav-text); }
+.app-shell .sidebar-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: var(--space-1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--control-line) transparent;
+  overscroll-behavior: contain;
+}
+.app-shell .sidebar-content > * { flex-shrink: 0; }
+.app-shell .sidebar-content .nav-label { margin: var(--space-6) var(--space-3) var(--space-2); }
+.app-shell .sidebar-content nav button { padding: var(--space-3); gap: var(--space-3); }
+.app-shell .sidebar-content nav button:has(.practice-nav-badge) { gap: var(--space-2); }
+.app-shell .sidebar-content .practice-nav-badge { flex-shrink: 0; white-space: nowrap; }
+.app-shell .sidebar-workspace { margin-top: var(--space-6); padding: var(--space-4) var(--space-2); border-top: 1px solid var(--border-subtle); }
+.app-shell .sidebar-workspace h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  color: var(--nav-text);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.app-shell .sidebar-workspace-name { display: block; color: var(--ink); font-size: var(--text-control); line-height: 1.6; overflow-wrap: anywhere; }
+.app-shell .sidebar-workspace p { margin-top: var(--space-2); color: var(--nav-text); font-size: var(--text-caption); line-height: 1.7; overflow-wrap: anywhere; }
+.app-shell .sidebar-file-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: var(--space-3) 0 0; gap: var(--space-3); }
+.app-shell .sidebar-file-counts dt { color: var(--nav-text); font-size: 12px; }
+.app-shell .sidebar-file-counts dd { margin: var(--space-1) 0 0; font-size: 18px; font-weight: 650; color: var(--primary-ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.app-shell .sidebar-workspace .sidebar-unsupported { font-size: 12px; }
+.app-shell .sidebar-directory-path { margin-top: var(--space-1); }
+.app-shell .sidebar-directory-path summary { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; padding: var(--space-2) 0; cursor: pointer; font-size: var(--text-caption); color: var(--primary-ink); }
+.app-shell .sidebar-directory-path summary::before { content: ''; width: 6px; height: 6px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(-45deg); }
+.app-shell .sidebar-directory-path[open] summary::before { transform: rotate(45deg); }
+.app-shell .sidebar-directory-path p { margin-top: 0; user-select: all; }
+.app-shell .sidebar-content .sidebar-bottom { margin-top: auto; padding-top: var(--space-4); }
+.app-shell .sidebar.sidebar-glass .safety-note { padding: var(--space-4) var(--space-2) var(--space-2); border-top-color: var(--border-subtle); }
+.app-shell .sidebar-safety-heading { display: flex; align-items: center; gap: var(--space-2); }
+.app-shell .sidebar-safety-heading strong { margin: 0; font-size: var(--text-control); }
+.app-shell .sidebar-safety-points { display: grid; gap: var(--space-1); margin: var(--space-3) 0 0; padding-left: var(--space-4); color: var(--nav-text); font-size: var(--text-caption); line-height: 1.7; }
+.app-shell .sidebar.sidebar-glass .safety-note > button { min-height: 44px; padding: var(--space-2) 0; gap: var(--space-1); font-size: var(--text-caption); }
+.app-shell .sidebar-safety-icon { display: none; }
+.app-shell .sidebar.sidebar-glass .local-status { min-height: 44px; padding: var(--space-3) var(--space-2) var(--space-1); align-items: baseline; gap: var(--space-2); border-top-color: var(--border-subtle); }
+.app-shell .sidebar-status-label { min-width: 0; color: var(--nav-text); font-size: 12px; line-height: 1.6; }
+.app-shell .sidebar.sidebar-glass .local-status .sidebar-version { color: var(--nav-text); font-size: 12px; }
+.app-shell .sidebar-status-icon { display: none; }
+.sidebar-icon-hint {
+  position: fixed;
+  z-index: var(--layer-floating);
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: min(280px, calc(100vw - 120px));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: var(--text-control);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 721px) {
+  .app-shell .sidebar.sidebar-glass[data-collapsed="true"] { width: var(--nav-width-collapsed); padding-inline: var(--space-2); }
+  .app-shell[data-sidebar-collapsed="true"] > .main-shell { margin-left: calc(var(--nav-width-collapsed) + var(--nav-inset)); }
+  .app-shell .sidebar[data-collapsed="true"] .sidebar-header { flex-direction: column; gap: var(--space-2); }
+  .app-shell .sidebar[data-collapsed="true"] .sidebar-content { padding-top: var(--space-3); }
+  .app-shell .sidebar[data-collapsed="true"] :is(.sidebar-brand-name, .nav-item-label) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .app-shell .sidebar[data-collapsed="true"] :is(.sidebar-tagline, .nav-label, .practice-nav-badge, .nav-dot, .sidebar-workspace, .sidebar-safety-heading, .sidebar-safety-points, .sidebar-safety-link, .sidebar-safety-arrow, .local-status) { display: none; }
+  .app-shell .sidebar[data-collapsed="true"] nav button { justify-content: center; min-width: 48px; min-height: 48px; padding: var(--space-3); }
+  .app-shell .sidebar.sidebar-glass[data-collapsed="true"] .safety-note { padding: 0; border: 0; }
+  .app-shell .sidebar.sidebar-glass[data-collapsed="true"] .safety-note > button { width: 100%; min-height: 48px; padding: var(--space-3); justify-content: center; border-radius: var(--radius-control); }
+  .app-shell .sidebar[data-collapsed="true"] .safety-note > button:hover { background: var(--nav-active-surface); }
+  .app-shell .sidebar[data-collapsed="true"] .sidebar-safety-icon { display: block; }
+  .app-shell .sidebar[data-collapsed="true"] .sidebar-status-icon { display: flex; position: relative; justify-content: center; align-items: center; min-height: 48px; color: var(--nav-text); border-radius: var(--radius-control); }
+  .app-shell .sidebar[data-collapsed="true"] .sidebar-status-icon .status-dot { position: absolute; top: 10px; right: 10px; }
+}
+@media (max-width: 720px) {
+  .app-shell .sidebar.sidebar-glass { overflow: visible; }
+  .app-shell .sidebar-header .brand { font-size: 22px; }
+  .app-shell .sidebar-toggle { display: none; }
+  .app-shell .sidebar-content { display: block; overflow: visible; padding: 0; }
+  .app-shell .sidebar-tagline { margin-top: var(--space-1); }
+  .app-shell .sidebar-content :is(.sidebar-workspace, .sidebar-bottom) { display: none; }
+  .sidebar-icon-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .sidebar-toggle { transition: none; }
+}
+@media (forced-colors: active) {
+  .sidebar-icon-hint { color: CanvasText; background: Canvas; border-color: CanvasText; }
+  .app-shell .sidebar-toggle { border-color: ButtonText; }
+  .app-shell .sidebar-status-icon:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+}

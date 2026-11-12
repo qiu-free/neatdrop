@@ -25,14 +25,18 @@
 .help-topic-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .help-topic-heading h2 { margin: 0; font-family: var(--font-display); color: #334d32; font-size: 18px; font-weight: 500; }
 .help-topic-heading span { color: #819073; font-size: 10px; }
-.help-topic-directory { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 13px; }
-.help-topic-directory a { padding: 5px 8px; border: 1px solid #e3eadc; border-radius: 5px; color: #5f7656; background: #f9fbf6; font-size: 10px; line-height: 1.4; text-decoration: none; }
-.help-topic-directory a:hover, .help-topic-directory a:focus-visible { border-color: #9eb48f; color: #344e33; background: #f0f5eb; }
-.help-topic-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
-.help-topic { min-width: 0; padding: 13px 14px; border: 1px solid #e6ebdf; border-radius: 7px; background: #fff; }
-.help-topic:focus { outline: 2px solid #91aa83; outline-offset: 2px; }
-.help-topic h3 { margin-bottom: 5px; color: #526d47; font-size: 11px; font-weight: 600; }
-.help-topic p { color: #7b8972; font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; }
+.help-topic-list { display: grid; gap: 7px; }
+.help-topic { min-width: 0; overflow: clip; border: 1px solid var(--line); border-radius: 8px; background: #fff; scroll-margin-top: 18px; }
+.help-topic[open] { border-color: #bdcfb6; background: #fff; box-shadow: 0 2px 8px #3b563b0b; }
+.help-topic summary { position: relative; display: flex; align-items: center; min-height: 44px; padding: 9px 38px 9px 12px; color: #526d47; background: #fafbf7; cursor: pointer; font-size: 14px; list-style: none; }
+.help-topic summary::-webkit-details-marker { display: none; }
+.help-topic summary::after { position: absolute; right: 14px; color: #6a8b65; content: "+"; font-size: 18px; line-height: 1; }
+.help-topic[open] summary { border-bottom: 1px solid #edf0e9; background: #f3f7ef; }
+.help-topic[open] summary::after { content: "−"; }
+.help-topic summary:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.help-topic > p { padding: 12px; color: var(--muted); font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; animation: help-topic-open 160ms ease-out; }
+@keyframes help-topic-open { from { opacity: .55; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .help-empty { padding: 25px 12px; border: 1px dashed #d8e1d0; border-radius: 7px; text-align: center; color: #7c8e71; font-size: 11px; }
 @media(max-width:1000px) { .help-steps { grid-template-columns: 1fr; }.help-steps article { display: grid; grid-template-columns: 110px minmax(0,1fr); column-gap: 15px; align-items: center; }.help-steps article img { grid-row: 1 / span 3; height: 86px; margin: 0; }.help-steps article > span { align-self: end; }.help-steps h3 { align-self: center; margin: 1px 0 3px; }.help-steps p { align-self: start; } }
-@media(max-width:720px) { .help-content { padding: 20px 15px; }.help-practice-card { grid-template-columns: minmax(0,1fr) auto; padding: 16px 13px; gap: 10px; }.help-practice-card > div { grid-column: 1 / -1; }.help-practice-card .practice-badge { grid-column: 1; justify-self: start; }.help-practice-card .button { grid-column: 2; }.help-heading-row { display: block; }.help-search { width: 100%; margin-top: 14px; }.help-topic-grid { grid-template-columns: 1fr; }.help-steps article { grid-template-columns: 83px minmax(0,1fr); gap: 0 12px; }.help-steps article img { height: 75px; }.help-tour-button { align-self: flex-start; margin-top: -9px; }.help-intro { align-items: flex-start; flex-direction: column; } }
+@media(max-width:720px) { .help-content { padding: 20px 15px; }.help-practice-card { grid-template-columns: minmax(0,1fr) auto; padding: 16px 13px; gap: 10px; }.help-practice-card > div { grid-column: 1 / -1; }.help-practice-card .practice-badge { grid-column: 1; justify-self: start; }.help-practice-card .button { grid-column: 2; }.help-heading-row { display: block; }.help-search { width: 100%; margin-top: 14px; }.help-steps article { grid-template-columns: 83px minmax(0,1fr); gap: 0 12px; }.help-steps article img { height: 75px; }.help-topic summary { min-height: 46px; font-size: 14px; }.help-tour-button { align-self: flex-start; margin-top: -9px; }.help-intro { align-items: flex-start; flex-direction: column; } }
+@media(prefers-reduced-motion: reduce) { .help-topic > p { animation: none; } }

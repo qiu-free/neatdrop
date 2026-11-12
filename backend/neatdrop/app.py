@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
@@ -21,6 +21,8 @@ from .security import LocalSecurity, RequestGuard, Session, current
 from .taxonomy import taxonomy_config, FORMS
 from .configuration import public_model_config, test_model_snapshot, update_model_config
 from . import model as model_api
+from .safe_io import directory_pin, protect_workspace
+from .directory_picker import choose_directory
 
 PROJECT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT / ".env")
@@ -60,6 +62,29 @@ class JobBody(Body):
     config_version: str | None = Field(default=None, max_length=80)
 
 
+class PersonalRulePreviewBody(Body):
+    job_id: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=60)
+    keywords: list[str] = Field(min_length=2, max_length=5)
+    extensions: list[str] = Field(min_length=1, max_length=100)
+    category: str = Field(min_length=1, max_length=40)
+    subcategory: str | None = Field(default=None, max_length=40)
+    rule_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+
+
+class PersonalRuleSaveBody(Body):
+    preview_token: str = Field(min_length=20, max_length=100)
+    confirmed: bool = False
+
+
+class PersonalRuleRevision(Body):
+    revision: int = Field(ge=0, lt=2**53)
+
+
+class PersonalRuleDelete(PersonalRuleRevision):
+    confirmed: bool = False
+
+
 class ModelConfigBody(Body):
     endpoint: str | None = Field(default=None, max_length=2048)
     text_model: str | None = Field(default=None, max_length=128)
@@ -77,18 +102,57 @@ class Confirmation(Body):
     confirmed: bool = False
 
 
+class GraphJobBody(Body):
+    entry_ids: list[str] = Field(min_length=1, max_length=50)
+    confirmed: bool = False
+
+
+class GraphRevision(Body):
+    revision: int = Field(ge=0, lt=2**53)
+
+
+class GraphRelationBody(GraphRevision):
+    source: str = Field(pattern=r'^[a-f0-9]{64}$')
+    target: str = Field(pattern=r'^[a-f0-9]{64}$')
+    kind: Literal['related', 'reference', 'attachment', 'version']
+    candidate_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+
+class CatalogRemoveBody(Body):
+    revision: int = Field(ge=0, lt=2**53)
+    relations_revision: int = Field(ge=0, lt=2**53)
+    confirmed: bool = False
+    remove_relations: bool = False
+
+
+class CatalogGraphRelationBody(GraphRevision):
+    source: str = Field(pattern=r'^[a-f0-9]{64}$')
+    target: str = Field(pattern=r'^[a-f0-9]{64}$')
+    kind: Literal['related', 'reference', 'attachment', 'version']
+    candidate_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+
+
+class CatalogRootBody(Confirmation):
+    workspace_id: str = Field(max_length=64)
+    alias: str = Field(min_length=1, max_length=80)
+    root_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+
+
 def create_app():
     tasks = set()
 
     @asynccontextmanager
     async def lifespan(app):
         yield
+        for session in app.state.sessions.values():
+            session.graph_jobs.cancel_all()
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
 
     app = FastAPI(title="NeatDrop local MVP", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.sessions = {}
+    app.state.catalog_path = None
     from threading import Lock
     app.state.session_lock = Lock()
     app.add_middleware(LocalSecurity)
@@ -112,6 +176,85 @@ def create_app():
             raise HTTPException(404, "WORKSPACE_NOT_FOUND")
         return entry
 
+    def catalog_action(request, action):
+        from .catalog import Catalog
+        from .catalog_graph import CatalogGraph
+        session = current(request)
+        with session.catalog_lock:
+            service = Catalog(session, app.state.catalog_path)
+            try:
+                return action(service, CatalogGraph(service))
+            except SafetyError as exc:
+                if exc.code in {'CATALOG_ROOT_NOT_FOUND', 'WORKSPACE_NOT_FOUND', 'GRAPH_ENTRY_NOT_FOUND', 'GRAPH_RELATION_NOT_FOUND'}:
+                    return JSONResponse({'code': exc.code}, status_code=404)
+                raise
+
+    @app.get('/api/v1/catalog')
+    def catalog_listing(request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.states())
+
+    @app.post('/api/v1/catalog/roots')
+    def catalog_register(body: CatalogRootBody, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.register(**body.model_dump()))
+
+    @app.post('/api/v1/catalog/roots/{root_id}/revoke')
+    def catalog_revoke(root_id: str, body: Confirmation, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.revoke(root_id, body.confirmed))
+
+    @app.delete('/api/v1/catalog/roots/{root_id}')
+    def catalog_remove(root_id: str, body: CatalogRemoveBody, request: Request):
+        return catalog_action(request, lambda catalog, _: catalog.remove(**body.model_dump(), root_id=root_id))
+
+    @app.get('/api/v1/catalog/graph')
+    def catalog_graph(request: Request, offset: int = Query(default=0, ge=0), limit: int = Query(default=1000, ge=1, le=1000)):
+        return catalog_action(request, lambda _, graph: graph.listing(offset, limit))
+
+    @app.get('/api/v1/catalog/library/{entry_id}/preview')
+    def catalog_preview(entry_id: str, request: Request):
+        return catalog_action(request, lambda _, graph: graph.preview(entry_id))
+
+    @app.get('/api/v1/catalog/graph/relations/{relation_id}/evidence')
+    def catalog_evidence(relation_id: str, request: Request):
+        return catalog_action(request, lambda _, graph: graph.evidence(relation_id))
+
+    @app.post('/api/v1/workspaces/{identifier}/children/{file_id}/open')
+    def open_child_directory(identifier: str, file_id: str, body: Confirmation, request: Request):
+        if body.confirmed is not True:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        ws, _ = granted(request, identifier)
+        session = current(request)
+        with ws.lock, protect_workspace(ws):
+            path = Path(ws.child_directory(file_id))
+            expected = ws.directory_identities.get(file_id)
+            if not expected or path.parent != ws.root:
+                raise SafetyError('DIRECTORY_NOT_AVAILABLE')
+            with directory_pin(path):
+                info = path.stat()
+                if (info.st_dev, info.st_ino) != expected:
+                    raise SafetyError('DIRECTORY_CHANGED')
+                child = Workspace(path)
+                if child.root.parent != ws.root or child.identity != expected:
+                    raise SafetyError('DIRECTORY_CHANGED')
+                files = child.scan()
+                executor = Executor(child)
+                with session.lock:
+                    if len(session.workspaces) >= 16:
+                        raise SafetyError('WORKSPACE_LIMIT')
+                    session.workspaces[child.id] = (child, executor)
+        return {'id': child.id, 'path': str(child.root), 'name': child.root.name, 'files': files}
+
+    @app.post('/api/v1/catalog/graph/relations')
+    def catalog_relation_add(body: CatalogGraphRelationBody, request: Request):
+        return catalog_action(request, lambda _, graph: graph.add(**body.model_dump()))
+
+    @app.post('/api/v1/catalog/graph/relations/{relation_id}/dismiss')
+    def catalog_relation_dismiss(relation_id: str, body: GraphRevision, request: Request):
+        return catalog_action(request, lambda _, graph: graph.dismiss(relation_id, body.revision))
+
+    @app.delete('/api/v1/catalog/graph/relations/{relation_id}')
+    def catalog_relation_delete(relation_id: str, body: GraphRevision, request: Request):
+        return catalog_action(request, lambda _, graph: graph.delete(relation_id, body.revision))
+
     @app.get("/api/session")
     def session(request: Request):
         session = request.state.local_session
@@ -122,6 +265,7 @@ def create_app():
             for token, old in list(app.state.sessions.items()):
                 if time.monotonic() - old.created > 8 * 3600:
                     old.jobs.cancel_all()
+                    old.graph_jobs.cancel_all()
                     app.state.sessions.pop(token, None)
             if len(app.state.sessions) >= 64:
                 raise HTTPException(429, "SESSION_LIMIT")
@@ -143,6 +287,8 @@ def create_app():
         offline = offline_status()
         offline['semantic'] = semantic_status()
         offline['semantic']['enabled'] = os.getenv('NEATDROP_SEMANTIC_CANDIDATES') == '1'
+        from .pdf_ocr import pdf_ocr_status
+        offline['scanned_pdf'] = pdf_ocr_status()
         return {"model": model_status(), "offline": offline, "categories": CATEGORIES, "taxonomy": taxonomy_config(), "content_forms": FORMS, "undo_supported": os.name == "nt", "execution_supported": os.name == "nt",
                 "supported_extensions": sorted(SUPPORTED),
                 "limits": {"files": 50, "file_mib": 20, "total_mib": 200}, "demo_path": str(PROJECT / "demo-files")}
@@ -175,19 +321,7 @@ def create_app():
 
     @app.post("/api/v1/pick-directory")
     def pick_directory():
-        try:
-            import tkinter
-            from tkinter import filedialog
-            window = tkinter.Tk()
-            window.withdraw()
-            window.attributes("-topmost", True)
-            try:
-                path = filedialog.askdirectory(title="NeatDrop - 选择待整理目录", mustexist=True)
-            finally:
-                window.destroy()
-            return {"path": path or None}
-        except Exception as exc:
-            raise SafetyError("PICKER_UNAVAILABLE") from exc
+        return {"path": choose_directory()}
 
     @app.post("/api/v1/workspaces")
     def open_workspace(body: Directory, request: Request):
@@ -197,7 +331,11 @@ def create_app():
                 raise SafetyError("WORKSPACE_LIMIT")
             ws = Workspace(body.path)
             files = ws.scan()
-            session.workspaces[ws.id] = (ws, Executor(ws))
+            executor = Executor(ws)
+            # Reauthorizing this physical root replaces the UI's graph session.
+            # Cancel its prior jobs while leaving worker cleanup to the worker.
+            session.graph_jobs.cancel_for_root(ws)
+            session.workspaces[ws.id] = (ws, executor)
         return {"id": ws.id, "path": str(ws.root), "name": ws.root.name, "files": files}
 
     @app.get("/api/v1/workspaces/{identifier}/files")
@@ -253,6 +391,62 @@ def create_app():
             raise SafetyError("CONFIRMATION_REQUIRED")
         return granted(request, identifier)[1].undo(transaction_id)
 
+    def graph_service(request, identifier):
+        from .graph import GraphService
+        return GraphService(granted(request, identifier)[1])
+
+    def graph_result(action):
+        try:
+            return action()
+        except SafetyError as exc:
+            if exc.code in {'GRAPH_JOB_NOT_FOUND', 'GRAPH_RELATION_NOT_FOUND', 'GRAPH_ENTRY_NOT_FOUND'}:
+                return JSONResponse({'code': exc.code}, status_code=404)
+            raise
+
+    @app.get('/api/v1/workspaces/{identifier}/graph')
+    def graph_listing(identifier: str, request: Request):
+        return graph_service(request, identifier).listing()
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/jobs')
+    async def graph_start_job(identifier: str, body: GraphJobBody, request: Request):
+        service = graph_service(request, identifier)
+        manager = current(request).graph_jobs
+        job = await asyncio.to_thread(manager.create, service, body.entry_ids, body.confirmed)
+        task = asyncio.create_task(manager.run(job['id']))
+        tasks.add(task)
+        task.add_done_callback(tasks.discard)
+        return job
+
+    @app.get('/api/v1/workspaces/{identifier}/graph/jobs/{job_id}')
+    def graph_get_job(identifier: str, job_id: str, request: Request):
+        service = graph_service(request, identifier)
+        return graph_result(lambda: current(request).graph_jobs.get(job_id, service))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/jobs/{job_id}/cancel')
+    def graph_cancel_job(identifier: str, job_id: str, body: Body, request: Request):
+        service = graph_service(request, identifier)
+        return graph_result(lambda: current(request).graph_jobs.cancel(job_id, service))
+
+    @app.get('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}/evidence')
+    def graph_evidence(identifier: str, relation_id: str, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).evidence(relation_id))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/relations')
+    def graph_add_relation(identifier: str, body: GraphRelationBody, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).add(**body.model_dump()))
+
+    @app.post('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}/dismiss')
+    def graph_dismiss(identifier: str, relation_id: str, body: GraphRevision, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).dismiss(relation_id, body.revision))
+
+    @app.delete('/api/v1/workspaces/{identifier}/graph/relations/{relation_id}')
+    def graph_delete_relation(identifier: str, relation_id: str, body: GraphRevision, request: Request):
+        return graph_result(lambda: graph_service(request, identifier).delete(relation_id, body.revision))
+
+    @app.delete('/api/v1/workspaces/{identifier}/graph/index')
+    def graph_clear(identifier: str, body: GraphRevision, request: Request):
+        return graph_service(request, identifier).clear(body.revision)
+
     @app.post("/api/v1/workspaces/{identifier}/transactions/{transaction_id}/acknowledge")
     def acknowledge(identifier: str, transaction_id: str, body: Confirmation, request: Request):
         if not body.confirmed:
@@ -263,12 +457,92 @@ def create_app():
     async def start_job(body: JobBody, request: Request):
         ws, _ = granted(request, body.workspace_id)
         manager = current(request).jobs
+        from .personal_rules import PersonalRules
+        personal_snapshot = PersonalRules(granted(request, body.workspace_id)[1]).listing() if body.mode == 'local' else None
         job = manager.create(ws, body.file_ids, body.mode, body.cloud_consent,
-                             endpoint=body.endpoint, config_version=body.config_version)
+                             endpoint=body.endpoint, config_version=body.config_version,
+                             personal_rules=({'available': personal_snapshot['available'], 'rules': personal_snapshot['rules']}
+                                             if personal_snapshot is not None else None))
         task = asyncio.create_task(manager.run(job["id"], ws))
         tasks.add(task)
         task.add_done_callback(tasks.discard)
         return dict(job)
+
+    def personal_rules_service(request, identifier):
+        from .personal_rules import PersonalRules
+        return PersonalRules(granted(request, identifier)[1])
+
+    @app.get('/api/v1/workspaces/{identifier}/classification-rules')
+    def personal_rules_listing(identifier: str, request: Request):
+        return personal_rules_service(request, identifier).listing()
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/preview')
+    def personal_rules_preview(identifier: str, body: PersonalRulePreviewBody, request: Request):
+        service = personal_rules_service(request, identifier)
+        session = current(request)
+        ws, _ = granted(request, identifier)
+        samples = session.jobs.preview(body.job_id, identifier, ws)
+        draft = body.model_dump(exclude={'job_id'}, exclude_none=False)
+        revision = service.listing()['revision']
+        if revision is None:
+            raise SafetyError('PERSONAL_RULE_STORE_UNAVAILABLE')
+        preview = service.preview(draft, samples, revision)
+        token = secrets.token_urlsafe(32)
+        with session.lock:
+            tokens = session.personal_rule_previews
+            now = time.monotonic()
+            for key, value in list(tokens.items()):
+                if now - value['created'] > 600:
+                    tokens.pop(key, None)
+            if len(tokens) >= 16:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_LIMIT')
+            tokens[token] = {'created': now, 'workspace_id': identifier, 'draft': draft,
+                             'revision': revision, 'preview': preview,
+                             'rule_id': body.rule_id, 'job_id': body.job_id}
+        return {'token': token, **preview}
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules')
+    def personal_rules_save(identifier: str, body: PersonalRuleSaveBody, request: Request):
+        if not body.confirmed:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        session = current(request)
+        with session.lock:
+            token_data = session.personal_rule_previews.get(body.preview_token)
+            if not token_data or time.monotonic() - token_data['created'] > 600:
+                session.personal_rule_previews.pop(body.preview_token, None)
+                raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+            if token_data['workspace_id'] != identifier or token_data.get('rule_id') is not None:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
+            session.personal_rule_previews.pop(body.preview_token, None)
+        if not token_data['preview']['matched']:
+            raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
+        service = personal_rules_service(request, identifier)
+        return service.commit(token_data['draft'], token_data['revision'], token_data['draft'].get('rule_id'))
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}/disable')
+    def personal_rules_disable(identifier: str, rule_id: str, body: PersonalRuleRevision, request: Request):
+        return personal_rules_service(request, identifier).disable(rule_id, body.revision)
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}/enable')
+    def personal_rules_enable(identifier: str, rule_id: str, body: PersonalRuleSaveBody, request: Request):
+        if not body.confirmed:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        session = current(request)
+        with session.lock:
+            token_data = session.personal_rule_previews.get(body.preview_token)
+            if not token_data or time.monotonic() - token_data['created'] > 600:
+                session.personal_rule_previews.pop(body.preview_token, None)
+                raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+            if token_data['workspace_id'] != identifier or token_data.get('rule_id') != rule_id:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
+            session.personal_rule_previews.pop(body.preview_token, None)
+        if not token_data['preview']['matched']:
+            raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
+        return personal_rules_service(request, identifier).commit(token_data['draft'], token_data['revision'], rule_id)
+
+    @app.delete('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}')
+    def personal_rules_delete(identifier: str, rule_id: str, body: PersonalRuleDelete, request: Request):
+        return personal_rules_service(request, identifier).delete(rule_id, body.revision, body.confirmed)
 
     @app.get("/api/v1/analysis-jobs/{identifier}")
     def get_job(identifier: str, request: Request):

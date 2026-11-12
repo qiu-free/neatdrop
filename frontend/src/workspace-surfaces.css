@@ -1,0 +1,139 @@
+/* Local CSS surfaces inspired by the supplied reference and Uiverse examples.
+   Native view transitions carry geometry; app state never waits for animation. */
+body { background: var(--workspace-background); background-attachment: fixed; }
+.app-shell { background: transparent; }
+.workbench-detail-layer.app-shell { background: var(--dialog-overlay); }
+#root > .app-shell { display: flow-root; min-height: 100dvh; }
+.app-shell > .main-shell {
+  margin: var(--shell-inset) var(--shell-inset) var(--shell-inset) calc(var(--shell-inset) + var(--nav-width-expanded) + var(--shell-gap));
+  min-width: 0;
+  min-height: calc(100dvh - 2 * var(--shell-inset));
+  padding-bottom: var(--space-2);
+  border-radius: var(--workspace-radius);
+  background: var(--workspace-surface);
+  box-shadow: var(--workspace-shadow);
+  isolation: isolate;
+}
+.app-shell .sidebar.sidebar-glass {
+  width: var(--nav-width-expanded);
+  margin: var(--shell-inset) 0 var(--shell-inset) var(--shell-inset);
+  height: calc(100dvh - 2 * var(--shell-inset));
+  border-radius: var(--workspace-radius);
+}
+.app-shell .main-shell > .topbar { min-width: 0; height: 64px; margin-inline: var(--space-8); }
+.app-shell .main-shell > main { padding-inline: var(--space-8); }
+.app-shell .page-intro { padding-top: var(--space-8); }
+.app-shell .page-intro p { max-width: 70ch; }
+.app-shell :is(.directory-panel, .empty-landing, .file-panel, .library-panel, .empty-history, .transaction, .help-content, .graph-workspace, .execution-results) {
+  border-radius: var(--radius-dialog);
+  background-color: var(--surface);
+  box-shadow: var(--panel-shadow);
+  border-color: var(--line);
+}
+.app-shell :is(.directory-panel, .empty-landing) { background-image: none; }
+.app-shell .graph-empty,
+.app-shell [data-page="library"] > .library-empty {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-dialog);
+  background: var(--surface);
+  box-shadow: var(--panel-shadow);
+}
+.app-shell .graph-scope { padding-block: var(--space-4); }
+.app-shell .catalog-panel { border-radius: var(--radius-dialog); }
+.app-shell .directory-icon { border-radius: var(--radius-panel); }
+.app-shell .workflow-overview li { border-radius: var(--radius-control); }
+.app-shell .empty-history { padding: var(--space-12) var(--space-6); }
+.app-shell .help-content { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.app-shell .help-heading-row { padding: var(--space-5) 0; }
+.app-shell .help-practice-card { border-radius: var(--radius-dialog); background: var(--surface); border-color: var(--line); box-shadow: var(--panel-shadow); }
+.app-shell .help-steps { gap: var(--space-4); }
+.app-shell .help-steps article { border-radius: var(--radius-panel); background: var(--surface); }
+.app-shell .help-topics { margin-top: var(--space-6); padding: var(--space-6); border: 1px solid var(--line); border-radius: var(--radius-dialog); background: var(--surface); }
+.app-shell .help-topic { border-radius: var(--radius-control); }
+.app-shell .page-bottom { border-top: 0; padding-block: var(--space-6); }
+.app-shell .library-local-note,
+.app-shell .history-disclaimer { margin-block: var(--space-4); border-radius: var(--radius-panel); }
+.app-shell .graph-workspace { overflow: clip; }
+.app-shell .graph-workspace:has(.graph-main.is-expanded, .graph-tools) { overflow: visible; }
+.app-shell > .main-shell:has(.graph-main.is-expanded) { position: relative; z-index: 50; }
+.modal-layer .modal { background: var(--workspace-surface); }
+.modal-layer .settings-mode,
+.modal-layer .settings-preferences { border-radius: var(--radius-dialog); background: var(--surface); }
+.modal-layer .settings-mode-heading { background: var(--primary-soft); }
+.modal-layer .settings-content .settings-mode { border-color: var(--line); }
+.app-shell .button.primary {
+  transition: background-color var(--motion-state) var(--theme-ease), border-color var(--motion-state) var(--theme-ease), box-shadow var(--motion-state) var(--theme-ease), transform var(--motion-state) var(--theme-ease);
+}
+.app-shell .button.primary:active:not(:disabled) { transform: translateY(1px); }
+.app-shell .button.primary > .lucide-arrow-right { transition: transform var(--motion-state) var(--theme-ease); }
+.app-shell .sidebar-toggle svg { transition: transform var(--motion-state) var(--theme-ease); }
+.app-shell .sidebar-toggle:active svg { transform: scale(.92); }
+.app-shell .file-grid-card { transition: border-color var(--motion-state), background-color var(--motion-state), box-shadow var(--motion-state); }
+.app-shell .file-grid-card:focus-within { border-color: var(--focus); }
+.page-transition { animation: workspace-content-enter var(--motion-enter) var(--theme-ease); }
+@keyframes workspace-content-enter { from { opacity: .82; } to { opacity: 1; } }
+@keyframes workspace-snapshot-leave { to { opacity: 0; } }
+@keyframes workspace-snapshot-enter { from { opacity: 0; } }
+::view-transition { pointer-events: none; }
+::view-transition-group(neatdrop-sidebar),
+::view-transition-group(neatdrop-workspace) { animation-duration: var(--motion-layout); animation-timing-function: var(--theme-ease); }
+::view-transition-old(neatdrop-sidebar),
+::view-transition-old(neatdrop-workspace) { animation: workspace-snapshot-leave 120ms ease-out both; mix-blend-mode: normal; }
+::view-transition-new(neatdrop-sidebar),
+::view-transition-new(neatdrop-workspace) { animation: workspace-snapshot-enter var(--motion-layout) var(--theme-ease) both; mix-blend-mode: normal; }
+@media (min-width: 721px) {
+  .app-shell > .sidebar { view-transition-name: neatdrop-sidebar; }
+  .app-shell > .main-shell { view-transition-name: neatdrop-workspace; }
+  .app-shell[data-sidebar-collapsed="true"] > .main-shell { margin-left: calc(var(--shell-inset) + var(--nav-width-collapsed) + var(--shell-gap)); }
+}
+@media (max-width: 1190px) and (min-width: 721px) {
+  :root { --shell-inset: 16px; --shell-gap: 12px; --nav-width-expanded: 220px; }
+  .app-shell .main-shell > .topbar { margin-inline: var(--space-6); }
+  .app-shell .main-shell > main { padding-inline: var(--space-6); }
+}
+@media (max-width: 720px) {
+  :root { --shell-inset: 8px; --shell-gap: 12px; --workspace-radius: 20px; }
+  .app-shell .sidebar.sidebar-glass { width: auto; height: auto; margin: var(--shell-inset); border-radius: var(--workspace-radius); padding: var(--space-4) var(--space-3) var(--space-2); }
+  .app-shell > .main-shell { margin: var(--space-3) var(--shell-inset) var(--shell-inset); min-height: 0; }
+  .app-shell .main-shell > .topbar { height: 60px; margin-inline: var(--space-4); gap: var(--space-2); }
+  .app-shell .main-shell > main { padding-inline: var(--space-4); }
+  .app-shell .page-intro { padding-block: var(--space-6); }
+  .app-shell .help-topics { padding: var(--space-4); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .app-shell .button.primary:hover:not(:disabled) { transform: translateY(-1px); }
+  .app-shell .button.primary:hover:not(:disabled) > .lucide-arrow-right { transform: translateX(2px); }
+  .app-shell .button.primary:active:not(:disabled) { transform: translateY(1px); }
+}
+/* Feedback follows deliberate actions; large work surfaces remain still. */
+.app-shell :is(.directory-panel, .empty-landing, .file-grid-card, .help-topic, .help-practice-card, .settings-preferences) { background-image: none; }
+.app-shell :is(.file-grid-card, .help-topic, .help-practice-card, .settings-preferences):hover { background-image: none; }
+.app-shell .sidebar-glass nav button.nav-active > svg { animation: nav-selection-arrive 220ms var(--theme-ease); }
+.app-shell .alert { animation: status-feedback-arrive 180ms var(--theme-ease); }
+.app-shell .help-topic > p { animation: none; }
+.app-shell .file-view-switch button { transition: color var(--motion-state), background-color var(--motion-state), box-shadow var(--motion-state); }
+.app-shell .file-view-switch button[aria-pressed="true"] { box-shadow: inset 0 -2px var(--primary); }
+.sidebar-icon-hint { animation: icon-hint-arrive 120ms var(--theme-ease); }
+@keyframes nav-selection-arrive { from { opacity: .5; transform: translateX(-3px); } to { opacity: 1; transform: none; } }
+@keyframes status-feedback-arrive { from { opacity: .4; } to { opacity: 1; } }
+@keyframes icon-hint-arrive { from { opacity: .3; transform: translateX(-2px); } to { opacity: 1; transform: none; } }
+@media (max-width: 600px) {
+  .app-shell > .main-shell:has(.graph-tools) { position: relative; z-index: 50; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell > :is(.sidebar, .main-shell) { view-transition-name: none; }
+  .app-shell .page-transition { animation: none; }
+  .app-shell .button.primary,
+  .app-shell .button.primary > .lucide-arrow-right,
+  .app-shell .sidebar-toggle svg { transform: none; transition: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0s !important; }
+  .sidebar-icon-hint { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body { background: var(--canvas); }
+  .app-shell .sidebar.sidebar-glass { background: var(--sidebar); }
+}
+@media (forced-colors: active) {
+  body { background: Canvas; }
+  .app-shell > .main-shell { background: Canvas; border: 1px solid CanvasText; box-shadow: none; }
+}

@@ -10,6 +10,7 @@ export interface Preferences {
   version: 2
   density: Density
   offlineFirst: boolean
+  sidebarCollapsed?: boolean
   tutorial: TutorialProgress
 }
 
@@ -23,6 +24,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   version: 2,
   density: 'comfortable',
   offlineFirst: true,
+  sidebarCollapsed: false,
   tutorial: { tourCompleted: false, tourStatus: 'unseen', exerciseCompleted: false },
 }
 
@@ -53,6 +55,7 @@ function normalizePreferences(value: unknown): Preferences {
     version: 2,
     density: input.density === 'compact' ? 'compact' : 'comfortable',
     offlineFirst: input.offlineFirst !== false,
+    sidebarCollapsed: input.sidebarCollapsed === true,
     tutorial: {
       tourCompleted: tourStatus === 'completed',
       tourStatus,

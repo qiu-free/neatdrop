@@ -26,3 +26,19 @@ it('skipping or Escape does not report completion', () => {
   expect(onClose).toHaveBeenCalledTimes(2)
   expect(onComplete).not.toHaveBeenCalled()
 })
+
+it('lets a newcomer start hands-on practice immediately without marking the unread tour complete', () => {
+  const onClose = vi.fn(), onComplete = vi.fn(), onPractice = vi.fn()
+  render(<FirstRunTour onClose={onClose} onComplete={onComplete} onPractice={onPractice} />)
+  const pictures = new Set<string | null>()
+  for (let index = 0; index < 6; index++) {
+    pictures.add(screen.getByRole('img', { name: /阶段示意图/ }).getAttribute('src'))
+    if (index < 5) fireEvent.click(screen.getByRole('button', { name: '下一步' }))
+  }
+  expect(pictures.size).toBe(6)
+  for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '上一步' }))
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
+  expect(onPractice).toHaveBeenCalledOnce()
+  expect(onClose).toHaveBeenCalledOnce()
+  expect(onComplete).not.toHaveBeenCalled()
+})

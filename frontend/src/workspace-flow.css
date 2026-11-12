@@ -10,7 +10,7 @@
 .review-advanced span { flex-basis: 100%; }
 
 /* The portal carries app-shell so the shared readable theme also styles it. */
-.workbench-detail-layer { position: fixed; inset: 0; z-index: 120; display: flex; justify-content: flex-end; background: #182a1e55; }
+.workbench-detail-layer { position: fixed; inset: 0; z-index: var(--layer-detail); display: flex; justify-content: flex-end; background: #14264255; }
 .workbench-detail-layer[hidden] { display: none; }
 .workbench-detail-layer .detail-backdrop { display: block; position: absolute; inset: 0; border: 0; padding: 0; background: transparent; cursor: default; }
 .workbench-detail-layer .inspector { position: relative; z-index: 1; display: block; width: min(100%, 520px); height: 100dvh; max-height: 100dvh; box-sizing: border-box; overflow-y: auto; overscroll-behavior: contain; border-radius: 14px 0 0 14px; box-shadow: -12px 0 40px #18302033; scrollbar-gutter: stable; overflow-anchor: none; }

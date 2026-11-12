@@ -50,7 +50,7 @@ PURPOSE_RULES = [
     ('office', 'project_plan', r'项目(?:实施|建设|执行)?方案|项目计划书', [
         r'(?:项目目标|建设目标)[：:]', r'(?:实施范围|项目范围)[：:]',
         r'(?:里程碑|实施进度|项目进度)[：:]', r'(?:负责人|资源预算|项目预算)[：:]']),
-    ('office', 'requirements', r'需求设计|需求规格(?:说明书)?|产品需求(?:文档)?|软件需求(?:文档)?', [
+    ('office', 'requirements', r'需求设计|需求说明(?:书)?|需求规格(?:说明书)?|产品需求(?:文档)?|软件需求(?:文档)?', [
         r'(?:用户角色|用户场景|使用场景)[：:]', r'(?:功能需求|功能描述)[：:]',
         r'(?:验收标准|验收条件)[：:]', r'(?:交互流程|业务流程|非功能需求)[：:]']),
     ('office', 'email', r'邮件存档|电子邮件|邮件归档|e-?mail\s+archive', [
@@ -62,7 +62,7 @@ PURPOSE_RULES = [
     ('life', 'insurance', r'保险保单|保险合同|保险凭证|保险资料|保险单', [
         r'(?:保单号码|保单编号|保单号)[：:]', r'(?:被保险人|投保人)[：:]',
         r'(?:保险期间|保险期限|保障期限)[：:]', r'(?:保险责任|保障范围|保险金额)[：:]']),
-    ('finance', 'bank_material', r'银行(?:开户|销户|账户|资信)(?:办理)?(?:证明|申请(?:书|表)?|材料|回执)|开户许可证|银行业务回执', [
+    ('finance', 'bank_material', r'银行(?:开户|销户|账户|资信)(?:办理)?(?:证明|申请(?:书|表)?|材料|回执)|开户许可证|银行业务回执|账户业务办理确认', [
         r'(?:开户银行|开户行|办理银行)[：:]', r'(?:账户名称|户名|账户持有人)[：:]',
         r'(?:银行账号|银行帐号|账户号码|账号|帐号)[：:]', r'(?:办理事项|银行业务|证明用途)[：:]']),
     ('finance', 'utility_payment', r'(?:水费|电费|燃气费|暖气费|物业费|学费|公共服务)?缴费(?:凭证|回执|证明)|费用缴纳回执', [
@@ -101,8 +101,8 @@ def normalized(text):
     return unicodedata.normalize('NFKC', text or '').casefold()
 
 
-def source_excerpt(source, start, end):
-    """Map normalized offsets back to a contiguous original snippet."""
+def source_interval(source, start, end):
+    """Map normalized offsets back to a contiguous original interval."""
     def boundary(offset):
         low, high = 0, len(source)
         while low < high:
@@ -112,7 +112,12 @@ def source_excerpt(source, start, end):
             else:
                 high = middle - 1
         return low
-    return source[boundary(start):boundary(end)]
+    return boundary(start), boundary(end)
+
+
+def source_excerpt(source, start, end):
+    left, right = source_interval(source, start, end)
+    return source[left:right]
 
 
 def positive_match(pattern, text, purpose=False):
@@ -147,6 +152,40 @@ def meaningful_field_value(value):
     if re.fullmatch(r'\[.*\]|【.*】|\{\{.*\}\}|<.*>|\$\{.*\}', value):
         return False
     return any(unicodedata.category(char)[0] in {'L', 'N'} for char in value)
+
+
+def invoice_fields_complete(body):
+    """Require an actual issuer/buyer and a numeric ticket or amount field.
+
+    Unpunctuated OCR is accepted, but a next field/line/TAB column is never a
+    value for an empty label. This validates evidence, not invoice authenticity.
+    """
+    labels = r'发票号码|发票代码|购买方|购方|销售方|销方|价税合计|税额|税率'
+    found = set()
+    for field in re.finditer(labels, body):
+        if negated_at(body, field.start(), purpose=True):
+            continue
+        tail = body[field.end():].split('\n', 1)[0].lstrip(' ')
+        if tail.startswith((':', '：', '\t')):
+            tail = tail[1:]
+        tail = re.split(r'[\t;；，,]', tail, maxsplit=1)[0]
+        next_field = re.search(labels, tail)
+        raw_value = tail[:next_field.start()] if next_field else tail
+        # A second label (including unknown metadata) does not become the
+        # missing value. Invoice parties/ticket numbers do not need colons.
+        if ':' in raw_value or '：' in raw_value:
+            continue
+        value = raw_value.strip()
+        if not meaningful_field_value(value):
+            continue
+        if field.group() in {'购买方', '购方', '销售方', '销方'}:
+            found.add('party')
+        elif field.group() in {'发票号码', '发票代码'} and re.fullmatch(r'\d{5,30}', value):
+            found.add('number')
+        elif field.group() in {'价税合计', '税额', '税率'} and re.fullmatch(
+                r'(?:[¥￥]|rmb\s*)?[+-]?\d+(?:\.\d{1,4})?\s*(?:元|%|人民币)?', value):
+            found.add('number')
+    return {'party', 'number'} <= found
 
 
 def purpose_fields(groups, body, label=None, source_body=None):
@@ -184,7 +223,7 @@ def purpose_fields(groups, body, label=None, source_body=None):
     return hits
 
 
-def classify_text(name, text):
+def classify_text(name, text, sampling=None):
     # Bound raw normalization and source-position work before processing text;
     # combining sequences must not pull unseen tail content into the budget.
     source_body = (text or '')[:12000]
@@ -209,14 +248,20 @@ def classify_text(name, text):
         if subtype == 'invoice' and not hits and re.search(r'发票', filename):
             score += 1
             hits.append({'source': 'filename', 'text': '发票'})
+        # A word inside the anchor is the same evidence, even if repeated.
+        # Mask every occurrence without moving offsets or joining fragments.
+        support_body = re.sub(anchor, lambda found: ' ' * len(found.group()), body)
+        independent_support = False
         for pattern in supports:
-            if match := positive_match(pattern, body):
+            if match := positive_match(pattern, support_body):
                 score += 1.5
                 hits.append({'source': 'body', 'text': match.group()})
+                independent_support = True
         if not any(h['source'] in {'title', 'filename'} for h in hits) and score < 6:
             continue
         if score:
-            candidates.append({'category': category, 'subcategory': subtype, 'score': score, 'evidence': hits})
+            candidates.append({'category': category, 'subcategory': subtype, 'score': score,
+                               'evidence': hits, 'independent_support': independent_support})
     purpose_candidates = []
     for category, subtype, anchor, groups in PURPOSE_RULES:
         match = positive_match(anchor, body, purpose=True)
@@ -250,13 +295,35 @@ def classify_text(name, text):
         if matches >= minimum and not any(c['subcategory'] == subtype and c['category'] == category for c in candidates):
             candidates.append({'category': category, 'subcategory': subtype, 'score': 5.5,
                                'evidence': [{'source': 'structure', 'text': description}]})
-    candidates.sort(key=lambda c: c['score'], reverse=True)
+    from .content_signals import content_candidates
+    for candidate in content_candidates(body, source_body, positive_match=positive_match,
+                                         source_interval=source_interval, meaningful_field_value=meaningful_field_value,
+                                         sampling=sampling):
+        existing = next((row for row in candidates if (row['category'], row['subcategory']) ==
+                         (candidate['category'], candidate['subcategory'])), None)
+        # A weak heading must not swallow independent structure for the same
+        # purpose. Keep established, corroborated rules unchanged otherwise.
+        if candidate.get('context_priority') or existing and existing.get('independent_support') is False:
+            candidates = [row for row in candidates if (row['category'], row['subcategory']) !=
+                          (candidate['category'], candidate['subcategory'])]
+        if not any((row['category'], row['subcategory']) == (candidate['category'], candidate['subcategory'])
+                   for row in candidates):
+            candidates.append(candidate)
+    # Explicit teaching/quotation context is a different decision from the
+    # subject being described; preserve the quoted labels as alternatives.
+    candidates.sort(key=lambda c: (bool(c.get('context_priority')), c['score']), reverse=True)
     reasons = []
     if not candidates:
         best = {'category': 'other', 'subcategory': 'unclassified', 'score': 0, 'evidence': []}
         reasons.append('insufficient_evidence')
     else:
         best = candidates[0]
+        if best.get('independent_support') is False and any(hit['source'] == 'title' for hit in best['evidence']):
+            reasons.append('title_only')
+        if best['subcategory'] == 'invoice' and not invoice_fields_complete(body):
+            reasons.append('required_fields_missing')
+        if best.get('example_context'):
+            reasons.append('example_context')
         if (best['category'], best['subcategory']) in PURPOSE_LABELS:
             reasons.append('purpose_uncalibrated')
         if purpose_conflict:
@@ -270,7 +337,9 @@ def classify_text(name, text):
             reasons.append('structure_uncalibrated')
         if best['evidence'] and all(e['source'] == 'filename' for e in best['evidence']):
             reasons.append('filename_only')
-        if len(candidates) > 1 and candidates[1]['score'] >= 6 and best['score'] - candidates[1]['score'] < 2.5:
+        if (len(candidates) > 1 and candidates[1]['score'] >= 6 and
+                candidates[1].get('independent_support') is not False and
+                best['score'] - candidates[1]['score'] < 2.5):
             reasons.append('competing_categories')
         if best['category'] == 'finance' and re.search(r'教程|算法|引用.{0,20}示例|示例.{0,20}字段', body):
             reasons.append('example_context')
@@ -311,8 +380,8 @@ STRUCTURED_VISUAL_MAPPING = {
 STRUCTURED_CANDIDATE_FLOOR = .285
 
 
-def fuse_image(name, ocr_text, visual, warnings):
-    result = classify_text(name, ocr_text)
+def fuse_image(name, ocr_text, visual, warnings, sampling=None):
+    result = classify_text(name, ocr_text, sampling)
     strong_text = result['category'] != 'other' and not result['review_required'] and len(ocr_text.strip()) >= 12
     text_conflict = any(reason in result['review_reasons'] for reason in ['competing_categories', 'example_context',
                                                                        'purpose_uncalibrated'])

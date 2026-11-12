@@ -1,0 +1,25 @@
+.experience-banner { margin-bottom: 20px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-control); color: var(--primary-ink); background: var(--primary-soft); font-size: 14px; line-height: 1.65; }
+.experience-banner > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.experience-banner > div > span { flex: 1; min-width: 160px; }
+.experience-banner p { color: var(--muted); margin: 10px 0 0; }
+.experience-banner .text-button { min-height: 44px; color: var(--primary-ink); }
+.experience-import { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 12px; }
+.experience-import > span { font-size: 13px; color: var(--muted); }
+.experience-import > p { flex-basis: 100%; color: var(--status-danger); margin: 0; }
+.experience-steps { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0 0 20px; padding: 0; list-style-position: inside; color: var(--muted); font-size: 14px; }
+.experience-steps { list-style: none; }
+.experience-steps button { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-height: 44px; color: var(--primary-ink); background: var(--surface); cursor: pointer; }
+.experience-steps [aria-current="step"] button { background: var(--primary-soft); border-color: var(--primary); font-weight: 650; }
+.experience-steps button:disabled { opacity: .55; cursor: default; }
+.experience-export { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 18px; }
+.recorded-examples { margin: 20px 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); }
+.recorded-examples summary { cursor: pointer; font-weight: 650; min-height: 44px; display: list-item; align-content: center; }
+.recorded-examples p { color: var(--muted); line-height: 1.7; }
+.recorded-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 16px; }
+.recorded-grid article { min-width: 0; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.recorded-grid button { background: transparent; border: 0; padding: 0; text-align: left; cursor: pointer; width: 100%; color: var(--ink); }
+.recorded-grid img { display: block; width: 100%; aspect-ratio: 1.34; object-fit: contain; background: white; border-radius: 6px; }
+.recorded-grid strong, .recorded-grid span { display: block; margin-top: 10px; }
+.recorded-grid span, .recorded-grid small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.recorded-grid pre { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; font: inherit; }
+@media (max-width: 720px) { .experience-banner { padding: 12px; } .experience-steps { gap: 8px 12px; } }

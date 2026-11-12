@@ -80,9 +80,18 @@ def summarize(rows, predictions):
     confusion = defaultdict(Counter)
     elapsed, errors = [], []
     anonymous = []
+    quality_states = Counter()
+    evidence_sources = Counter()
+    name_changed_count = 0
     for row in rows:
         pred = by_id.get(row['id'], {'error': 'MISSING_RESULT'})
         failure = bool(pred.get('error'))
+        if not failure:
+            quality = pred.get('quality', {})
+            if quality.get('state'):
+                quality_states[quality['state']] += 1
+            evidence_sources.update(item.get('source', 'unknown') for item in pred.get('evidence_items', []))
+            name_changed_count += pred.get('name') not in (None, row.get('name'))
         degraded = [code for code in pred.get('engine_warnings', []) if any(
             token in code for token in ('missing', 'unavailable', 'failed', 'timeout', 'exhausted', 'cancelled', 'exceeded'))]
         warning_counts.update(degraded)
@@ -148,5 +157,8 @@ def summarize(rows, predictions):
         'macro_f1': sum(c['f1'] for c in supported) / len(supported) if supported else None,
         'per_class': per_class, 'confusion': {k: dict(v) for k, v in confusion.items()},
         'engine_warning_counts': dict(warning_counts),
+        'suggestion_diagnostics': {'quality_state_counts': dict(quality_states),
+                                   'evidence_source_counts': dict(evidence_sources),
+                                   'name_changed_count': name_changed_count},
         'elapsed_seconds': {'p50': percentile(.5), 'p95': percentile(.95), 'total': sum(elapsed)},
         'failures': errors, 'records': anonymous}

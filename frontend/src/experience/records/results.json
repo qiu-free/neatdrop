@@ -1,0 +1,746 @@
+[
+  {
+    "id": "board",
+    "title": "课堂板书 · 人工构造",
+    "sha256": "1950fe3aadcfa890b4e820bb819e07e1b2ff95ff45ce641ff3ba67393c178eb9",
+    "license": "CC0-1.0",
+    "created": "2026-11-11",
+    "elapsed_ms": 4984,
+    "engine": "Installed RapidOCR CPU / production rules; vision explicitly disabled",
+    "text": "课堂板书·人工构造\n线性代数课程笔记\n定义：线性映射保持向量加法和数乘。\n定理：矩阵的秩等于线性无关列向量个数。\n证明：用初等变换构造阶梯矩阵。\n例题：求三阶矩阵的秩，复习特征值。\nNeatDrop原创合成样例·CC0-1.0·不作为准确率评测资料",
+    "sampling": {
+      "kind": "image",
+      "truncated": false,
+      "budget_exhausted": false,
+      "segments": [
+        {
+          "box": [
+            0,
+            0,
+            1100,
+            820
+          ],
+          "view": 0,
+          "kind": "full"
+        }
+      ],
+      "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+    },
+    "warnings": [],
+    "runtime": {
+      "network_disabled": true,
+      "elapsed_ms": 4625,
+      "memory_budget_mib": 1536,
+      "peak_working_set_mib": 243.5
+    },
+    "category_label": "学习科研",
+    "subcategory_label": "仅主类",
+    "suggestion": {
+      "category": "study",
+      "subcategory": null,
+      "content_form": "document_image",
+      "tags": [
+        "board"
+      ],
+      "evidence_items": [
+        {
+          "source": "ocr",
+          "text": "课程笔记",
+          "box": [
+            [
+              53.0,
+              162.0
+            ],
+            [
+              257.0,
+              164.0
+            ],
+            [
+              257.0,
+              194.0
+            ],
+            [
+              52.0,
+              192.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "复习",
+          "box": [
+            [
+              56.0,
+              426.0
+            ],
+            [
+              462.0,
+              426.0
+            ],
+            [
+              462.0,
+              451.0
+            ],
+            [
+              56.0,
+              451.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "定理",
+          "box": [
+            [
+              54.0,
+              293.0
+            ],
+            [
+              514.0,
+              294.0
+            ],
+            [
+              514.0,
+              323.0
+            ],
+            [
+              54.0,
+              322.0
+            ]
+          ]
+        }
+      ],
+      "review_required": true,
+      "review_reasons": [
+        "competing_categories",
+        "subtype_ambiguous"
+      ],
+      "candidates": [
+        {
+          "category": "study",
+          "subcategory": "notes",
+          "score": 9.0,
+          "engine": "rules"
+        },
+        {
+          "category": "study",
+          "subcategory": "board",
+          "score": 7.5,
+          "engine": "rules"
+        }
+      ],
+      "engine_warnings": [],
+      "visual_candidates": [],
+      "quality": {
+        "state": "acceptable",
+        "issues": [],
+        "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+        "metrics": {
+          "text_chars": 124,
+          "readable_chars": 104,
+          "replacement_chars": 0,
+          "ocr_lines": 7,
+          "ocr_mean_confidence": 0.9957
+        }
+      },
+      "sampling": {
+        "kind": "image",
+        "truncated": false,
+        "budget_exhausted": false,
+        "segments": [
+          {
+            "box": [
+              0,
+              0,
+              1100,
+              820
+            ],
+            "view": 0,
+            "kind": "full"
+          }
+        ],
+        "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+      },
+      "decision_level": "candidate",
+      "engine_versions": {
+        "rules": "8",
+        "decision": "2",
+        "quality": "5_heuristic_not_calibrated",
+        "semantic": "unavailable"
+      },
+      "file_id": "board",
+      "name": "课堂板书·人工构造.png",
+      "evidence": "课堂板书·人工构造",
+      "provider": "offline_models",
+      "sample": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对",
+      "rule_version": "8"
+    }
+  },
+  {
+    "id": "chart",
+    "title": "透镜实验图表 · 人工构造",
+    "sha256": "58f264c9c5ab996198817fe04239101b1987a04eb393b303d795120ffb333df2",
+    "license": "CC0-1.0",
+    "created": "2026-11-11",
+    "elapsed_ms": 5453,
+    "engine": "Installed RapidOCR CPU / production rules; vision explicitly disabled",
+    "text": "透镜实验图表·人工构造\n光学实验记录\n实验目的：测量凸透镜焦距。\n实验器材：光学平台、透镜、刻度尺。\n实验步骤：改变物距并记录像距。\n实验结果：焦距均值12.4厘米。\n图表用途仍需人工核对，不推断研究主题。\nNeatDrop原创合成样例·CC0-1.0·不作为准确率评测资料",
+    "sampling": {
+      "kind": "image",
+      "truncated": false,
+      "budget_exhausted": false,
+      "segments": [
+        {
+          "box": [
+            0,
+            0,
+            1100,
+            820
+          ],
+          "view": 0,
+          "kind": "full"
+        }
+      ],
+      "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+    },
+    "warnings": [],
+    "runtime": {
+      "network_disabled": true,
+      "elapsed_ms": 5062,
+      "memory_budget_mib": 1536,
+      "peak_working_set_mib": 243.6
+    },
+    "category_label": "学习科研",
+    "subcategory_label": "实验资料",
+    "suggestion": {
+      "category": "study",
+      "subcategory": "experiment_material",
+      "content_form": "document_image",
+      "tags": [],
+      "evidence_items": [
+        {
+          "source": "ocr",
+          "text": "实验记录",
+          "box": [
+            [
+              53.0,
+              164.0
+            ],
+            [
+              207.0,
+              164.0
+            ],
+            [
+              207.0,
+              193.0
+            ],
+            [
+              53.0,
+              193.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "实验目的：测量凸透镜焦距。",
+          "box": [
+            [
+              56.0,
+              230.0
+            ],
+            [
+              363.0,
+              230.0
+            ],
+            [
+              363.0,
+              256.0
+            ],
+            [
+              56.0,
+              256.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "实验器材：光学平台、透镜、刻度尺。",
+          "box": [
+            [
+              55.0,
+              295.0
+            ],
+            [
+              465.0,
+              295.0
+            ],
+            [
+              465.0,
+              323.0
+            ],
+            [
+              55.0,
+              323.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "实验步骤：改变物距并记录像距。",
+          "box": [
+            [
+              56.0,
+              361.0
+            ],
+            [
+              410.0,
+              361.0
+            ],
+            [
+              410.0,
+              386.0
+            ],
+            [
+              56.0,
+              386.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "实验结果：焦距均值12.4厘米。",
+          "box": [
+            [
+              55.0,
+              424.0
+            ],
+            [
+              391.0,
+              424.0
+            ],
+            [
+              391.0,
+              452.0
+            ],
+            [
+              55.0,
+              452.0
+            ]
+          ]
+        }
+      ],
+      "review_required": true,
+      "review_reasons": [
+        "purpose_uncalibrated",
+        "example_context"
+      ],
+      "candidates": [
+        {
+          "category": "study",
+          "subcategory": "experiment_material",
+          "score": 12.0,
+          "engine": "rules"
+        }
+      ],
+      "engine_warnings": [],
+      "visual_candidates": [],
+      "quality": {
+        "state": "acceptable",
+        "issues": [],
+        "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+        "metrics": {
+          "text_chars": 137,
+          "readable_chars": 112,
+          "replacement_chars": 0,
+          "ocr_lines": 8,
+          "ocr_mean_confidence": 0.9936
+        }
+      },
+      "sampling": {
+        "kind": "image",
+        "truncated": false,
+        "budget_exhausted": false,
+        "segments": [
+          {
+            "box": [
+              0,
+              0,
+              1100,
+              820
+            ],
+            "view": 0,
+            "kind": "full"
+          }
+        ],
+        "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+      },
+      "decision_level": "candidate",
+      "engine_versions": {
+        "rules": "8",
+        "decision": "2",
+        "quality": "5_heuristic_not_calibrated",
+        "semantic": "unavailable"
+      },
+      "file_id": "chart",
+      "name": "透镜实验图表·人工构造.png",
+      "evidence": "透镜实验图表·人工构造",
+      "provider": "offline_models",
+      "sample": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对",
+      "rule_version": "8"
+    }
+  },
+  {
+    "id": "slide",
+    "title": "课程课件影像 · 人工构造",
+    "sha256": "ba19c68a963f769bf1cab4a92df9a93eaf0dad14e024ecc40b3b7e92bd608e4d",
+    "license": "CC0-1.0",
+    "created": "2026-11-11",
+    "elapsed_ms": 3813,
+    "engine": "Installed RapidOCR CPU / production rules; vision explicitly disabled",
+    "text": "课程课件影像·人工构造\n线性代数课程课件\n第三讲：矩阵与线性映射\n学习目标：理解矩阵秩、基与特征值。\n教学安排：两学时讲授与课堂讨论。\n章节一：定义，章节二：证明与例题。\nNeatDrop原创合成样例·CC0-1.0·不作为准确率评测资料",
+    "sampling": {
+      "kind": "image",
+      "truncated": false,
+      "budget_exhausted": false,
+      "segments": [
+        {
+          "box": [
+            0,
+            0,
+            1100,
+            820
+          ],
+          "view": 0,
+          "kind": "full"
+        }
+      ],
+      "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+    },
+    "warnings": [],
+    "runtime": {
+      "network_disabled": true,
+      "elapsed_ms": 3437,
+      "memory_budget_mib": 1536,
+      "peak_working_set_mib": 243.2
+    },
+    "category_label": "学习科研",
+    "subcategory_label": "课程课件",
+    "suggestion": {
+      "category": "study",
+      "subcategory": "courseware",
+      "content_form": "document_image",
+      "tags": [],
+      "evidence_items": [
+        {
+          "source": "ocr",
+          "text": "课件",
+          "box": [
+            [
+              53.0,
+              46.0
+            ],
+            [
+              469.0,
+              46.0
+            ],
+            [
+              469.0,
+              82.0
+            ],
+            [
+              53.0,
+              82.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "课程",
+          "box": [
+            [
+              53.0,
+              46.0
+            ],
+            [
+              469.0,
+              46.0
+            ],
+            [
+              469.0,
+              82.0
+            ],
+            [
+              53.0,
+              82.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "矩阵",
+          "box": [
+            [
+              56.0,
+              230.0
+            ],
+            [
+              330.0,
+              230.0
+            ],
+            [
+              330.0,
+              256.0
+            ],
+            [
+              56.0,
+              256.0
+            ]
+          ]
+        }
+      ],
+      "review_required": false,
+      "review_reasons": [],
+      "candidates": [
+        {
+          "category": "study",
+          "subcategory": "courseware",
+          "score": 9.0,
+          "engine": "rules"
+        }
+      ],
+      "engine_warnings": [],
+      "visual_candidates": [],
+      "quality": {
+        "state": "acceptable",
+        "issues": [],
+        "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+        "metrics": {
+          "text_chars": 119,
+          "readable_chars": 98,
+          "replacement_chars": 0,
+          "ocr_lines": 7,
+          "ocr_mean_confidence": 0.995
+        }
+      },
+      "sampling": {
+        "kind": "image",
+        "truncated": false,
+        "budget_exhausted": false,
+        "segments": [
+          {
+            "box": [
+              0,
+              0,
+              1100,
+              820
+            ],
+            "view": 0,
+            "kind": "full"
+          }
+        ],
+        "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+      },
+      "decision_level": "ordinary",
+      "engine_versions": {
+        "rules": "8",
+        "decision": "2",
+        "quality": "5_heuristic_not_calibrated",
+        "semantic": "unavailable"
+      },
+      "file_id": "slide",
+      "name": "课程课件影像·人工构造.png",
+      "evidence": "课程课件影像·人工构造",
+      "provider": "offline_models",
+      "sample": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对",
+      "rule_version": "8"
+    }
+  },
+  {
+    "id": "paper",
+    "title": "论文扫描页 · 人工构造",
+    "sha256": "358232f615a9afa1cc7d3feb26b9664333a919d0060d421be96ee8ac6840f7b4",
+    "license": "CC0-1.0",
+    "created": "2026-11-11",
+    "elapsed_ms": 6812,
+    "engine": "Installed RapidOCR CPU / production rules; vision explicitly disabled",
+    "text": "论文扫描页·人工构造\n光学透镜研究论文\n摘要：研究焦距测量中物距像距的误差。\n研究方法：改变光源位置，记录成像。\n结果：重复测量降低误差。\n结论：固定光源有利于稳定成像。\n参考文献：人工构造，无对应真实论文。\nNeatDrop原创合成样例·CC0-1.0·不作为准确率评测资料",
+    "sampling": {
+      "kind": "image",
+      "truncated": false,
+      "budget_exhausted": false,
+      "segments": [
+        {
+          "box": [
+            0,
+            0,
+            1100,
+            820
+          ],
+          "view": 0,
+          "kind": "full"
+        }
+      ],
+      "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+    },
+    "warnings": [],
+    "runtime": {
+      "network_disabled": true,
+      "elapsed_ms": 6406,
+      "memory_budget_mib": 1536,
+      "peak_working_set_mib": 242.8
+    },
+    "category_label": "学习科研",
+    "subcategory_label": "论文文献",
+    "suggestion": {
+      "category": "study",
+      "subcategory": "paper",
+      "content_form": "document_image",
+      "tags": [],
+      "evidence_items": [
+        {
+          "source": "ocr",
+          "text": "研究论文",
+          "box": [
+            [
+              53.0,
+              163.0
+            ],
+            [
+              257.0,
+              162.0
+            ],
+            [
+              257.0,
+              192.0
+            ],
+            [
+              53.0,
+              193.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "摘要",
+          "box": [
+            [
+              54.0,
+              229.0
+            ],
+            [
+              489.0,
+              229.0
+            ],
+            [
+              489.0,
+              257.0
+            ],
+            [
+              54.0,
+              257.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "参考文献",
+          "box": [
+            [
+              54.0,
+              489.0
+            ],
+            [
+              488.0,
+              488.0
+            ],
+            [
+              488.0,
+              517.0
+            ],
+            [
+              54.0,
+              518.0
+            ]
+          ]
+        },
+        {
+          "source": "ocr",
+          "text": "方法",
+          "box": [
+            [
+              54.0,
+              293.0
+            ],
+            [
+              465.0,
+              295.0
+            ],
+            [
+              465.0,
+              323.0
+            ],
+            [
+              54.0,
+              321.0
+            ]
+          ]
+        }
+      ],
+      "review_required": false,
+      "review_reasons": [],
+      "candidates": [
+        {
+          "category": "study",
+          "subcategory": "paper",
+          "score": 10.5,
+          "engine": "rules"
+        }
+      ],
+      "engine_warnings": [],
+      "visual_candidates": [],
+      "quality": {
+        "state": "acceptable",
+        "issues": [],
+        "summary": "本地内容读取未发现上述限制；读取状态不代表分类准确率。",
+        "metrics": {
+          "text_chars": 138,
+          "readable_chars": 114,
+          "replacement_chars": 0,
+          "ocr_lines": 8,
+          "ocr_mean_confidence": 0.9962
+        }
+      },
+      "sampling": {
+        "kind": "image",
+        "truncated": false,
+        "budget_exhausted": false,
+        "segments": [
+          {
+            "box": [
+              0,
+              0,
+              1100,
+              820
+            ],
+            "view": 0,
+            "kind": "full"
+          }
+        ],
+        "summary": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对"
+      },
+      "decision_level": "ordinary",
+      "engine_versions": {
+        "rules": "8",
+        "decision": "2",
+        "quality": "5_heuristic_not_calibrated",
+        "semantic": "unavailable"
+      },
+      "file_id": "paper",
+      "name": "论文扫描页·人工构造.png",
+      "evidence": "论文扫描页·人工构造",
+      "provider": "offline_models",
+      "sample": "本地 OCR 共读取 1 个视图；保留全图视图与原图坐标，识别结果需核对",
+      "rule_version": "8"
+    }
+  }
+]

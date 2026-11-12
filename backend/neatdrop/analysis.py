@@ -2,7 +2,6 @@ import asyncio
 import base64
 import hashlib
 import io
-import re
 import time
 import uuid
 import warnings
@@ -10,7 +9,6 @@ import copy
 import inspect
 import os
 import stat
-import unicodedata
 from threading import BoundedSemaphore, RLock
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -21,6 +19,7 @@ from .journal import stamp
 from .model import suggest
 from .configuration import ModelConfigSnapshot, get_model_snapshot
 from .safe_io import file_identity, locked_reader, protect_workspace
+from .classification_pipeline import classify_payload, _evidence_interval
 from .classifier import classify_text, fuse_image
 from .decision import decide
 from .content_quality import assess_content, apply_content_quality
@@ -28,20 +27,22 @@ from .content_quality import assess_content, apply_content_quality
 PREPROCESS_SLOTS = BoundedSemaphore(2)
 
 
-def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
+def prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False, use_vision=True):
     if not PREPROCESS_SLOTS.acquire(blocking=False):
         raise SafetyError('PARSER_BUSY')
     try:
-        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity)
+        return _prepare_input(ws, record, local, cancelled, expected_identity=expected_identity, reject_hardlinks=reject_hardlinks, use_vision=use_vision)
     finally:
         PREPROCESS_SLOTS.release()
 
 
-def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None):
+def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity=None, reject_hardlinks=False, use_vision=True):
     with protect_workspace(ws):
         path = checked_path(ws.root, record["name"])
         with locked_reader(path) as stream:
             before = os.fstat(stream.fileno())
+            if reject_hardlinks and before.st_nlink != 1:
+                raise SafetyError('LIBRARY_ENTRY_CHANGED')
             if expected_identity is not None and (
                 not stat.S_ISREG(before.st_mode) or before.st_size != record['size']
                 or before.st_size > MAX_FILE or file_identity(stream.fileno()) != expected_identity
@@ -57,10 +58,10 @@ def _prepare_input(ws, record, local=False, cancelled=None, *, expected_identity
                 raise SafetyError('LIBRARY_ENTRY_CHANGED')
     if len(data) > MAX_FILE or hashlib.sha256(data).hexdigest() != record["sha256"]:
         raise SafetyError('LIBRARY_ENTRY_CHANGED' if expected_identity is not None else 'SOURCE_CHANGED')
-    return decode_input(data, record['extension'], local, cancelled)
+    return decode_input(data, record['extension'], local, cancelled, use_vision=use_vision)
 
 
-def decode_input(data, extension, local=False, cancelled=None):
+def decode_input(data, extension, local=False, cancelled=None, *, use_vision=True):
     """Decode already bounded, verified bytes without opening another file."""
     ext = extension.lower()
     if ext in {".png", ".jpg", ".jpeg", ".webp"}:
@@ -75,7 +76,8 @@ def decode_input(data, extension, local=False, cancelled=None):
                     image = ImageOps.exif_transpose(original)
                     if local:
                         from .offline import analyze_image_bounded
-                        extracted = analyze_image_bounded(image, cancelled=cancelled)
+                        vision_option = {'use_vision': False} if not use_vision else {}
+                        extracted = analyze_image_bounded(image, cancelled=cancelled, **vision_option)
                         return {**extracted, 'sample': extracted.get('sampling', {}).get('summary', '本地 OCR + 视觉候选；未联网'), 'local_image': True}
                     image.thumbnail((1024, 1024))
                     image = image.convert("RGB")
@@ -86,6 +88,9 @@ def decode_input(data, extension, local=False, cancelled=None):
         except (OSError, UnidentifiedImageError, Image.DecompressionBombWarning, Image.DecompressionBombError) as exc:
             raise SafetyError("IMAGE_DECODE_FAILED") from exc
     if ext == ".pdf":
+        if local:
+            from .pdf_ocr import parse_local_pdf
+            return parse_local_pdf(data, cancelled=cancelled)
         from .parsing import parse_pdf
         kwargs = {'cancelled': cancelled} if local and cancelled else {}
         return parse_pdf(data, limit=12000 if local else 1500, **kwargs)
@@ -116,115 +121,18 @@ def local_semantic(text, cancelled=None):
     return classify_semantic(text, cancelled=cancelled) if cancelled else classify_semantic(text)
 
 
-def _evidence_interval(text, excerpt):
-    """Find a verified raw interval; normalized offsets are never raw offsets."""
-    text = text[:12000]
-    if not excerpt:
-        return None
-    offset = text.find(excerpt)
-    if offset >= 0:
-        return offset, offset + len(excerpt)
-
-    # Legacy rules can return normalized snippets (case, width, composition).
-    # Locate them in the same normalization, map both boundaries back through
-    # raw prefixes, then verify the complete raw slice before publishing it.
-    def normalized(value):
-        return unicodedata.normalize('NFKC', value).casefold()
-
-    needle = normalized(excerpt)
-    offset = normalized(text).find(needle)
-    if offset < 0:
-        return None
-
-    def boundary(position):
-        low, high = 0, len(text)
-        while low < high:
-            middle = (low + high + 1) // 2
-            if len(normalized(text[:middle])) <= position:
-                low = middle
-            else:
-                high = middle - 1
-        return low
-
-    start, end = boundary(offset), boundary(offset + len(needle))
-    return (start, end) if start < end and normalized(text[start:end]) == needle else None
-
-
 def analyze_local(record, payload, cancelled=None):
-    text = payload.get("text", "")
-    image_input = payload.get('local_image') or 'image' in payload
-    quality = assess_content(payload, bool(image_input))
-    if image_input:
-        classification = fuse_image(record['name'], text, payload.get('visual', []), payload.get('warnings', []))
-    else:
-        classification = classify_text(record['name'], text)
-    semantics = local_semantic(text, cancelled=cancelled) if cancelled else local_semantic(text)
-    classification = apply_content_quality(classification, quality)
-    classification = decide(classification, semantics, payload.get('sampling'))
-    for item in classification.get('evidence_items', []):
-        if item.get('source') == 'ocr':
-            line = next((line for line in payload.get('ocr_lines', [])
-                         if item['text'].casefold() in line.get('text', '').casefold()), None)
-            if line and line.get('box'):
-                item['box'] = copy.deepcopy(line['box'])
-        elif item.get('source') in {'title', 'body'}:
-            # Map sampled text evidence back to original character intervals.
-            interval = _evidence_interval(text, item['text'])
-            if interval is None:
-                continue
-            offset, evidence_end = interval
-            cursor, matched = 0, []
-            for segment in payload.get('sampling', {}).get('segments', []):
-                length = segment.get('end', 0) - segment.get('start', 0)
-                sampled_start = segment.get('sample_start', cursor)
-                sampled_end = sampled_start + length
-                if offset >= 0 and sampled_start < evidence_end and offset < sampled_end:
-                    matched.append(segment)
-                if sampled_start <= offset < evidence_end <= sampled_end:
-                    item['start'] = segment.get('start', 0) + offset - sampled_start
-                    item['end'] = item['start'] + evidence_end - offset
-                    for key in ('page', 'slide', 'sheet', 'cell', 'row', 'paragraph', 'table'):
-                        if key in segment:
-                            item[key] = segment[key]
-                    break
-                cursor += length + (1 if payload.get('sampling', {}).get('kind') == 'pdf' or
-                                    payload.get('sampling', {}).get('separator') == '\n' else 0)
-            if len(matched) > 1:
-                # A field label/value may span separate cells or paragraphs.
-                # Only publish their common row/page scope; a single unit's
-                # character interval cannot describe the whole evidence.
-                for key in ('page', 'slide', 'sheet', 'table', 'row'):
-                    value = matched[0].get(key)
-                    if value is not None and all(segment.get(key) == value for segment in matched):
-                        item[key] = value
-    first = next((line.strip().lstrip("# ") for line in text.splitlines() if line.strip()), "")
-    title = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", first)[:70].strip(" .")
-    review = classification['review_required']
-    # Separators, frontmatter delimiters and empty Markdown headings do not
-    # provide a name. Keep this independent of overall body reading quality.
-    readable_title = any(char.isalnum() for char in title)
-    use_title = (readable_title and quality['state'] == 'acceptable' and classification['decision_level'] != 'abstain'
-                 and classification.get('content_form') != 'natural_photo')
-    if classification.get('content_form') in {'data_chart', 'table_image', 'diagram'}:
-        # A visual type does not validate sparse OCR as a title (e.g. Logs or
-        # an isolated axis label). Retain the original name unless independent
-        # OCR document evidence already supports the document's purpose.
-        use_title = use_title and any(item.get('source') == 'ocr' for item in classification.get('evidence_items', []))
-    name = (title + record["extension"]) if use_title else record["name"]
-    try:
-        safe_name(name, record["extension"])
-    except SafetyError:
-        name = record["name"]
-        review = True
-        classification['decision_level'] = 'candidate' if classification['category'] != 'other' else 'abstain'
-        classification['review_reasons'].append('unsafe_title')
-    evidence = first[:240] if text else '本地视觉场景候选；不推测人物身份、地点或拍摄日期。'
-    if not text and classification['category'] == 'other':
-        evidence = '没有足够的本地内容证据，保留原名并等待人工复核。'
-    return {**classification, "file_id": record["id"], "name": name, 'evidence': evidence,
-            "review_required": review, "provider": 'offline_models' if image_input else 'offline_semantic' if any(
-                item.get('source') == 'semantic' for item in classification.get('evidence_items', [])) else "local_rules",
-            "sample": payload["sample"], "rule_version": "7"}
+    text = payload.get('text', '')
+    semantic = local_semantic(text, cancelled=cancelled) if cancelled else local_semantic(text)
+    return classify_payload(record, payload, semantic=semantic,
+                            classifier=classify_text, image_classifier=fuse_image,
+                            quality_assessor=assess_content, quality_applier=apply_content_quality,
+                            decider=decide)
+
+
+def local_suggestion(record, payload, cancelled=None):
+    """Compatibility adapter for callers using the original local suggestion name."""
+    return analyze_local(record, payload, cancelled=cancelled)
 
 
 class AnalysisJobs:
@@ -234,14 +142,17 @@ class AnalysisJobs:
         self.jobs = {}
         self.snapshots = {}
         self.config_snapshots = {}
+        self.personal_rule_snapshots = {}
+        self.preview_samples = {}
+        self.preview_sample_chars = 0
         self.lock = RLock()
         self.expires = time.monotonic() + 8 * 3600
 
-    def create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None):
+    def create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None, personal_rules=None):
         with self.lock:
-            return self._create(ws, identifiers, mode, cloud_consent, endpoint, config_version)
+            return self._create(ws, identifiers, mode, cloud_consent, endpoint, config_version, personal_rules)
 
-    def _create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None):
+    def _create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None, personal_rules=None):
         if time.monotonic() >= self.expires:
             raise SafetyError('SESSION_REQUIRED')
         if mode == "cloud" and not cloud_consent:
@@ -263,6 +174,18 @@ class AnalysisJobs:
             if job.get("finished_at") and time.monotonic() - job["finished_at"] > 900:
                 self.jobs.pop(key)
                 self.snapshots.pop(key, None)
+                self.personal_rule_snapshots.pop(key, None)
+                removed = self.preview_samples.pop(key, [])
+                self.preview_sample_chars -= sum(len(row['text']) for row in removed)
+        while len(self.jobs) >= 32:
+            oldest = next(iter(self.jobs))
+            if self.jobs[oldest]['status'] in {'queued', 'running'}:
+                raise SafetyError('ANALYSIS_BUSY')
+            self.jobs.pop(oldest, None)
+            self.snapshots.pop(oldest, None)
+            self.personal_rule_snapshots.pop(oldest, None)
+            removed = self.preview_samples.pop(oldest, [])
+            self.preview_sample_chars -= sum(len(row['text']) for row in removed)
         if len(self.jobs) >= 32 or any(j["status"] in {"queued", "running"} for j in self.jobs.values()):
             raise SafetyError("ANALYSIS_BUSY")
         if not self.global_slots.acquire(blocking=False):
@@ -276,6 +199,8 @@ class AnalysisJobs:
             job["config_version"] = config_snapshot.config_version
         self.jobs[job["id"]] = job
         self.snapshots[job['id']] = copy.deepcopy(records)
+        if mode == 'local':
+            self.personal_rule_snapshots[job['id']] = copy.deepcopy(personal_rules or {'available': True, 'rules': []})
         if config_snapshot is not None:
             self.config_snapshots[job["id"]] = config_snapshot
         return copy.deepcopy(job)
@@ -294,8 +219,13 @@ class AnalysisJobs:
     def _get_locked(self, identifier):
         job = self.jobs.get(identifier)
         if not job or (job.get("finished_at") and time.monotonic() - job["finished_at"] > 900):
+            self._drop_preview_locked(identifier)
             raise SafetyError("JOB_NOT_FOUND")
         return job
+
+    def _drop_preview_locked(self, identifier):
+        removed = self.preview_samples.pop(identifier, [])
+        self.preview_sample_chars -= sum(len(row['text']) for row in removed)
 
     def cancel(self, identifier):
         with self.lock:
@@ -319,6 +249,19 @@ class AnalysisJobs:
         with self.lock:
             job = self._get_locked(identifier)
             job[key].append(value)
+
+    def preview(self, identifier, workspace_id, ws=None):
+        with self.lock:
+            job = self._get_locked(identifier)
+            sample = self.preview_samples.get(identifier)
+            if job['workspace_id'] != workspace_id or job['mode'] != 'local' or job['status'] != 'completed' or sample is None:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_UNAVAILABLE')
+            current = ws.records if ws is not None else {}
+            for row in sample:
+                record = current.get(row['file_id'])
+                if not record or record.get('sha256') != row.get('sha256'):
+                    raise SafetyError('PERSONAL_RULE_PREVIEW_UNAVAILABLE')
+            return copy.deepcopy(sample)
 
     async def _suggest(self, payload, config_snapshot: ModelConfigSnapshot | None):
         """Keep one-argument suggest monkeypatches compatible with older callers."""
@@ -392,6 +335,14 @@ class AnalysisJobs:
                         self._update(identifier, phase="classifying")
                         classify_kwargs = {'cancelled': lambda: self._cancelled(identifier)} if 'cancelled' in inspect.signature(analyze_local).parameters else {}
                         result = await asyncio.to_thread(analyze_local, record, payload, **classify_kwargs)
+                        text = payload.get('text', '')
+                        quality = result.get('quality', {})
+                        retained_text = text[:12000] if quality.get('state') == 'acceptable' and text.strip() else ''
+                        self._retain_preview(identifier, {'file_id': file_id, 'name': record['name'],
+                            'extension': record['extension'], 'sha256': record['sha256'],
+                            'text': retained_text, 'quality': quality})
+                        snapshot = self.personal_rule_snapshots.get(identifier, {'available': True, 'rules': []})
+                        result = apply_personal_rules(result, record, text, quality, snapshot)
                     if not self.get(identifier)["cancel_requested"]:
                         self._append(identifier, "results", result)
                 except (SafetyError, OSError) as exc:
@@ -416,4 +367,54 @@ class AnalysisJobs:
                 job["finished_at"] = time.monotonic()
                 self.snapshots.pop(identifier, None)
                 self.config_snapshots.pop(identifier, None)
+                self.personal_rule_snapshots.pop(identifier, None)
             self.global_slots.release()
+
+    def _retain_preview(self, identifier, item):
+        with self.lock:
+            rows = self.preview_samples.setdefault(identifier, [])
+            rows.append(item)
+            self.preview_sample_chars += len(item['text'])
+            while self.preview_sample_chars > 2 * 1024 * 1024:
+                oldest = next(iter(self.preview_samples), None)
+                if oldest is None:
+                    break
+                removed = self.preview_samples.pop(oldest)
+                self.preview_sample_chars -= sum(len(row['text']) for row in removed)
+
+
+def apply_personal_rules(result, record, text, quality, snapshot):
+    if not snapshot.get('available', True):
+        result['review_required'] = True
+        result['review_reasons'] = list(dict.fromkeys(result.get('review_reasons', []) + ['personal_rules_unavailable']))
+        return result
+    norm = ' '.join(__import__('unicodedata').normalize('NFKC', text[:12000]).casefold().split())
+    matched = []
+    if quality.get('state') == 'acceptable' and norm:
+        for rule in snapshot.get('rules', []):
+            if rule.get('enabled') and record['extension'].lower() in rule['extensions']:
+                hits = [word for word in rule['keywords'] if word in norm]
+                if len(hits) == len(rule['keywords']):
+                    matched.append({'id': rule['id'], 'name': rule['name'], 'keywords': hits,
+                                    'category': rule['category'], 'subcategory': rule['subcategory']})
+    if not matched:
+        return result
+    targets = {(m['category'], m['subcategory']) for m in matched}
+    result['personal_rule_matches'] = [{k: m[k] for k in ('id', 'name', 'keywords')} for m in matched]
+    candidates = list(result.get('candidates', []))
+    for match in matched:
+        candidate = {'category': match['category'], 'subcategory': match['subcategory'],
+                     'label': match['name'], 'source': 'personal_rules', 'review_required': True}
+        if candidate not in candidates:
+            candidates.append(candidate)
+    result['candidates'] = candidates
+    result['provider'] = 'personal_rules'
+    result['review_required'] = True
+    reasons = list(result.get('review_reasons', []))
+    reasons.append('personal_rule_conflict' if len(targets) > 1 else 'personal_rule_applied')
+    result['review_reasons'] = list(dict.fromkeys(reasons))
+    if len(targets) == 1:
+        result['category'], result['subcategory'] = next(iter(targets))
+        result['decision_level'] = 'candidate'
+    result['personal_rule_evidence'] = '；'.join(f"{m['name']}：{'、'.join(m['keywords'])}" for m in matched)
+    return result

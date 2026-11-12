@@ -22,8 +22,10 @@ export const reviewReasons: Record<string, string> = {
   content_quality_limited: '提取内容质量受限，请结合原文件核对',
   ocr_quality_limited: '部分图片文字识别不够可靠',
   purpose_uncalibrated: '此用途为新增识别候选，需要人工确认',
+  title_only: '目前仅有标题线索，正文缺少独立支持',
+  required_fields_missing: '缺少可核对的关键字段，请结合原文件确认',
 }
-export type Page = 'workbench' | 'library' | 'history' | 'help'
+export type Page = 'workbench' | 'library' | 'graph' | 'history' | 'help'
 export type Filter = 'all' | 'unreviewed' | 'review' | 'failed' | 'selected'
 export interface FileRecord {
   id: string; name: string; size: number; modified: number; extension: string
@@ -59,6 +61,8 @@ export interface Suggestion {
   decision_level?: DecisionLevel; candidates?: ClassificationCandidate[]; sampling?: Sampling
   engine_versions?: Record<string, string | number | null>
   quality?: ContentQualityReport
+  personal_rule_matches?: { id: string; name: string; keywords: string[] }[]
+  personal_rule_evidence?: string
 }
 export interface Edit { file_id: string; name: string; category: Category; subcategory?: string | null }
 export interface PlanItem {
@@ -89,10 +93,11 @@ export interface Config {
   categories: Record<Category, string>; undo_supported: boolean; execution_supported: boolean; demo_path: string
   taxonomy?: Taxonomy; content_forms?: Record<string, string>
   supported_extensions?: string[]
-  offline?: { ocr: { available: boolean; name: string }; vision: { available: boolean; name: string }; semantic?: SemanticCapability; network_required: boolean }
+  offline?: { ocr: { available: boolean; name: string }; vision: { available: boolean; name: string }; semantic?: SemanticCapability; scanned_pdf?: { available: boolean; enabled: boolean; name: string }; network_required: boolean }
 }
 export interface Preview { text?: string; image?: string; sample: string; truncated?: boolean; sampling?: Sampling }
 export interface LibraryItem {
+  root_id?: string; source_alias?: string; original_entry_id?: string; workspace_id?: string
   id: string; transaction_id: string; name: string; source: string; target: string
   category: Category; subcategory: string | null; created: string; size: number
   availability: 'available' | 'missing' | 'changed' | 'unverified'

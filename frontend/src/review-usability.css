@@ -1,0 +1,103 @@
+/* Task context and the next action share one stable position above the files. */
+.app-shell .page-intro.has-workspace { padding-block: var(--space-5) var(--space-4); }
+.app-shell .page-intro.has-workspace h1 { font-size: 26px; }
+.app-shell .page-intro.has-workspace p { margin-top: var(--space-1); }
+.app-shell .directory-panel.has-workspace { padding: var(--space-4) var(--space-5); }
+.app-shell .directory-panel.has-workspace .directory-icon { width: 44px; height: 44px; }
+.app-shell .directory-heading { flex-wrap: wrap; }
+.app-shell .directory-heading > .text-button { margin-left: auto; }
+.app-shell .path-form { flex-wrap: wrap; }
+.app-shell .directory-path-label { flex: 1 0 100%; color: var(--text-secondary); font-size: var(--text-caption); }
+.app-shell .path-form input { min-width: min(100%, 220px); }
+.app-shell .workspace-context { display: flex; align-items: start; gap: var(--space-4); margin-block: var(--space-2) var(--space-4); }
+.app-shell .workspace-context .workspace-summary { min-width: 0; flex: 1; padding: 0; margin: 0; background: transparent; border: 0; }
+.app-shell .workspace-summary summary { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; font-size: var(--text-control); color: var(--text-secondary); }
+.app-shell .workspace-summary p { margin-block: var(--space-2); overflow-wrap: anywhere; }
+.app-shell .workspace-context > .text-button { flex-shrink: 0; }
+.app-shell .workbench-actions { position: sticky; top: 0; z-index: 8; display: grid; gap: var(--space-2); padding: var(--space-4) var(--space-5); margin-bottom: var(--space-5); border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); box-shadow: var(--panel-shadow); }
+.app-shell .workbench-actions-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.app-shell .workbench-actions-heading h2 { font-size: 18px; font-weight: 650; line-height: 1.5; }
+.app-shell #workbench-batch-scope { color: var(--text-secondary); font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+.app-shell .workbench-action-hint { color: var(--text-secondary); font-size: var(--text-control); line-height: 1.65; margin: 0; max-width: 80ch; }
+.app-shell .workbench-actions-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-2); }
+.app-shell .workbench-review-count { color: var(--text-secondary); font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+.app-shell .workbench-action-buttons { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.app-shell .workbench-action-buttons .button { min-height: var(--button-min-height); }
+.app-shell .review-checklist { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); padding: 0; margin: 0; list-style: none; counter-reset: review-step; }
+.app-shell .review-checklist li { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: var(--space-2); counter-increment: review-step; }
+.app-shell .review-checklist li::before { content: counter(review-step); grid-row: 1 / 3; align-self: start; display: grid; place-content: center; width: 24px; height: 24px; border-radius: var(--radius-control); background: var(--primary-soft); color: var(--primary-ink); font-size: 13px; }
+.app-shell .review-checklist strong { color: var(--text-primary); font-size: var(--text-control); font-weight: 600; }
+.app-shell .review-checklist span { color: var(--text-secondary); font-size: var(--text-caption); line-height: 1.65; }
+.app-shell .review-toolbar-v6 .review-scope-note { font-size: var(--text-caption); line-height: 1.65; max-width: 80ch; }
+.app-shell .review-toolbar-v6 { background: var(--surface-soft); }
+.app-shell .file-view-switch button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--control-line); }
+.app-shell .workbench-stage-surface .file-panel-heading { scroll-margin-top: 220px; }
+.app-shell .table-scroll :is(button, input, tr), .app-shell .file-grid :is(button, input) { scroll-margin-block: 220px var(--space-6); }
+
+/* Only the details body scrolls. Identity and confirmation stay visible. */
+.workbench-detail-layer.app-shell .inspector { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.workbench-detail-layer .inspector-fixed-header { flex: 0 0 auto; padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--line); background: var(--surface); }
+.workbench-detail-layer.app-shell .inspector .inspector-heading { position: static; padding: 0; flex-wrap: wrap; gap: var(--space-2); }
+.workbench-detail-layer .inspector-file { margin: var(--space-2) 0 0; }
+.workbench-detail-layer .inspector-file > div { min-width: 0; }
+.workbench-detail-layer .inspector-file strong { display: block; overflow-wrap: anywhere; max-height: 3.1em; overflow: auto; }
+.workbench-detail-layer .inspector-scroll-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4) var(--space-5); scroll-padding-block: var(--space-4); scrollbar-gutter: stable; overflow-anchor: none; }
+.workbench-detail-layer.app-shell .individual-approval { flex: 0 0 auto; display: grid; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-5) max(var(--space-3), env(safe-area-inset-bottom)); border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--surface); }
+.workbench-detail-layer .individual-approval-actions { display: flex; gap: var(--space-2); }
+.workbench-detail-layer.app-shell .individual-approval .button { flex: 1; min-width: 0; width: auto; }
+.workbench-detail-layer .individual-approval small { color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.workbench-detail-layer .preview-stage { height: min(280px, 30dvh); }
+.workbench-detail-layer .preview-stage img, .workbench-detail-layer .preview-stage pre { max-height: min(280px, 30dvh); }
+.workbench-detail-layer .detail-navigation .icon-button { min-width: 44px; min-height: 44px; }
+
+.modal-layer .modal.modal-with-fixed-actions { display: flex; flex-direction: column; padding: 0; overflow: hidden; max-height: calc(100dvh - var(--space-10)); }
+.modal-with-fixed-actions > .modal-header { flex: 0 0 auto; margin: 0; padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--line); }
+.modal-with-fixed-actions > .modal-header .icon-button { flex-shrink: 0; min-width: 44px; min-height: 44px; }
+.modal-with-fixed-actions > .modal-scroll-region { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-5) var(--space-6); scroll-padding-block: var(--space-4); }
+.modal-with-fixed-actions > .modal-fixed-actions { flex: 0 0 auto; padding: var(--space-3) var(--space-6) var(--space-4); border-top: 1px solid var(--line); background: var(--surface); }
+.modal-with-fixed-actions .modal-footer { margin: 0; padding-top: var(--space-3); border-top: 0; flex-wrap: wrap; }
+.modal-with-fixed-actions .check-line { margin-block: 0; }
+.modal-with-fixed-actions .plan-items { max-height: none; overflow: visible; margin-bottom: 0; }
+.modal-with-fixed-actions .plan-item { font-size: var(--text-control); line-height: 1.65; padding: var(--space-4); }
+.modal-with-fixed-actions .plan-item > div { min-width: 0; overflow-wrap: anywhere; }
+.modal-with-fixed-actions .plan-item small { display: block; color: var(--text-secondary); margin-bottom: var(--space-1); font-size: 12px; }
+.modal-with-fixed-actions .plan-item span { color: var(--text-primary); }
+.modal-with-fixed-actions .plan-item strong { color: var(--primary-ink); }
+.modal-with-fixed-actions :is(.modal-description, .notice, .notice p, .check-line) { font-size: var(--text-control); line-height: 1.65; }
+.modal-with-fixed-actions .notice { background: var(--primary-soft); color: var(--primary-ink); border-color: var(--line); }
+.modal-with-fixed-actions .notice :is(strong, p, svg) { color: var(--primary-ink); }
+
+@media (max-width: 720px) {
+  .app-shell .workbench-actions { padding: var(--space-3) var(--space-4); gap: var(--space-2); }
+  .app-shell .workbench-actions-heading h2 { font-size: 17px; }
+  .app-shell .workbench-actions-controls { align-items: stretch; flex-direction: column; }
+  .app-shell .workbench-action-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app-shell .workbench-action-buttons > .primary { grid-column: 1 / -1; }
+  .app-shell .workbench-action-buttons .button { white-space: normal; padding-inline: var(--space-3); }
+  .app-shell .review-checklist { display: grid; gap: var(--space-3); }
+  .app-shell .workbench-actions-heading { align-items: start; flex-direction: column; }
+  .app-shell .workbench-stage-surface .file-panel-heading, .app-shell .table-scroll :is(button, input, tr), .app-shell .file-grid :is(button, input) { scroll-margin-top: 340px; }
+}
+@media (max-width: 480px) {
+  .workbench-detail-layer .inspector-fixed-header { padding-inline: var(--space-4); }
+  .workbench-detail-layer .inspector-scroll-content { padding-inline: var(--space-4); }
+  .workbench-detail-layer.app-shell .individual-approval { padding-inline: var(--space-4); }
+  .workbench-detail-layer .individual-approval-actions { flex-wrap: wrap; }
+  .workbench-detail-layer.app-shell .individual-approval .button { flex-basis: 100%; }
+  .modal-with-fixed-actions > .modal-header, .modal-with-fixed-actions > .modal-scroll-region, .modal-with-fixed-actions > .modal-fixed-actions { padding-inline: var(--space-4); }
+  .modal-with-fixed-actions .plan-item { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .modal-with-fixed-actions .plan-item > svg { transform: rotate(90deg); }
+  .modal-with-fixed-actions .modal-footer .button { flex: 1; min-height: 44px; white-space: normal; }
+}
+@media (max-height: 600px) {
+  .app-shell .workbench-actions { position: static; }
+  .workbench-detail-layer .inspector-file { margin-top: var(--space-1); }
+  .workbench-detail-layer .inspector-file .file-icon { display: none; }
+  .workbench-detail-layer .inspector-file strong { max-height: 1.55em; }
+  .workbench-detail-layer .preview-stage { height: 140px; }
+  .workbench-detail-layer .preview-stage img, .workbench-detail-layer .preview-stage pre { max-height: 140px; }
+  .workbench-detail-layer.app-shell .individual-approval { padding-block: var(--space-2); }
+}
+@media (max-width: 720px) and (max-height: 760px) {
+  .app-shell .workbench-actions { position: static; }
+}

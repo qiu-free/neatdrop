@@ -4,13 +4,14 @@ import asyncio
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from threading import Lock
+from threading import Lock, RLock
 
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from .analysis import AnalysisJobs
+from .graph_jobs import GraphJobs
 
 
 @dataclass
@@ -19,7 +20,13 @@ class Session:
     created: float = field(default_factory=time.monotonic)
     workspaces: dict = field(default_factory=dict)
     jobs: AnalysisJobs = field(default_factory=AnalysisJobs)
+    graph_jobs: GraphJobs = field(default_factory=GraphJobs)
+    personal_rule_previews: dict = field(default_factory=dict)
     lock: Lock = field(default_factory=Lock)
+    catalog_grants: dict = field(default_factory=dict)
+    catalog_statuses: dict = field(default_factory=dict)
+    catalog_relations: dict = field(default_factory=dict)
+    catalog_lock: RLock = field(default_factory=RLock)
 
 
 class RequestGuard:
@@ -46,10 +53,10 @@ class RequestGuard:
         except ValueError:
             return await reject('LOOPBACK_REQUIRED', 403)
         method = scope['method']
-        if method not in {'GET', 'HEAD', 'POST'}:
+        if method not in {'GET', 'HEAD', 'POST', 'DELETE'}:
             return await reject('METHOD_NOT_ALLOWED', 405)
         headers = {key.lower(): value for key, value in scope['headers']}
-        if method == 'POST':
+        if method in {'POST', 'DELETE'}:
             if headers.get(b'content-encoding', b'identity').lower() != b'identity':
                 return await reject('CONTENT_ENCODING_REJECTED', 415)
             if headers.get(b'content-type', b'').split(b';', 1)[0].strip().lower() != b'application/json':
@@ -91,7 +98,7 @@ class RequestGuard:
                 return await receive()
 
             path = scope['path']
-            expensive = path == '/api/session' or (method == 'POST' and (path.endswith('/workspaces') or path.endswith('/pick-directory') or path.endswith('/analysis-jobs')))
+            expensive = path == '/api/session' or path.startswith('/api/v1/catalog') or (method == 'POST' and (path.endswith('/workspaces') or path.endswith('/pick-directory') or path.endswith('/analysis-jobs')))
             if expensive:
                 with self.lock:
                     now = time.monotonic()
@@ -123,6 +130,7 @@ class LocalSecurity(BaseHTTPMiddleware):
         session = sessions.get(token)
         if session and time.monotonic() - session.created > 8 * 3600:
             session.jobs.cancel_all()
+            session.graph_jobs.cancel_all()
             sessions.pop(token, None)
             session = None
         if request.url.path.startswith("/api/") and request.url.path not in {"/api/session", "/api/v1/health"}:

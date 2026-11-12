@@ -1,0 +1,57 @@
+.personal-rules-panel { display: grid; gap: 16px; min-width: 0; padding: 20px 0; border-top: 1px solid var(--line); color: var(--text-primary); }
+.personal-rules-heading, .personal-rules-heading > div, .personal-rule-actions, .personal-rule-links { display: flex; align-items: center; gap: 10px; }
+.personal-rules-heading { justify-content: space-between; }
+.personal-rules-heading > div { color: var(--primary-ink); }
+.personal-rules-heading h2, .personal-rule-form h3, .personal-rule-preview h3 { margin: 0; color: var(--text-primary); font: 600 17px/1.5 var(--font-ui); }
+.personal-rules-summary, .personal-rule-recovery, .personal-rule-form small, .personal-rule-form span, .personal-rule-preview > p, .personal-rule-list small { color: var(--text-secondary); font-size: 13px; line-height: 1.7; }
+.personal-rule-form, .personal-rule-preview { display: grid; gap: 14px; min-width: 0; }
+.personal-rule-form > label, .personal-rule-taxonomy > label { display: grid; gap: 6px; min-width: 0; color: var(--text-primary); font-size: 14px; font-weight: 600; }
+.personal-rule-form label small { margin-left: 4px; font-weight: 400; }
+.personal-rule-form input, .personal-rule-form select, .personal-rule-form textarea { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: 8px; color: var(--text-primary); background: var(--surface); font: 400 16px/1.55 var(--font-ui); }
+.personal-rule-form textarea { resize: vertical; }
+.personal-rule-form input:focus-visible, .personal-rule-form select:focus-visible, .personal-rule-form textarea:focus-visible, .personal-rule-consent input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.personal-rule-form [aria-invalid="true"] { border-color: var(--error-ink); }
+.personal-field-error { color: var(--error-ink) !important; font-size: 13px; font-weight: 400; }
+.personal-rule-form button { justify-self: start; }
+.personal-rule-taxonomy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.personal-rule-list, .personal-rule-preview ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.personal-rule-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.personal-rule-list > li > div:first-child { display: grid; gap: 4px; min-width: 0; }
+.personal-rule-list > li > div:first-child strong, .personal-rule-preview li strong { overflow-wrap: anywhere; }
+.personal-rule-list > li > div:first-child span, .personal-rule-preview li span { color: var(--text-secondary); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.personal-rule-state { align-self: start; padding: 3px 8px; border-radius: 6px; color: var(--warning-ink); background: var(--warning-surface); font-size: 12px; }
+.personal-rule-state.enabled { color: var(--status-success); background: var(--color-success-surface); }
+.personal-rule-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.personal-rule-confirm { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--surface-soft); }
+.personal-rule-confirm p { flex: 1 1 100%; margin: 0; font-size: 14px; line-height: 1.6; }
+.personal-rule-preview { padding: 16px; border-radius: 8px; background: var(--surface-soft); }
+.personal-rule-preview > p { margin: 0; }
+.personal-rule-preview li { display: grid; gap: 3px; padding: 10px 0; border-top: 1px solid var(--line); }
+.personal-rule-empty { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.7; }
+.personal-rule-consent { display: flex; align-items: flex-start; gap: 10px; color: var(--text-primary); font-size: 14px; line-height: 1.7; }
+.personal-rule-consent input { width: 18px; height: 18px; flex: 0 0 auto; margin: 3px 0 0; accent-color: var(--primary); }
+.personal-rule-error, .personal-rule-unavailable { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px; color: var(--error-ink); background: var(--error-surface); }
+.personal-rule-error svg { flex: 0 0 auto; margin-top: 3px; }
+.personal-rule-error p, .personal-rule-unavailable p { margin: 0; font-size: 14px; line-height: 1.7; }
+.personal-rule-unavailable { flex-wrap: wrap; }
+.personal-rule-unavailable .button { margin-left: 26px; }
+.personal-rule-notice { margin: 0; color: var(--status-success); font-size: 14px; line-height: 1.7; }
+.personal-rules-workbench { margin-top: 18px; padding: 14px 0; border-top: 1px solid var(--line); }
+.personal-rules-workbench > summary { display: flex; align-items: center; min-height: 44px; color: var(--primary-ink); font-weight: 600; cursor: pointer; }
+.personal-rules-workbench > p { color: var(--text-secondary); font-size: 13px; line-height: 1.7; }
+.personal-rules-workbench .personal-rules-panel { margin-top: 8px; }
+.personal-rule-evidence { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.personal-rule-evidence strong { display: flex; align-items: center; gap: 6px; color: var(--primary-ink); }
+.personal-rule-evidence p, .personal-rule-evidence small { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.recognition-recovery { display: grid; gap: 8px; margin: 16px 0; padding: 14px; background: var(--warning-surface); border-radius: 8px; }
+.recognition-recovery > strong { color: var(--warning-ink); }
+.recognition-recovery > p { margin: 0; color: var(--text-primary); font-size: 14px; line-height: 1.7; }
+.recognition-recovery > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.recognition-recovery .button { min-height: 40px; }
+.personal-rule-seed { margin: 10px 0; }
+.choose-directory { flex: 0 0 auto; }
+.path-form input { min-width: 0; }
+@media (max-width: 720px) { .path-form { flex-wrap: wrap; }.choose-directory, .path-form > button { flex: 1 1 auto; justify-content: center; }.personal-rules-workbench { padding: 12px 0; } }
+.personal-rule-recovery { margin: 0; }
+.personal-rule-links { flex-wrap: wrap; }
+@media (max-width: 600px) { .personal-rule-taxonomy { grid-template-columns: minmax(0, 1fr); }.personal-rule-list > li { grid-template-columns: minmax(0, 1fr); }.personal-rule-state { justify-self: start; }.personal-rule-actions { grid-column: 1; justify-content: flex-start; flex-wrap: wrap; }.personal-rules-panel .button { white-space: normal; } }

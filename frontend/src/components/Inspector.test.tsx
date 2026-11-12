@@ -38,6 +38,23 @@ it('previews the actual copy directory and keeps image zoom scoped to the active
 
 beforeEach(() => { vi.mocked(api).mockReset() })
 
+it('explains title and field limitations without hiding the required review', async () => {
+  vi.mocked(api).mockResolvedValue({ text: '空白票据', sample: 'text' })
+  const onApprove = vi.fn()
+  render(<Inspector workspaceId="w" file={file} suggestion={{ file_id: 'a', name: 'first.md',
+    category: 'finance', subcategory: 'invoice', evidence: '电子发票标题', review_required: true,
+    decision_level: 'candidate', provider: 'local_rules', sample: 'text',
+    review_reasons: ['title_only', 'required_fields_missing'],
+  }} onEdit={() => undefined} onApprove={onApprove} />)
+  expect(screen.getByText('待复核候选')).toBeVisible()
+  fireEvent.click(screen.getByText('识别详情与读取范围'))
+  expect(screen.getByText(/目前仅有标题线索，正文缺少独立支持/)).toBeVisible()
+  expect(screen.getByText(/缺少可核对的关键字段，请结合原文件确认/)).toBeVisible()
+  expect(onApprove).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: '逐项确认此项' })).toBeEnabled()
+  await screen.findByText('空白票据')
+})
+
 it('shows reading limitations before technical evidence and does not auto approve', async () => {
   vi.mocked(api).mockResolvedValue({ text: 'Quality preview', sample: 'text' })
   const onApprove = vi.fn()
@@ -130,6 +147,46 @@ it('lets a user individually approve a review-required suggestion', async () => 
   await screen.findByText('Approval preview')
 })
 
+it('keeps a personal-rule conflict marked for review and offers a reviewed correction as a rule seed', async () => {
+  const onCreateRule = vi.fn()
+  const onEdit = vi.fn()
+  vi.mocked(api).mockResolvedValueOnce({ text: 'Conflict preview', sample: 'text' })
+  render(<Inspector workspaceId="w" file={file} suggestion={{ ...candidateSuggestion, category: 'study',
+    review_required: true, decision_level: 'ordinary', review_reasons: ['personal_rule_conflict'],
+    personal_rule_matches: [{ id: 'a'.repeat(32), name: '财务资料', keywords: ['quarterly', 'revenue'] }],
+  } as unknown as Suggestion} edit={{ file_id: 'a', name: '修正文件.md', category: 'office', subcategory: 'report' }}
+    reviewed onEdit={onEdit} onCreateRule={onCreateRule} editingDisabled={false} />)
+  expect(screen.getByText('待复核候选')).toBeInTheDocument()
+  expect(screen.getByLabelText('个人规则依据')).toHaveTextContent('财务资料')
+  expect(screen.getByRole('button', { name: '为类似文件建立规则' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: '为类似文件建立规则' }))
+  expect(onCreateRule).toHaveBeenCalledExactlyOnceWith({ fileId: 'a', category: 'office', subcategory: 'report' })
+  expect(onEdit).not.toHaveBeenCalled()
+  await screen.findByText('Conflict preview')
+})
+
+it.each([
+  ['reviewed without an edit', undefined, true, false],
+  ['reviewed after a name-only edit', { file_id: 'a', name: '新名称.md', category: 'study', subcategory: 'paper' }, true, false],
+  ['classification correction before review', { file_id: 'a', name: 'first.md', category: 'office', subcategory: 'report' }, false, false],
+  ['reviewed classification correction', { file_id: 'a', name: 'first.md', category: 'office', subcategory: 'report' }, true, true],
+] as const)('allows rule seed only for a %s', async (_label, edit, reviewed, allowed) => {
+  vi.mocked(api).mockResolvedValueOnce({ text: 'Seed gate preview', sample: 'text' })
+  const onCreateRule = vi.fn()
+  render(<Inspector workspaceId="w" file={file} suggestion={{ ...candidateSuggestion, category: 'study', subcategory: 'paper' }}
+    edit={edit} reviewed={reviewed} onEdit={() => undefined} onCreateRule={onCreateRule} />)
+  const action = screen.queryByRole('button', { name: '为类似文件建立规则' })
+  if (allowed) {
+    expect(action).toBeInTheDocument()
+    fireEvent.click(action!)
+    expect(onCreateRule).toHaveBeenCalledExactlyOnceWith({ fileId: 'a', category: 'office', subcategory: 'report' })
+  } else {
+    expect(action).not.toBeInTheDocument()
+    expect(onCreateRule).not.toHaveBeenCalled()
+  }
+  await screen.findByText('Seed gate preview')
+})
+
 it('requires analysis or a manual edit before an item can be confirmed', async () => {
   const onApprove = vi.fn()
   vi.mocked(api).mockResolvedValueOnce({ text: 'Manual preview', sample: 'text' })
@@ -147,6 +204,15 @@ it('does not approve an edited file with an unresolved analysis error', async ()
   render(<Inspector workspaceId="w" file={file} edit={{ file_id: 'a', name: '人工.md', category: 'study' }} analysisError="READ_FAILED" onEdit={() => undefined} onApprove={onApprove} />)
   expect(screen.getByRole('button', { name: '处理错误后确认' })).toBeDisabled()
   expect(screen.getByText(/分析错误尚未处理/)).toBeInTheDocument()
+  await screen.findByText('Failed preview')
+})
+
+it('does not offer manual classification while a failed analysis has locked the fields', async () => {
+  vi.mocked(api).mockResolvedValueOnce({ text: 'Failed preview', sample: 'text' })
+  render(<Inspector workspaceId="w" file={file} suggestion={{ ...candidateSuggestion, review_required: true }} analysisError="READ_FAILED" editingDisabled onEdit={() => undefined} />)
+  expect(screen.getByLabelText('识别问题处理')).toHaveTextContent('这项分析仍有错误')
+  expect(screen.queryByRole('button', { name: '按步骤手动分类' })).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: '处理错误后确认' })).toBeDisabled()
   await screen.findByText('Failed preview')
 })
 

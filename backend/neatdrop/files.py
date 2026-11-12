@@ -123,6 +123,7 @@ class Workspace:
         self.identity = (info.st_dev, info.st_ino)
         self.id = uuid.uuid4().hex
         self.records = {}
+        self.directory_identities = {}
         self.lock = RLock()
 
     @protected
@@ -132,6 +133,7 @@ class Workspace:
 
     def _scan(self):
         records = {}
+        directories = {}
         scan_bytes = 0
         for path in sorted(itertools.islice(self.root.iterdir(), 2000), key=lambda p: canonical(p.name)):
             if canonical(path.name) == ".neatdrop":
@@ -159,6 +161,8 @@ class Workspace:
                 except SafetyError:
                     reason = 'INVALID_NAME'
             identifier = hashlib.sha256(path.name.encode()).hexdigest()[:24]
+            if reason == 'DIRECTORY_SKIPPED' and stat.S_ISDIR(info.st_mode):
+                directories[identifier] = (info.st_dev, info.st_ino)
             record = {"id": identifier, "name": path.name, "size": info.st_size,
                       "modified": info.st_mtime, "extension": path.suffix,
                       "supported": not reason, "reason": reason, "sha256": None}
@@ -175,7 +179,28 @@ class Workspace:
             if len(records) >= 2000:
                 break
         self.records = records
+        self.directory_identities = directories
         return list(records.values())
+
+    @protected
+    def child_directory(self, identifier):
+        """Resolve only a scanned direct child, without granting recursive reads."""
+        from .safe_io import directory_pin
+        with self.lock:
+            record = self.records.get(identifier)
+            identity = self.directory_identities.get(identifier)
+            if not record or record['reason'] != 'DIRECTORY_SKIPPED' or not identity:
+                raise SafetyError('DIRECTORY_NOT_AVAILABLE')
+            path = checked_path(self.root, record['name'])
+            with directory_pin(path):
+                info = path.lstat()
+                if not stat.S_ISDIR(info.st_mode) or (info.st_dev, info.st_ino) != identity:
+                    raise SafetyError('DIRECTORY_CHANGED')
+                # Revalidate the workspace identity and every ancestor before
+                # returning the locator to the explicit authorization action.
+                if is_link(path):
+                    raise SafetyError('LINK_FORBIDDEN')
+                return str(path)
 
     def record(self, identifier):
         with self.lock:

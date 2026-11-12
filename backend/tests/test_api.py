@@ -20,6 +20,28 @@ def test_csrf_and_origin_and_host_are_guarded(tmp_path):
         assert client.get("/api/v1/health").json()["status"] == "ok"
 
 
+def test_stale_tab_csrf_is_rejected_before_picker_opens_and_current_token_preserves_workspace(tmp_path, monkeypatch):
+    picker_calls = []
+    def pick():
+        picker_calls.append(True)
+        return str(tmp_path)
+    monkeypatch.setattr('neatdrop.app.choose_directory', pick)
+
+    with TestClient(create_app(), base_url="http://127.0.0.1:8765", client=('127.0.0.1', 43210)) as client:
+        headers = session(client)
+        ws = client.post('/api/v1/workspaces', json={'path': str(tmp_path)}, headers=headers).json()
+        rejected = client.post('/api/v1/pick-directory', json={}, headers={'X-NeatDrop-CSRF': 'stale-tab-token'})
+        assert rejected.status_code == 403
+        assert rejected.json() == {'code': 'CSRF_REJECTED'}
+        assert picker_calls == []
+        assert session(client) == headers
+        assert client.get(f"/api/v1/workspaces/{ws['id']}/files").status_code == 200
+        accepted = client.post('/api/v1/pick-directory', json={}, headers=headers)
+        assert accepted.status_code == 200
+        assert accepted.json() == {'path': str(tmp_path)}
+        assert len(picker_calls) == 1
+
+
 def test_workspace_isolation_and_complete_api_copy(tmp_path):
     (tmp_path / "a.md").write_text("# 课程笔记", encoding="utf-8")
     app = create_app()

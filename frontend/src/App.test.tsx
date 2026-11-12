@@ -16,13 +16,165 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 }) })
 
+it('collapses the sidebar without losing a draft or navigation and restores the saved UI choice', async () => {
+  const app = render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await screen.findByText('本地服务已连接')
+  fireEvent.change(screen.getByLabelText('本地目录完整路径'), { target: { value: 'C:/未发送的目录草稿' } })
+  const requests = vi.mocked(fetch).mock.calls.length
+  const toggle = screen.getByRole('button', { name: '收起侧边栏' })
+  toggle.focus()
+  fireEvent.click(toggle)
+  expect(screen.getByRole('button', { name: '展开侧边栏' })).toHaveFocus()
+  expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  fireEvent.click(screen.getByRole('button', { name: '整理工作台' }))
+  expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('C:/未发送的目录草稿')
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(requests)
+  expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toContain('未发送的目录草稿')
+  expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(true)
+  app.unmount()
+  render(<App />)
+  await screen.findByText('本地服务已连接')
+  expect(screen.getByRole('button', { name: '展开侧边栏' })).toBeInTheDocument()
+  expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('')
+  fireEvent.click(screen.getByRole('button', { name: '展开侧边栏' }))
+  expect(screen.getByRole('button', { name: '收起侧边栏' })).toBeInTheDocument()
+})
+
+it('keeps sidebar state immediate and interrupts an earlier native transition on rapid toggles', async () => {
+  const skip = vi.fn()
+  const transition = vi.fn((update: () => void) => {
+    update()
+    return { finished: new Promise<void>(() => undefined), skipTransition: skip }
+  })
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    const app = render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' }))
+    expect(transition).toHaveBeenCalledOnce()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '展开侧边栏' }))
+    expect(skip).toHaveBeenCalledOnce()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'false')
+    app.unmount()
+    expect(skip).toHaveBeenCalledTimes(2)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('changes the sidebar immediately without starting motion when reduced motion is requested', async () => {
+  const transition = vi.fn()
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' }))
+    expect(transition).not.toHaveBeenCalled()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('applies only the latest sidebar intent when native snapshot callbacks are delayed', async () => {
+  const callbacks: (() => void)[] = []
+  const transition = vi.fn((update: () => void) => {
+    callbacks.push(update)
+    return { finished: new Promise<void>(() => undefined), skipTransition: vi.fn() }
+  })
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    const toggle = screen.getByRole('button', { name: '收起侧边栏' })
+    fireEvent.click(toggle)
+    fireEvent.click(toggle)
+    act(() => { callbacks[1](); callbacks[0]() })
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'false')
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(false)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('still applies a sidebar choice when the browser rejects a view transition snapshot', async () => {
+  const failure = new DOMException('DOM update timed out', 'TimeoutError')
+  const transition = vi.fn(() => ({
+    ready: Promise.reject(failure), updateCallbackDone: Promise.reject(failure),
+    finished: Promise.resolve(), skipTransition: vi.fn(),
+  }))
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' })))
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(true)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('keeps help and practice accessible after removing product explanation without losing the current draft', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await screen.findByText('本地服务已连接')
+  fireEvent.change(screen.getByLabelText('本地目录完整路径'), { target: { value: 'C:/尚未扫描的草稿' } })
+  const requests = vi.mocked(fetch).mock.calls.length
+  const navigation = within(screen.getByRole('navigation', { name: '主导航' }))
+  expect(navigation.queryByRole('button', { name: '产品说明' })).not.toBeInTheDocument()
+  fireEvent.click(navigation.getByRole('button', { name: '使用说明' }))
+  const heading = screen.getByRole('heading', { level: 1, name: /一份清晰的使用指南/ })
+  expect(heading).toHaveFocus()
+  expect(navigation.getByRole('button', { name: '使用说明' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('heading', { name: '六个阶段，把文件理清楚' })).toBeInTheDocument()
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(requests)
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
+  expect(screen.getByRole('dialog', { name: '安全练习' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: '关闭弹窗' }))
+  fireEvent.click(navigation.getByRole('button', { name: '整理工作台' }))
+  expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('C:/尚未扫描的草稿')
+})
+
+it('offers a keyboard shortcut link directly to the main content', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
+  const skip = screen.getByRole('link', { name: '跳到主内容' })
+  fireEvent.click(skip)
+  expect(screen.getByRole('main')).toHaveFocus()
+  expect(skip).toHaveAttribute('href', '#main-content')
+  const modalTrigger = screen.getByRole('button', { name: /模型设置/ })
+  fireEvent.click(modalTrigger)
+  expect(screen.getByRole('dialog', { name: '模型设置' })).toBeInTheDocument()
+})
+
 it('offers a skippable first-run tour and reopens the in-memory exercise from the empty workbench', async () => {
   render(<App />)
   expect(screen.getByRole('dialog', { name: '新手导览' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
   await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
   const callsBeforePractice = vi.mocked(fetch).mock.calls.length
-  fireEvent.click(screen.getByRole('button', { name: '进入教程演练' }))
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
   expect(screen.getByRole('dialog', { name: '安全练习' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls).toHaveLength(callsBeforePractice)
   fireEvent.click(screen.getByRole('button', { name: '关闭弹窗' }))
@@ -245,3 +397,15 @@ it('removes pending input listeners after restoration so a later visit can resto
   await library.resolve()
   expect(window.scrollY).toBe(1600)
 })
+it('opens knowledge graph lazily from navigation and focuses its loaded heading', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: '知识图谱' }))
+  expect(screen.getByRole('button', { name: '知识图谱' })).toHaveAttribute('aria-current', 'page')
+  const heading = await screen.findByRole('heading', { name: /知识图谱/ })
+  await waitFor(() => expect(heading).toHaveFocus())
+  expect(screen.getByRole('button', { name: '返回工作台选择目录' })).toBeInTheDocument()
+  expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/graph'))).toBe(false)
+})
+

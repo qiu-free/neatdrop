@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { SettingsDialog } from './SettingsDialog'
+import { Modal } from './Modal'
 import { api } from '../api'
 import { DEFAULT_PREFERENCES, type Preferences } from '../preferences'
 import type { Config } from '../types'
@@ -22,8 +23,82 @@ function renderSettings(preferences: Preferences = DEFAULT_PREFERENCES, onPrefer
   return { onSaved, onPreferencesChange }
 }
 
+it('focuses a linked error summary and describes every invalid field without saving', async () => {
+  vi.mocked(api).mockResolvedValueOnce(unlocked)
+  renderSettings()
+  await waitFor(() => expect(screen.getByRole('button', { name: '保存设置' })).toBeEnabled())
+  fireEvent.change(screen.getByLabelText('服务地址'), { target: { value: 'http://example.com' } })
+  fireEvent.change(screen.getByLabelText('文本模型'), { target: { value: '' } })
+  fireEvent.change(screen.getByLabelText('每批最大请求数'), { target: { value: '0' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存设置' }))
+  const summary = screen.getByRole('alert')
+  expect(summary).toHaveFocus()
+  const endpoint = screen.getByLabelText('服务地址')
+  expect(endpoint).toHaveAttribute('aria-invalid', 'true')
+  expect(endpoint).toHaveAccessibleDescription(/HTTPS/)
+  expect(screen.getByLabelText('文本模型')).toHaveAccessibleDescription(/请填写文本模型/)
+  expect(screen.getByLabelText('每批最大请求数')).toHaveAccessibleDescription(/1–50/)
+  fireEvent.click(screen.getByRole('link', { name: /服务地址必须/ }))
+  expect(endpoint).toHaveFocus()
+  expect(api).toHaveBeenCalledTimes(1)
+})
+
+it('keeps the modal title and close control outside the independently scrolling settings body', async () => {
+  vi.mocked(api).mockResolvedValueOnce(unlocked)
+  renderSettings()
+
+  const endpoint = await screen.findByLabelText('服务地址')
+  const dialog = screen.getByRole('dialog', { name: '模型设置' })
+  const header = dialog.querySelector<HTMLElement>('.modal-header')
+  const scrollRegion = dialog.querySelector<HTMLElement>('.modal-scroll-region')
+
+  expect(header).not.toBeNull()
+  expect(scrollRegion).not.toBeNull()
+  expect(scrollRegion).toContainElement(endpoint)
+  expect(scrollRegion).not.toContainElement(header)
+  expect(header).toContainElement(screen.getByRole('button', { name: '关闭弹窗' }))
+  expect(dialog).not.toHaveClass('app-shell')
+})
+
+it('leaves other dialogs without a nested scroll region', () => {
+  render(<Modal title="普通弹窗" onClose={() => undefined}><p>内容</p></Modal>)
+  const dialog = screen.getByRole('dialog', { name: '普通弹窗' })
+  expect(dialog.querySelector('.modal-scroll-region')).toBeNull()
+})
+
 const offlineStatus = { offline: { ocr: { available: true, name: 'RapidOCR' },
   vision: { available: false, name: '量化 CLIP' }, network_required: false } } as unknown as Config
+
+it('separates offline capabilities and preference from the online service form and general appearance', async () => {
+  vi.mocked(api).mockResolvedValueOnce(unlocked)
+  render(<SettingsDialog config={offlineStatus} onClose={() => undefined} />)
+
+  const offline = screen.getByRole('region', { name: '离线模式' })
+  const online = screen.getByRole('region', { name: '在线模式' })
+  const general = screen.getByRole('region', { name: '界面偏好' })
+  expect(within(offline).getByText('中文 OCR：已就绪 · RapidOCR')).toBeInTheDocument()
+  expect(within(offline).getByRole('checkbox', { name: '优先使用离线识别' })).toBeInTheDocument()
+  expect(within(offline).queryByLabelText('服务地址')).not.toBeInTheDocument()
+  expect(await within(online).findByLabelText('服务地址')).toBeInTheDocument()
+  expect(within(online).getByLabelText('密钥处理')).toBeInTheDocument()
+  expect(within(online).getByRole('button', { name: '测试连接' })).toBeInTheDocument()
+  expect(within(online).getByRole('button', { name: '保存设置' })).toBeInTheDocument()
+  expect(within(general).getByLabelText('界面密度')).toBeInTheDocument()
+  expect(within(general).queryByRole('checkbox')).not.toBeInTheDocument()
+})
+
+it('keeps offline preferences usable if online configuration cannot be read and sends no model request for preference changes', async () => {
+  vi.mocked(api).mockRejectedValueOnce(new Error('在线配置读取失败'))
+  const onPreferencesChange = vi.fn()
+  renderSettings(DEFAULT_PREFERENCES, onPreferencesChange)
+  const online = screen.getByRole('region', { name: '在线模式' })
+  expect(await within(online).findByRole('alert')).toHaveTextContent('在线配置读取失败')
+  const priority = within(screen.getByRole('region', { name: '离线模式' })).getByRole('checkbox', { name: '优先使用离线识别' })
+  expect(priority).toBeEnabled()
+  fireEvent.click(priority)
+  expect(onPreferencesChange).toHaveBeenLastCalledWith({ ...DEFAULT_PREFERENCES, offlineFirst: false })
+  expect(api).toHaveBeenCalledExactlyOnceWith('/model-config')
+})
 
 it('shows offline status and locks environment-owned fields with their source', async () => {
   vi.mocked(api).mockResolvedValueOnce(environmentLocked)

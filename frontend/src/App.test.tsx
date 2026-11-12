@@ -16,6 +16,32 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 }) })
 
+it('collapses the sidebar without losing a draft or navigation and restores the saved UI choice', async () => {
+  const app = render(<App />)
+  fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+  await screen.findByText('本地服务已连接')
+  fireEvent.change(screen.getByLabelText('本地目录完整路径'), { target: { value: 'C:/未发送的目录草稿' } })
+  const requests = vi.mocked(fetch).mock.calls.length
+  const toggle = screen.getByRole('button', { name: '收起侧边栏' })
+  toggle.focus()
+  fireEvent.click(toggle)
+  expect(screen.getByRole('button', { name: '展开侧边栏' })).toHaveFocus()
+  expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: '使用说明' }))
+  fireEvent.click(screen.getByRole('button', { name: '整理工作台' }))
+  expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('C:/未发送的目录草稿')
+  expect(vi.mocked(fetch).mock.calls).toHaveLength(requests)
+  expect(localStorage.getItem(PREFERENCES_STORAGE_KEY)).not.toContain('未发送的目录草稿')
+  expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(true)
+  app.unmount()
+  render(<App />)
+  await screen.findByText('本地服务已连接')
+  expect(screen.getByRole('button', { name: '展开侧边栏' })).toBeInTheDocument()
+  expect(screen.getByLabelText('本地目录完整路径')).toHaveValue('')
+  fireEvent.click(screen.getByRole('button', { name: '展开侧边栏' }))
+  expect(screen.getByRole('button', { name: '收起侧边栏' })).toBeInTheDocument()
+})
+
 it('keeps help and practice accessible after removing product explanation without losing the current draft', async () => {
   render(<App />)
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))

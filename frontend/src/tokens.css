@@ -84,6 +84,8 @@
   --nav-text-active: #124d9f;
   --nav-active-surface: #ffffffc9;
   --nav-shadow: 0 12px 32px #27548d14, inset 0 1px 0 #ffffffe6;
+  --nav-width-collapsed: 84px;
+  --nav-inset: 14px;
   --button-primary-fill: var(--primary);
   --button-primary-hover: var(--primary-hover);
   --button-secondary-fill: var(--color-white);

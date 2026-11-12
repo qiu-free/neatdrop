@@ -66,6 +66,7 @@ export default function App() {
     setPreferences(next)
     savePreferences(next)
   }, [])
+  const toggleSidebar = () => changePreferences({ ...preferences, sidebarCollapsed: !preferences.sidebarCollapsed })
   const clearPendingScroll = useCallback(() => {
     const pending = pendingScroll.current
     pendingScroll.current = null
@@ -152,7 +153,7 @@ export default function App() {
     navigate('help')
   }, [navigate, session])
   const titles = { workbench: '整理工作台', library: '资料库', graph: '知识图谱', history: '操作记录', help: '使用说明' }
-  return <div className="app-shell" data-density={preferences.density}><a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus() }}>跳到主内容</a><Sidebar page={page} onPage={navigate} online={state.online} exerciseCompleted={preferences.tutorial.exerciseCompleted} /><div className="main-shell"><header className="topbar"><div className="breadcrumb"><span>工作空间</span><ChevronRight size={13} aria-hidden="true" /><strong>{titles[page]}</strong></div>{!isWebExperience ? <button className="button settings-button" onClick={openSettings}><Settings2 size={15} aria-hidden="true" />模型设置<span className={`status-dot ${state.config?.model.configured ? 'online' : ''}`} /></button> : null}</header><main id="main-content" tabIndex={-1}>
+  return <div className="app-shell" data-density={preferences.density} data-sidebar-collapsed={!!preferences.sidebarCollapsed}><a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); document.getElementById('main-content')?.focus() }}>跳到主内容</a><Sidebar page={page} onPage={navigate} online={state.online} workspace={state.workspace} collapsed={preferences.sidebarCollapsed} onToggle={toggleSidebar} exerciseCompleted={preferences.tutorial.exerciseCompleted} /><div className="main-shell"><header className="topbar"><div className="breadcrumb"><span>工作空间</span><ChevronRight size={13} aria-hidden="true" /><strong>{titles[page]}</strong></div>{!isWebExperience ? <button className="button settings-button" onClick={openSettings}><Settings2 size={15} aria-hidden="true" />模型设置<span className={`status-dot ${state.config?.model.configured ? 'online' : ''}`} /></button> : null}</header><main id="main-content" tabIndex={-1}>
     {isWebExperience ? <ExperienceBanner /> : null}
     {state.error ? <div className="alert error" role="alert"><CircleAlert size={18} /><span>{state.error}</span><button className="icon-button" aria-label="关闭错误提示" onClick={() => state.setError('')}><X size={16} /></button></div> : null}
     {state.message ? <div className="alert success" role="status"><CheckCircle2 size={18} /><span>{state.message}</span><button className="icon-button" aria-label="关闭状态提示" onClick={() => state.setMessage('')}><X size={16} /></button></div> : null}

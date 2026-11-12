@@ -6,5 +6,6 @@ import './readable-theme.css'
 import './workspace-flow.css'
 import './theme.css'
 import './blue-glass-theme.css'
+import './sidebar.css'
 
 createRoot(document.getElementById('root')!).render(<App />)

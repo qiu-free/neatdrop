@@ -21,6 +21,7 @@ class Session:
     workspaces: dict = field(default_factory=dict)
     jobs: AnalysisJobs = field(default_factory=AnalysisJobs)
     graph_jobs: GraphJobs = field(default_factory=GraphJobs)
+    personal_rule_previews: dict = field(default_factory=dict)
     lock: Lock = field(default_factory=Lock)
     catalog_grants: dict = field(default_factory=dict)
     catalog_statuses: dict = field(default_factory=dict)

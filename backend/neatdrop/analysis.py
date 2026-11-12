@@ -142,14 +142,18 @@ class AnalysisJobs:
         self.jobs = {}
         self.snapshots = {}
         self.config_snapshots = {}
+        self.personal_rule_snapshots = {}
+        self.preview_samples = {}
+        self.preview_sample_chars = 0
+        self.preview_records = {}
         self.lock = RLock()
         self.expires = time.monotonic() + 8 * 3600
 
-    def create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None):
+    def create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None, personal_rules=None):
         with self.lock:
-            return self._create(ws, identifiers, mode, cloud_consent, endpoint, config_version)
+            return self._create(ws, identifiers, mode, cloud_consent, endpoint, config_version, personal_rules)
 
-    def _create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None):
+    def _create(self, ws, identifiers, mode, cloud_consent, endpoint=None, config_version=None, personal_rules=None):
         if time.monotonic() >= self.expires:
             raise SafetyError('SESSION_REQUIRED')
         if mode == "cloud" and not cloud_consent:
@@ -171,6 +175,18 @@ class AnalysisJobs:
             if job.get("finished_at") and time.monotonic() - job["finished_at"] > 900:
                 self.jobs.pop(key)
                 self.snapshots.pop(key, None)
+                self.personal_rule_snapshots.pop(key, None)
+                removed = self.preview_samples.pop(key, [])
+                self.preview_sample_chars -= sum(len(row['text']) for row in removed)
+        while len(self.jobs) >= 32:
+            oldest = next(iter(self.jobs))
+            if self.jobs[oldest]['status'] in {'queued', 'running'}:
+                raise SafetyError('ANALYSIS_BUSY')
+            self.jobs.pop(oldest, None)
+            self.snapshots.pop(oldest, None)
+            self.personal_rule_snapshots.pop(oldest, None)
+            removed = self.preview_samples.pop(oldest, [])
+            self.preview_sample_chars -= sum(len(row['text']) for row in removed)
         if len(self.jobs) >= 32 or any(j["status"] in {"queued", "running"} for j in self.jobs.values()):
             raise SafetyError("ANALYSIS_BUSY")
         if not self.global_slots.acquire(blocking=False):
@@ -184,6 +200,8 @@ class AnalysisJobs:
             job["config_version"] = config_snapshot.config_version
         self.jobs[job["id"]] = job
         self.snapshots[job['id']] = copy.deepcopy(records)
+        if mode == 'local':
+            self.personal_rule_snapshots[job['id']] = copy.deepcopy(personal_rules or {'available': True, 'rules': []})
         if config_snapshot is not None:
             self.config_snapshots[job["id"]] = config_snapshot
         return copy.deepcopy(job)
@@ -202,8 +220,13 @@ class AnalysisJobs:
     def _get_locked(self, identifier):
         job = self.jobs.get(identifier)
         if not job or (job.get("finished_at") and time.monotonic() - job["finished_at"] > 900):
+            self._drop_preview_locked(identifier)
             raise SafetyError("JOB_NOT_FOUND")
         return job
+
+    def _drop_preview_locked(self, identifier):
+        removed = self.preview_samples.pop(identifier, [])
+        self.preview_sample_chars -= sum(len(row['text']) for row in removed)
 
     def cancel(self, identifier):
         with self.lock:
@@ -227,6 +250,19 @@ class AnalysisJobs:
         with self.lock:
             job = self._get_locked(identifier)
             job[key].append(value)
+
+    def preview(self, identifier, workspace_id, ws=None):
+        with self.lock:
+            job = self._get_locked(identifier)
+            sample = self.preview_samples.get(identifier)
+            if job['workspace_id'] != workspace_id or job['mode'] != 'local' or job['status'] != 'completed' or sample is None:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_UNAVAILABLE')
+            current = ws.records if ws is not None else {}
+            for row in sample:
+                record = current.get(row['file_id'])
+                if not record or record.get('sha256') != row.get('sha256'):
+                    raise SafetyError('PERSONAL_RULE_PREVIEW_UNAVAILABLE')
+            return copy.deepcopy(sample)
 
     async def _suggest(self, payload, config_snapshot: ModelConfigSnapshot | None):
         """Keep one-argument suggest monkeypatches compatible with older callers."""
@@ -300,6 +336,13 @@ class AnalysisJobs:
                         self._update(identifier, phase="classifying")
                         classify_kwargs = {'cancelled': lambda: self._cancelled(identifier)} if 'cancelled' in inspect.signature(analyze_local).parameters else {}
                         result = await asyncio.to_thread(analyze_local, record, payload, **classify_kwargs)
+                        text = payload.get('text', '')
+                        quality = result.get('quality', {})
+                        self._retain_preview(identifier, {'file_id': file_id, 'name': record['name'],
+                            'extension': record['extension'], 'sha256': record['sha256'],
+                            'text': text[:12000], 'quality': quality})
+                        snapshot = self.personal_rule_snapshots.get(identifier, {'available': True, 'rules': []})
+                        result = apply_personal_rules(result, record, text, quality, snapshot)
                     if not self.get(identifier)["cancel_requested"]:
                         self._append(identifier, "results", result)
                 except (SafetyError, OSError) as exc:
@@ -324,4 +367,54 @@ class AnalysisJobs:
                 job["finished_at"] = time.monotonic()
                 self.snapshots.pop(identifier, None)
                 self.config_snapshots.pop(identifier, None)
+                self.personal_rule_snapshots.pop(identifier, None)
             self.global_slots.release()
+
+    def _retain_preview(self, identifier, item):
+        with self.lock:
+            rows = self.preview_samples.setdefault(identifier, [])
+            rows.append(item)
+            self.preview_sample_chars += len(item['text'])
+            while self.preview_sample_chars > 2 * 1024 * 1024:
+                oldest = next(iter(self.preview_samples), None)
+                if oldest is None:
+                    break
+                removed = self.preview_samples.pop(oldest)
+                self.preview_sample_chars -= sum(len(row['text']) for row in removed)
+
+
+def apply_personal_rules(result, record, text, quality, snapshot):
+    if not snapshot.get('available', True):
+        result['review_required'] = True
+        result['review_reasons'] = list(dict.fromkeys(result.get('review_reasons', []) + ['personal_rules_unavailable']))
+        return result
+    norm = ' '.join(__import__('unicodedata').normalize('NFKC', text[:12000]).casefold().split())
+    matched = []
+    if quality.get('state') == 'acceptable' and norm:
+        for rule in snapshot.get('rules', []):
+            if rule.get('enabled') and record['extension'].lower() in rule['extensions']:
+                hits = [word for word in rule['keywords'] if word in norm]
+                if len(hits) == len(rule['keywords']):
+                    matched.append({'id': rule['id'], 'name': rule['name'], 'keywords': hits,
+                                    'category': rule['category'], 'subcategory': rule['subcategory']})
+    if not matched:
+        return result
+    targets = {(m['category'], m['subcategory']) for m in matched}
+    result['personal_rule_matches'] = [{k: m[k] for k in ('id', 'name', 'keywords')} for m in matched]
+    candidates = list(result.get('candidates', []))
+    for match in matched:
+        candidate = {'category': match['category'], 'subcategory': match['subcategory'],
+                     'label': match['name'], 'source': 'personal_rules', 'review_required': True}
+        if candidate not in candidates:
+            candidates.append(candidate)
+    result['candidates'] = candidates
+    result['provider'] = 'personal_rules'
+    result['review_required'] = True
+    reasons = list(result.get('review_reasons', []))
+    reasons.append('personal_rule_conflict' if len(targets) > 1 else 'personal_rule_applied')
+    result['review_reasons'] = list(dict.fromkeys(reasons))
+    if len(targets) == 1:
+        result['category'], result['subcategory'] = next(iter(targets))
+        result['decision_level'] = 'candidate'
+    result['personal_rule_evidence'] = '；'.join(f"{m['name']}：{'、'.join(m['keywords'])}" for m in matched)
+    return result

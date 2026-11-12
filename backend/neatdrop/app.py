@@ -61,6 +61,29 @@ class JobBody(Body):
     config_version: str | None = Field(default=None, max_length=80)
 
 
+class PersonalRulePreviewBody(Body):
+    job_id: str = Field(min_length=1, max_length=64)
+    name: str = Field(min_length=1, max_length=60)
+    keywords: list[str] = Field(min_length=2, max_length=5)
+    extensions: list[str] = Field(min_length=1, max_length=100)
+    category: str = Field(min_length=1, max_length=40)
+    subcategory: str | None = Field(default=None, max_length=40)
+    rule_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{32}$')
+
+
+class PersonalRuleSaveBody(Body):
+    preview_token: str = Field(min_length=20, max_length=100)
+    confirmed: bool = False
+
+
+class PersonalRuleRevision(Body):
+    revision: int = Field(ge=0, lt=2**53)
+
+
+class PersonalRuleDelete(PersonalRuleRevision):
+    confirmed: bool = False
+
+
 class ModelConfigBody(Body):
     endpoint: str | None = Field(default=None, max_length=2048)
     text_model: str | None = Field(default=None, max_length=128)
@@ -445,12 +468,88 @@ def create_app():
     async def start_job(body: JobBody, request: Request):
         ws, _ = granted(request, body.workspace_id)
         manager = current(request).jobs
+        from .personal_rules import PersonalRules
+        personal_snapshot = PersonalRules(granted(request, body.workspace_id)[1]).listing() if body.mode == 'local' else None
         job = manager.create(ws, body.file_ids, body.mode, body.cloud_consent,
-                             endpoint=body.endpoint, config_version=body.config_version)
+                             endpoint=body.endpoint, config_version=body.config_version,
+                             personal_rules={'available': personal_snapshot['available'], 'rules': personal_snapshot['rules']})
         task = asyncio.create_task(manager.run(job["id"], ws))
         tasks.add(task)
         task.add_done_callback(tasks.discard)
         return dict(job)
+
+    def personal_rules_service(request, identifier):
+        from .personal_rules import PersonalRules
+        return PersonalRules(granted(request, identifier)[1])
+
+    @app.get('/api/v1/workspaces/{identifier}/classification-rules')
+    def personal_rules_listing(identifier: str, request: Request):
+        return personal_rules_service(request, identifier).listing()
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/preview')
+    def personal_rules_preview(identifier: str, body: PersonalRulePreviewBody, request: Request):
+        service = personal_rules_service(request, identifier)
+        session = current(request)
+        ws, _ = granted(request, identifier)
+        samples = session.jobs.preview(body.job_id, identifier, ws)
+        draft = body.model_dump(exclude={'job_id'}, exclude_none=False)
+        revision = service.listing()['revision']
+        if revision is None:
+            raise SafetyError('PERSONAL_RULE_STORE_UNAVAILABLE')
+        preview = service.preview(draft, samples, revision)
+        token = secrets.token_urlsafe(32)
+        tokens = session.personal_rule_previews
+        now = time.monotonic()
+        for key, value in list(tokens.items()):
+            if now - value['created'] > 600:
+                tokens.pop(key, None)
+        if len(tokens) >= 16:
+            raise SafetyError('PERSONAL_RULE_PREVIEW_LIMIT')
+        tokens[token] = {'created': now, 'workspace_id': identifier, 'draft': draft,
+                         'revision': revision, 'preview': preview,
+                         'rule_id': body.rule_id, 'job_id': body.job_id}
+        return {'token': token, **preview}
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules')
+    def personal_rules_save(identifier: str, body: PersonalRuleSaveBody, request: Request):
+        if not body.confirmed:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        session = current(request)
+        token_data = session.personal_rule_previews.get(body.preview_token)
+        if not token_data or time.monotonic() - token_data['created'] > 600:
+            session.personal_rule_previews.pop(body.preview_token, None)
+            raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+        if token_data['workspace_id'] != identifier:
+            raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
+        session.personal_rule_previews.pop(body.preview_token, None)
+        if not token_data['preview']['matched']:
+            raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
+        service = personal_rules_service(request, identifier)
+        return service.commit(token_data['draft'], token_data['revision'], token_data['draft'].get('rule_id'))
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}/disable')
+    def personal_rules_disable(identifier: str, rule_id: str, body: PersonalRuleRevision, request: Request):
+        return personal_rules_service(request, identifier).disable(rule_id, body.revision)
+
+    @app.post('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}/enable')
+    def personal_rules_enable(identifier: str, rule_id: str, body: PersonalRuleSaveBody, request: Request):
+        if not body.confirmed:
+            raise SafetyError('CONFIRMATION_REQUIRED')
+        session = current(request)
+        token_data = session.personal_rule_previews.get(body.preview_token)
+        if not token_data or time.monotonic() - token_data['created'] > 600:
+            session.personal_rule_previews.pop(body.preview_token, None)
+            raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+        if token_data['workspace_id'] != identifier or token_data.get('rule_id') != rule_id:
+            raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
+        session.personal_rule_previews.pop(body.preview_token, None)
+        if not token_data['preview']['matched']:
+            raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
+        return personal_rules_service(request, identifier).commit(token_data['draft'], token_data['revision'], rule_id)
+
+    @app.delete('/api/v1/workspaces/{identifier}/classification-rules/{rule_id}')
+    def personal_rules_delete(identifier: str, rule_id: str, body: PersonalRuleDelete, request: Request):
+        return personal_rules_service(request, identifier).delete(rule_id, body.revision, body.confirmed)
 
     @app.get("/api/v1/analysis-jobs/{identifier}")
     def get_job(identifier: str, request: Request):

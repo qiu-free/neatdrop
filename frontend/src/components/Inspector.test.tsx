@@ -147,6 +147,24 @@ it('lets a user individually approve a review-required suggestion', async () => 
   await screen.findByText('Approval preview')
 })
 
+it('keeps a personal-rule conflict marked for review and offers a reviewed correction as a rule seed', async () => {
+  const onCreateRule = vi.fn()
+  const onEdit = vi.fn()
+  vi.mocked(api).mockResolvedValueOnce({ text: 'Conflict preview', sample: 'text' })
+  render(<Inspector workspaceId="w" file={file} suggestion={{ ...candidateSuggestion, category: 'study',
+    review_required: true, decision_level: 'ordinary', review_reasons: ['personal_rule_conflict'],
+    personal_rule_matches: [{ id: 'a'.repeat(32), name: '财务资料', keywords: ['quarterly', 'revenue'] }],
+  } as unknown as Suggestion} edit={{ file_id: 'a', name: '修正文件.md', category: 'study', subcategory: 'paper' }}
+    reviewed onEdit={onEdit} onCreateRule={onCreateRule} editingDisabled={false} />)
+  expect(screen.getByText('待复核候选')).toBeInTheDocument()
+  expect(screen.getByLabelText('个人规则依据')).toHaveTextContent('财务资料')
+  expect(screen.getByRole('button', { name: '为类似文件建立规则' })).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: '为类似文件建立规则' }))
+  expect(onCreateRule).toHaveBeenCalledExactlyOnceWith({ fileId: 'a', category: 'study', subcategory: 'paper' })
+  expect(onEdit).not.toHaveBeenCalled()
+  await screen.findByText('Conflict preview')
+})
+
 it('requires analysis or a manual edit before an item can be confirmed', async () => {
   const onApprove = vi.fn()
   vi.mocked(api).mockResolvedValueOnce({ text: 'Manual preview', sample: 'text' })

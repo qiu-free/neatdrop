@@ -61,6 +61,8 @@ export interface Suggestion {
   decision_level?: DecisionLevel; candidates?: ClassificationCandidate[]; sampling?: Sampling
   engine_versions?: Record<string, string | number | null>
   quality?: ContentQualityReport
+  personal_rule_matches?: { id: string; name: string; keywords: string[] }[]
+  personal_rule_evidence?: string
 }
 export interface Edit { file_id: string; name: string; category: Category; subcategory?: string | null }
 export interface PlanItem {

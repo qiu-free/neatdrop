@@ -209,19 +209,19 @@ it('shows a focused empty landing with an optional practice entry and no file ta
   const onTutorial = vi.fn()
   render(<Workbench state={state} onTutorial={onTutorial} />)
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
-  fireEvent.click(screen.getByRole('button', { name: '进入教程演练' }))
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
   expect(onTutorial).toHaveBeenCalledOnce()
 })
 
-it('locks both directory-picker entry buttons until selection is returned', async () => {
+it('keeps one visible directory-picker action and locks it until selection is returned', async () => {
   let finish!: (value: { path: string | null }) => void
   vi.mocked(api).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
   render(<Workbench state={state} />)
   const entries = screen.getAllByRole('button', { name: '选择本地目录' })
-  fireEvent.click(entries[1])
+  expect(entries).toHaveLength(1)
+  fireEvent.click(entries[0])
   expect(entries[0]).toBeDisabled()
-  expect(entries[1]).toBeDisabled()
-  fireEvent.click(entries[1])
+  fireEvent.click(entries[0])
   expect(api).toHaveBeenCalledOnce()
   await act(async () => finish({ path: null }))
   for (const entry of screen.getAllByRole('button', { name: '选择本地目录' })) expect(entry).toBeEnabled()
@@ -231,7 +231,7 @@ it('clears the previous picker error and scans the returned folder', async () =>
   const current = makeState({ workspace: null, activeId: null })
   vi.mocked(api).mockResolvedValueOnce({ path: 'C:/synthetic-demo' })
   render(<Workbench state={current} />)
-  fireEvent.click(screen.getAllByRole('button', { name: '选择本地目录' })[0])
+  fireEvent.click(screen.getByRole('button', { name: '选择本地目录' }))
   await waitFor(() => expect(current.scan).toHaveBeenCalledWith('C:/synthetic-demo'))
   expect(current.setError).toHaveBeenCalledWith('')
 })

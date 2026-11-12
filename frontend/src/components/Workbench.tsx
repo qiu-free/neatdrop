@@ -20,6 +20,7 @@ import { TextImport } from '../experience/TextImport'
 import { RecordedExamples } from '../experience/RecordedExamples'
 import { BoundaryExamples } from '../experience/BoundaryExamples'
 import { reviewEligibility } from '../reviewEligibility'
+import { PersonalRulesPanel } from './PersonalRulesPanel'
 import type { WorkflowStage } from '../workflow'
 
 type State = ReturnType<typeof useWorkspace>
@@ -32,13 +33,13 @@ const analysisPhaseLabels: Record<string, string> = {
 }
 
 export function Workbench(props: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; onSettings?: () => void; onHelp?: (topic: string) => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
 }) {
   return <TaxonomyProvider taxonomy={props.state.config?.taxonomy} contentForms={props.state.config?.content_forms}><WorkbenchContent {...props} /></TaxonomyProvider>
 }
 
-function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirst, active: pageActive = true, session }: {
-  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
+function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, onSettings, onHelp, offlineFirst, active: pageActive = true, session }: {
+  state: State; onTutorial?: () => void; onHistory?: () => void; onLibrary?: () => void; onSettings?: () => void; onHelp?: (topic: string) => void; offlineFirst?: boolean; active?: boolean; session?: WorkbenchSession
 }) {
   const { categories, taxonomy } = useTaxonomy()
   const [viewChoice, setViewChoice] = useSessionState(session, 'viewChoice', null)
@@ -51,6 +52,8 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   const [picking, setPicking] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailVisited, setDetailVisited] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const [ruleSeed, setRuleSeed] = useState<{ fileId: string; category: string; subcategory: string | null } | null>(null)
   const [bulkCategory, setBulkCategory] = useSessionState(session, 'bulkCategory', 'other')
   const scrollRoot = useRef<HTMLDivElement>(null)
   const stageSurface = useRef<HTMLDivElement>(null)
@@ -357,7 +360,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
   }}>
     <section className="page-intro">
       <div><span className="intro-label">一点秩序，更多从容</span><h1>给文件，一个清晰的归处<span>。</span></h1><p>把杂乱交给净匣，把决定留给你。先预览，再安心整理。</p></div>
-      {!isWebExperience ? <button className="button primary choose-main" disabled={workflowLocked || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={17} />{picking ? '等待选择…' : '选择本地目录'}</button> : <button className="button primary" disabled={workflowLocked || !config} onClick={() => config && void requestScan(config.demo_path)}>载入学习样例</button>}
+      {isWebExperience ? <button className="button primary" disabled={workflowLocked || !config} onClick={() => config && void requestScan(config.demo_path)}>载入学习样例</button> : null}
     </section>
 
     {isWebExperience ? <nav aria-label="网页体验五阶段"><ol className="experience-steps">{([{ id: 'choose', label: '载入资料' }, { id: 'analyze', label: '分析与看依据' }, { id: 'review', label: '核对分类' }, { id: 'copy', label: '加入资料库' }, { id: 'library', label: '查找与关联' }] as const).map((item, index) => <li key={item.id} aria-current={(stage === 'results' ? 'copy' : stage) === item.id ? 'step' : undefined}><button type="button" title={stepLocks[item.id]} aria-describedby="workbench-step-hint" disabled={workflowLocked || !!stepLocks[item.id]} onClick={() => navigateStep(item.id)}>{index + 1}. {item.label}</button></li>)}</ol></nav> : null}
@@ -371,7 +374,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
         {!isWebExperience ? <form onSubmit={event => { event.preventDefault(); void requestScan(path) }} className="path-form">
           <label htmlFor="directory-path" className="sr-only">本地目录完整路径</label>
           <input id="directory-path" value={path} onChange={event => setPath(event.target.value)} placeholder="粘贴本地文件夹完整路径，例如 C:\Users\你的用户名\Downloads" autoComplete="off" spellCheck={false} disabled={workflowLocked} />
-          <button className="button secondary" disabled={!path.trim() || workflowLocked || !state.online}>{busy === 'scan' ? <LoaderCircle size={15} className="spin" /> : <ArrowRight size={15} />}扫描目录</button>
+          <button className="button primary choose-directory" type="button" disabled={workflowLocked || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button><button className="button secondary" disabled={!path.trim() || workflowLocked || !state.online}>{busy === 'scan' ? <LoaderCircle size={15} className="spin" /> : <ArrowRight size={15} />}扫描目录</button>
         </form> : <TextImport disabled={workflowLocked} hasWorkspace={!!workspace} onImported={runScan} />}
         <div className="directory-foot"><span>{isWebExperience ? '浏览器内存 · 不上传文本 · 刷新即清空' : '只扫描当前目录 · 单批 ≤50 项 / 200 MiB · 不永久删除'}</span><button className="text-button" disabled={workflowLocked || !config} onClick={() => { if (config) void requestScan(config.demo_path) }}>试用人工样例 <ArrowUpRightIcon /></button></div>
       </div>
@@ -381,7 +384,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
     {!workspace ? <section className="empty-landing" aria-label="开始使用">
       <div className="empty-landing-icon"><FolderOpen size={27} /></div>
         <div><h2>{isWebExperience ? '整理一组学习资料' : '从一个本地文件夹开始'}</h2><p>{isWebExperience ? '载入样例或选择文本，查看真实分类依据，确认后加入浏览器资料库，再探索词项关系。' : '先扫描当前目录，再挑选要整理的文件。分析、复核和生成副本都由你确认。'}</p>
-        <div className="empty-landing-actions">{!isWebExperience ? <button className="button primary" disabled={!!busy || picking || !state.online} onClick={() => void pickDirectory()}><FolderOpen size={16} />{picking ? '等待选择…' : '选择本地目录'}</button> : <button className="button primary" disabled={workflowLocked || !config} onClick={() => config && void requestScan(config.demo_path)}>开始学习样例</button>}{onTutorial ? <button className="button secondary" onClick={onTutorial}>进入教程演练</button> : null}</div>
+        <div className="empty-landing-actions">{isWebExperience ? <button className="button primary" disabled={workflowLocked || !config} onClick={() => config && void requestScan(config.demo_path)}>开始学习样例</button> : null}{onTutorial ? <button className="button secondary" onClick={onTutorial}>开始安全练习</button> : null}</div>
       </div>
       <span className="empty-kbd"><ShieldCheck size={14} />{isWebExperience ? '文本只在浏览器中处理，不改动原始文件' : '文件保留在本机，原件始终保留'}</span>
     </section> : <>
@@ -405,13 +408,14 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
             <button className="text-button select-all" disabled={!!busy || !visibleSelectable.length} onClick={toggleVisibleSelection}>{visibleAllSelected ? '取消选择可见项' : '选择可见项'}</button>
           </div>
           {stage === 'review' ? <div className="review-toolbar review-toolbar-v6">
-            <div className="review-main"><button className="button secondary" disabled={!!busy || activeAnalysis || !ordinaryPending.length} onClick={() => state.approveOrdinary(ordinaryPending.map(file => file.id))}>确认普通建议（{ordinaryPending.length}）</button><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
+            <div className="review-main"><button className="button primary" disabled={!!busy || activeAnalysis || !approvalCount} onClick={() => state.approveSelected()}>一键审核已选项（{approvalCount}）</button><span>已确认 {selectedReviewed} 项 · 剩余待确认 {selected.size - selectedReviewed} 项</span></div>
             <p>确认已选文件的当前分类与名称，包括筛选外已选项和待复核候选。当前包含 {eligibility.candidates.length} 项待复核、{eligibility.mainOnly.length} 项仅主类或待分类；人工确认不代表算法已判定可靠。修改后需要重新审核；{isWebExperience ? '加入资料库' : '生成副本'}前仍需独立确认。</p>
             {approvalSkipped ? <p className="review-skipped">{approvalSkipped} 项尚未分析或存在未处理错误，请先分析或编辑，错误项需重新分析。</p> : null}
             <details className="review-more"><summary>更多操作</summary><div className="review-advanced">
               <label>批量分类<select aria-label="批量分类" value={bulkCategory} onChange={event => setBulkCategory(event.target.value as Category)}>{Object.entries(categories).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
               <button className="button secondary" disabled={!!busy || !selected.size} onClick={applyBulkCategory}>应用到已选择项</button>
               <button className="button secondary" disabled={!selected.size || !!busy || activeAnalysis} onClick={() => beginAnalysis()}><Sparkles size={16} />重新分析所选</button>
+              <button className="button secondary" disabled={!!busy || activeAnalysis || !ordinaryPending.length} onClick={() => state.approveOrdinary(ordinaryPending.map(file => file.id))}>确认普通建议（{ordinaryPending.length}）</button>
               <span>更改分类后需要重新审核。</span>
             </div></details>
           </div> : null}
@@ -422,6 +426,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
           <div className="table-note"><span>{files.filter(file => !file.supported).length ? `${files.filter(file => !file.supported).length} 项不支持或已跳过，原文件保留` : supportedFormats(config?.supported_extensions)}</span><span>{isWebExperience ? '预录资料仅供查看' : '不递归扫描'}</span></div>
           {!isWebExperience && files.some(file => file.reason === 'DIRECTORY_SKIPPED') ? <details className="child-directories"><summary>打开子文件夹（单独授权，不递归）</summary><p>将清除当前草稿并打开所选子目录。原件和既有副本保持不变。</p>{files.filter(file => file.reason === 'DIRECTORY_SKIPPED').map(file => <button key={file.id} className="button secondary" disabled={!!busy} onClick={() => setResetRequest({ type: 'child', fileId: file.id })}><FolderOpen size={16} />在此目录中打开：{file.name}</button>)}</details> : null}
         </div>
+          {stage === 'review' && !isWebExperience ? <details className="personal-rules-workbench" open={rulesOpen} onToggle={event => setRulesOpen(event.currentTarget.open)}><summary>本目录分类规则</summary><p>预览当前已完成的离线分析，再明确保存规则。</p>{workspace ? <PersonalRulesPanel key={workspace.id} workspaceId={workspace.id} jobId={state.job?.mode === 'local' && state.job.status === 'completed' ? state.job.id : null} categories={categories} subcategories={Object.fromEntries(Object.entries(taxonomy).map(([id, group]) => [id, group.subcategories]))} extensions={config?.supported_extensions} seed={ruleSeed} onClose={() => setRulesOpen(false)} onSettings={() => onSettings?.()} onHelp={topic => onHelp?.(topic)} /> : null}</details> : null}
       </section> : <ExecutionResults execution={state.execution} busy={busy} onCheck={() => void state.checkExecution()} onHistory={onHistory ? () => navigateStep('history') : undefined} onLibrary={onLibrary ? () => navigateStep('library') : undefined} />}
       </div>
 
@@ -442,7 +447,7 @@ function WorkbenchContent({ state, onTutorial, onHistory, onLibrary, offlineFirs
 
     {detailVisited && workspace && active ? createPortal(<div ref={inspectorColumnRef} className="app-shell workbench-detail-layer" hidden={!drawerVisible} aria-hidden={!drawerVisible} onKeyDown={handleDrawerKeyDown}>
       <button type="button" tabIndex={-1} className="detail-backdrop" aria-label="关闭详情遮罩" onClick={closeDetails} />
-      <Inspector key={workspace.id} workspaceId={workspace.id} workspacePath={workspace.path} file={active} suggestion={suggestions[active.id]} edit={edits[active.id]} onEdit={editReviewedFile} editingDisabled={stage !== 'review' || !!busy || activeAnalysis || !suggestions[active.id] || !!errors[active.id]} editingHint={stage !== 'review' ? '完成分析并进入第3步后可编辑' : undefined} checked={selected.has(active.id)} reviewed={reviewed.has(active.id)} analysisError={errors[active.id]} previewEnabled={drawerVisible} onApprove={() => { if (stage === 'review' && !busy && !activeAnalysis && suggestions[active.id] && !errors[active.id]) state.approve(active.id) }} onClose={closeDetails} drawerOpen={drawerVisible} position={activeIndex} total={visible.length} onPrevious={() => navigateInspector(visible[Math.max(0, activeIndex - 1)].id, 'previous')} onNext={() => navigateInspector(visible[Math.min(visible.length - 1, activeIndex + 1)].id, 'next')} />
+      <Inspector key={workspace.id} workspaceId={workspace.id} workspacePath={workspace.path} file={active} suggestion={suggestions[active.id]} edit={edits[active.id]} onEdit={editReviewedFile} config={config} editingDisabled={stage !== 'review' || !!busy || activeAnalysis || !suggestions[active.id] || !!errors[active.id]} editingHint={stage !== 'review' ? '完成分析并进入第3步后可编辑' : undefined} checked={selected.has(active.id)} reviewed={reviewed.has(active.id)} analysisError={errors[active.id]} previewEnabled={drawerVisible} onApprove={() => { if (stage === 'review' && !busy && !activeAnalysis && suggestions[active.id] && !errors[active.id]) state.approve(active.id) }} onCreateRule={stage === 'review' && reviewed.has(active.id) && suggestions[active.id]?.provider !== 'cloud_model' ? seed => { closeDetails(); setRuleSeed(seed); setRulesOpen(true) } : undefined} onRetry={errors[active.id] && ['analyze', 'review'].includes(stage) ? () => beginAnalysis([active.id], state.job?.mode === 'cloud' ? 'cloud' : 'local', true) : undefined} onRescan={!isWebExperience ? () => { closeDetails(); setResetRequest({ type: 'rescan' }) } : undefined} onSettings={!isWebExperience && onSettings ? () => { closeDetails(); onSettings() } : undefined} onHelp={onHelp ? topic => { closeDetails(); onHelp(topic) } : undefined} onClose={closeDetails} drawerOpen={drawerVisible} position={activeIndex} total={visible.length} onPrevious={() => navigateInspector(visible[Math.max(0, activeIndex - 1)].id, 'previous')} onNext={() => navigateInspector(visible[Math.min(visible.length - 1, activeIndex + 1)].id, 'next')} />
     </div>, document.body) : null}
     {consent ? <ConsentDialog key={`${consent.retry ? 'retry' : 'analysis'}-${consent.fileIds.join(',')}`} count={consent.fileIds.length} config={config} initialMode={consent.initialMode} onClose={closeConsent} onStart={(mode, approved, binding) => { setConsent(null); void state.analyze(mode, approved, consent.fileIds, binding) }} /> : null}
     {state.plan ? <PlanDialog key={state.plan.id} plan={state.plan} busy={busy === 'execute'} onClose={() => { state.setPlan(null); setStage('review') }} onConfirm={() => { setStage('results'); void state.execute() }} /> : null}

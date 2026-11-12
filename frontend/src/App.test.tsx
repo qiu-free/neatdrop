@@ -56,7 +56,7 @@ it('offers a skippable first-run tour and reopens the in-memory exercise from th
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
   await waitFor(() => expect(screen.getByText('本地服务已连接')).toBeInTheDocument())
   const callsBeforePractice = vi.mocked(fetch).mock.calls.length
-  fireEvent.click(screen.getByRole('button', { name: '进入教程演练' }))
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
   expect(screen.getByRole('dialog', { name: '安全练习' })).toBeInTheDocument()
   expect(vi.mocked(fetch).mock.calls).toHaveLength(callsBeforePractice)
   fireEvent.click(screen.getByRole('button', { name: '关闭弹窗' }))

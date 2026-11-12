@@ -26,7 +26,7 @@ export function FirstRunTour({ onClose, onComplete = onClose, onPractice }: Firs
       <OnboardingStage stage={step.id} title={step.title} />
       <div className="learning-tour-progress"><span>第 {safeIndex + 1} 步，共 {steps.length} 步</span><div aria-hidden="true">{steps.map((_, index) => <i key={index} className={index <= safeIndex ? 'active' : ''} />)}</div></div>
       <div key={step.id} className="stage-transition"><h2>{step.title}</h2><p id="tour-copy">{onboardingSteps[step.id].task}</p><details className="tour-detail"><summary>了解这一步</summary><p>{step.text}</p></details></div>
-      {onPractice && safeIndex < steps.length - 1 ? <button className="button primary tour-direct-practice" onClick={() => { onClose(); onPractice() }}>直接动手练习<ArrowRight size={15} /></button> : null}
+      {onPractice && safeIndex < steps.length - 1 ? <button className="button primary tour-direct-practice" onClick={() => { onClose(); onPractice() }}>开始安全练习<ArrowRight size={15} /></button> : null}
       <footer className="learning-tour-actions">
         <button className="text-button" onClick={onClose}>跳过导览</button>
         <span>

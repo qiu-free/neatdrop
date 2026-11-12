@@ -142,4 +142,3 @@ it('blocks saving without a matching preview, durable consent, and a hit', async
   await screen.findByText('当前目录规则')
   expect(screen.getByRole('button', { name: '启用并保存规则' })).toBeDisabled()
 })
-

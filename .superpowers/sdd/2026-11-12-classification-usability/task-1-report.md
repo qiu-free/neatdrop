@@ -36,3 +36,7 @@ Preview credentials are random server-generated tokens, retained in Session memo
 - Coverage includes normalization/taxonomy validation, no-preview gate, preview/save, wrong-route and replay tokens, expiry, stale revisions, zero match, disable/re-enable/delete, conflict candidates, quality-limited exclusion, corrupt/hard-linked metadata preservation, local snapshot stability, and cloud isolation.
 
 No additional dependencies were introduced. No known unresolved Task 1 behavior remains.
+
+## Review fix round1 (49321fc)
+
+Review identified cloud API None snapshot dereference, root-save accepting rule-bound enable credentials, and low-quality decoded text retained unnecessarily. Each had a failing regression before the fix. Fixed those paths, synchronized token credential lifecycle with Session.lock, removed duplicate import and unused preview_records. Covering exact assigned command (same six files above) passed41tests in14.06s. This is a controller-recorded summary of implementer evidence; scoped rereview pending.

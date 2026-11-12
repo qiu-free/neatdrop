@@ -110,3 +110,27 @@ def test_create_snapshots_local_rules_and_never_cloud_rules(tmp_path, monkeypatc
         max_requests_per_batch=50, endpoint='https://example.invalid', config_version='v1'))
     cloud = manager.create(ws, [file_id], 'cloud', True, personal_rules={'available': True, 'rules': [{'id': 'b'}]})
     assert cloud['id'] not in manager.personal_rule_snapshots
+
+
+def test_preview_retains_no_text_for_limited_quality(tmp_path, monkeypatch):
+    import asyncio
+    import neatdrop.analysis as analysis
+    root = tmp_path / 'root'
+    root.mkdir()
+    (root / 'file.txt').write_text('synthetic body', encoding='utf-8')
+    ws = Workspace(root)
+    record = ws.scan()[0]
+    monkeypatch.setattr(analysis, 'prepare_input', lambda *args, **kwargs: {'text': 'sensitive decoded text', 'sample': 'bounded'})
+    monkeypatch.setattr(analysis, 'analyze_local', lambda *args, **kwargs: {
+        'quality': {'state': 'limited'}, 'review_required': True, 'review_reasons': ['content_quality_limited']})
+    manager = AnalysisJobs()
+
+    async def run():
+        job = manager.create(ws, [record['id']], 'local', False)
+        await manager.run(job['id'], ws)
+        return job['id']
+
+    identifier = asyncio.run(run())
+    retained = manager.preview_samples[identifier][0]
+    assert retained['text'] == ''
+    assert retained['quality']['state'] == 'limited'

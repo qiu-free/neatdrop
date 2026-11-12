@@ -145,7 +145,6 @@ class AnalysisJobs:
         self.personal_rule_snapshots = {}
         self.preview_samples = {}
         self.preview_sample_chars = 0
-        self.preview_records = {}
         self.lock = RLock()
         self.expires = time.monotonic() + 8 * 3600
 
@@ -338,9 +337,10 @@ class AnalysisJobs:
                         result = await asyncio.to_thread(analyze_local, record, payload, **classify_kwargs)
                         text = payload.get('text', '')
                         quality = result.get('quality', {})
+                        retained_text = text[:12000] if quality.get('state') == 'acceptable' and text.strip() else ''
                         self._retain_preview(identifier, {'file_id': file_id, 'name': record['name'],
                             'extension': record['extension'], 'sha256': record['sha256'],
-                            'text': text[:12000], 'quality': quality})
+                            'text': retained_text, 'quality': quality})
                         snapshot = self.personal_rule_snapshots.get(identifier, {'available': True, 'rules': []})
                         result = apply_personal_rules(result, record, text, quality, snapshot)
                     if not self.get(identifier)["cancel_requested"]:

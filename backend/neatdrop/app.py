@@ -472,7 +472,8 @@ def create_app():
         personal_snapshot = PersonalRules(granted(request, body.workspace_id)[1]).listing() if body.mode == 'local' else None
         job = manager.create(ws, body.file_ids, body.mode, body.cloud_consent,
                              endpoint=body.endpoint, config_version=body.config_version,
-                             personal_rules={'available': personal_snapshot['available'], 'rules': personal_snapshot['rules']})
+                             personal_rules=({'available': personal_snapshot['available'], 'rules': personal_snapshot['rules']}
+                                             if personal_snapshot is not None else None))
         task = asyncio.create_task(manager.run(job["id"], ws))
         tasks.add(task)
         task.add_done_callback(tasks.discard)
@@ -498,16 +499,17 @@ def create_app():
             raise SafetyError('PERSONAL_RULE_STORE_UNAVAILABLE')
         preview = service.preview(draft, samples, revision)
         token = secrets.token_urlsafe(32)
-        tokens = session.personal_rule_previews
-        now = time.monotonic()
-        for key, value in list(tokens.items()):
-            if now - value['created'] > 600:
-                tokens.pop(key, None)
-        if len(tokens) >= 16:
-            raise SafetyError('PERSONAL_RULE_PREVIEW_LIMIT')
-        tokens[token] = {'created': now, 'workspace_id': identifier, 'draft': draft,
-                         'revision': revision, 'preview': preview,
-                         'rule_id': body.rule_id, 'job_id': body.job_id}
+        with session.lock:
+            tokens = session.personal_rule_previews
+            now = time.monotonic()
+            for key, value in list(tokens.items()):
+                if now - value['created'] > 600:
+                    tokens.pop(key, None)
+            if len(tokens) >= 16:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_LIMIT')
+            tokens[token] = {'created': now, 'workspace_id': identifier, 'draft': draft,
+                             'revision': revision, 'preview': preview,
+                             'rule_id': body.rule_id, 'job_id': body.job_id}
         return {'token': token, **preview}
 
     @app.post('/api/v1/workspaces/{identifier}/classification-rules')
@@ -515,13 +517,14 @@ def create_app():
         if not body.confirmed:
             raise SafetyError('CONFIRMATION_REQUIRED')
         session = current(request)
-        token_data = session.personal_rule_previews.get(body.preview_token)
-        if not token_data or time.monotonic() - token_data['created'] > 600:
+        with session.lock:
+            token_data = session.personal_rule_previews.get(body.preview_token)
+            if not token_data or time.monotonic() - token_data['created'] > 600:
+                session.personal_rule_previews.pop(body.preview_token, None)
+                raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+            if token_data['workspace_id'] != identifier or token_data.get('rule_id') is not None:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
             session.personal_rule_previews.pop(body.preview_token, None)
-            raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
-        if token_data['workspace_id'] != identifier:
-            raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
-        session.personal_rule_previews.pop(body.preview_token, None)
         if not token_data['preview']['matched']:
             raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
         service = personal_rules_service(request, identifier)
@@ -536,13 +539,14 @@ def create_app():
         if not body.confirmed:
             raise SafetyError('CONFIRMATION_REQUIRED')
         session = current(request)
-        token_data = session.personal_rule_previews.get(body.preview_token)
-        if not token_data or time.monotonic() - token_data['created'] > 600:
+        with session.lock:
+            token_data = session.personal_rule_previews.get(body.preview_token)
+            if not token_data or time.monotonic() - token_data['created'] > 600:
+                session.personal_rule_previews.pop(body.preview_token, None)
+                raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
+            if token_data['workspace_id'] != identifier or token_data.get('rule_id') != rule_id:
+                raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
             session.personal_rule_previews.pop(body.preview_token, None)
-            raise SafetyError('PERSONAL_RULE_PREVIEW_REQUIRED')
-        if token_data['workspace_id'] != identifier or token_data.get('rule_id') != rule_id:
-            raise SafetyError('PERSONAL_RULE_PREVIEW_INVALID')
-        session.personal_rule_previews.pop(body.preview_token, None)
         if not token_data['preview']['matched']:
             raise SafetyError('PERSONAL_RULE_ZERO_MATCH')
         return personal_rules_service(request, identifier).commit(token_data['draft'], token_data['revision'], rule_id)

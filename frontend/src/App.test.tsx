@@ -42,6 +42,98 @@ it('collapses the sidebar without losing a draft or navigation and restores the 
   expect(screen.getByRole('button', { name: '收起侧边栏' })).toBeInTheDocument()
 })
 
+it('keeps sidebar state immediate and interrupts an earlier native transition on rapid toggles', async () => {
+  const skip = vi.fn()
+  const transition = vi.fn((update: () => void) => {
+    update()
+    return { finished: new Promise<void>(() => undefined), skipTransition: skip }
+  })
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    const app = render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' }))
+    expect(transition).toHaveBeenCalledOnce()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '展开侧边栏' }))
+    expect(skip).toHaveBeenCalledOnce()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'false')
+    app.unmount()
+    expect(skip).toHaveBeenCalledTimes(2)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('changes the sidebar immediately without starting motion when reduced motion is requested', async () => {
+  const transition = vi.fn()
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' }))
+    expect(transition).not.toHaveBeenCalled()
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('applies only the latest sidebar intent when native snapshot callbacks are delayed', async () => {
+  const callbacks: (() => void)[] = []
+  const transition = vi.fn((update: () => void) => {
+    callbacks.push(update)
+    return { finished: new Promise<void>(() => undefined), skipTransition: vi.fn() }
+  })
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    const toggle = screen.getByRole('button', { name: '收起侧边栏' })
+    fireEvent.click(toggle)
+    fireEvent.click(toggle)
+    act(() => { callbacks[1](); callbacks[0]() })
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'false')
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(false)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
+it('still applies a sidebar choice when the browser rejects a view transition snapshot', async () => {
+  const failure = new DOMException('DOM update timed out', 'TimeoutError')
+  const transition = vi.fn(() => ({
+    ready: Promise.reject(failure), updateCallbackDone: Promise.reject(failure),
+    finished: Promise.resolve(), skipTransition: vi.fn(),
+  }))
+  const previous = Object.getOwnPropertyDescriptor(document, 'startViewTransition')
+  Object.defineProperty(document, 'startViewTransition', { configurable: true, value: transition })
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })))
+  try {
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))
+    await screen.findByText('本地服务已连接')
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: '收起侧边栏' })))
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-sidebar-collapsed', 'true')
+    expect(JSON.parse(localStorage.getItem(PREFERENCES_STORAGE_KEY)!).sidebarCollapsed).toBe(true)
+  } finally {
+    if (previous) Object.defineProperty(document, 'startViewTransition', previous)
+    else delete (document as Partial<Document>).startViewTransition
+  }
+})
+
 it('keeps help and practice accessible after removing product explanation without losing the current draft', async () => {
   render(<App />)
   fireEvent.click(screen.getByRole('button', { name: '跳过导览' }))

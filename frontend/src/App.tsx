@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { CheckCircle2, CircleAlert, Settings2, ChevronRight, X } from 'lucide-react'
 import { useWorkspace } from './useWorkspace'
 import { Sidebar } from './components/Sidebar'
@@ -34,6 +35,12 @@ export default function App() {
   const [preferences, setPreferences] = useState(loadPreferences)
   const [tour, setTour] = useState(() => !isWebExperience && loadPreferences().tutorial.tourStatus === 'unseen')
   const [practice, setPractice] = useState(false)
+  const sidebarTransition = useRef<ViewTransition | null>(null)
+  const sidebarIntent = useRef<boolean | null>(null)
+  const sidebarRevision = useRef(0)
+  const latestPreferences = useRef(preferences)
+  latestPreferences.current = preferences
+  useEffect(() => () => { sidebarRevision.current++; sidebarTransition.current?.skipTransition() }, [])
   useEffect(() => {
     const refresh = () => setPreferences(loadPreferences())
     window.addEventListener('neatdrop:preferences', refresh)
@@ -66,7 +73,31 @@ export default function App() {
     setPreferences(next)
     savePreferences(next)
   }, [])
-  const toggleSidebar = () => changePreferences({ ...preferences, sidebarCollapsed: !preferences.sidebarCollapsed })
+  const toggleSidebar = () => {
+    const collapsed = !(sidebarIntent.current ?? !!latestPreferences.current.sidebarCollapsed)
+    sidebarIntent.current = collapsed
+    const revision = ++sidebarRevision.current
+    sidebarTransition.current?.skipTransition()
+    let applied = false
+    const update = () => {
+      if (applied || revision !== sidebarRevision.current) return
+      applied = true
+      flushSync(() => changePreferences({ ...latestPreferences.current, sidebarCollapsed: collapsed }))
+      sidebarIntent.current = null
+    }
+    if (typeof document.startViewTransition !== 'function' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      update()
+      return
+    }
+    let transition: ViewTransition
+    try { transition = document.startViewTransition(update) }
+    catch { update(); return }
+    sidebarTransition.current = transition
+    void transition.ready?.catch(() => undefined)
+    void transition.updateCallbackDone?.catch(update)
+    const settle = () => { if (sidebarTransition.current === transition) sidebarTransition.current = null }
+    void transition.finished.then(settle, settle)
+  }
   const clearPendingScroll = useCallback(() => {
     const pending = pendingScroll.current
     pendingScroll.current = null

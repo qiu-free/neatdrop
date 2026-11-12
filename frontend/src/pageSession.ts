@@ -8,13 +8,16 @@ export interface WorkbenchSession {
   viewChoice: { workspace: string; view: 'grid' | 'list' } | null
   bulkCategory: Category; listScroll: number
 }
-export interface LibrarySession { workspace: string | null; category: string; query: string; focus?: string | null }
+export interface LibrarySession { workspace: string | null; category: string; query: string; focus?: string | null; subcategory?: string; extension?: string; dateFrom?: string; dateTo?: string }
+export function resetLibrarySession(session: LibrarySession, workspace: string | null = session.workspace) {
+  Object.assign(session, { workspace, category: 'all', query: '', subcategory: 'all', extension: 'all', dateFrom: '', dateTo: '', focus: null })
+}
 export interface HelpSession { query: string }
 export interface PageSessions { workbench: WorkbenchSession; library: LibrarySession; help: HelpSession; graph: GraphSession; scroll: Record<Page, number> }
 export function createPageSession() {
   return {
     workbench: { path: '', workspace: null, stage: 'choose', filter: 'all', query: '', viewChoice: null, bulkCategory: 'other', listScroll: 0 } as WorkbenchSession,
-    library: { workspace: null, category: 'all', query: '' } as LibrarySession,
+    library: { workspace: null, category: 'all', query: '', subcategory: 'all', extension: 'all', dateFrom: '', dateTo: '' } as LibrarySession,
     help: { query: '' } as HelpSession,
     graph: createGraphSession(),
     scroll: { workbench: 0, library: 0, graph: 0, history: 0, help: 0 } as Record<Page, number>,

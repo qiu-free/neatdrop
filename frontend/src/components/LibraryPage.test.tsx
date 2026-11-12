@@ -48,6 +48,42 @@ it('filters archived copies by main category and filename while showing actual p
   expect(screen.queryByRole('button', { name: '查看 报销账单.txt' })).not.toBeInTheDocument()
 })
 
+it('intersects library filters and includes both local calendar date endpoints', async () => {
+  const lateOnStart = new Date(2026, 10, 3, 23, 59, 59).toISOString()
+  const earlyOnEnd = new Date(2026, 10, 4, 0, 0, 0).toISOString()
+  const filteredItems = [
+    { ...items[0], name: '项目笔记.PDF', subcategory: 'chart', created: lateOnStart },
+    { ...items[0], id: 'second', name: '项目笔记.pdf', subcategory: null, created: earlyOnEnd },
+    { ...items[0], id: 'outside', name: '项目笔记.pdf', subcategory: 'chart', created: new Date(2026, 10, 5, 12).toISOString() },
+    { ...items[0], id: 'bad-date', name: '项目笔记.pdf', subcategory: 'chart', created: 'not-a-date' },
+  ]
+  setup(filteredItems)
+  const taxonomy = { finance: { label: '财务票据', directory: '财务', subcategories: { chart: '数据图表' } } }
+  render(<LibraryPage workspace={workspace} history={history} taxonomy={taxonomy} onWorkbench={vi.fn()} />)
+  await screen.findByRole('button', { name: '查看 项目笔记.PDF' })
+  expect(screen.queryByLabelText('子分类')).not.toBeInTheDocument()
+
+  fireEvent.change(screen.getByLabelText('主分类'), { target: { value: 'finance' } })
+  fireEvent.change(screen.getByLabelText('子分类'), { target: { value: 'chart' } })
+  fireEvent.change(screen.getByLabelText('扩展名'), { target: { value: 'pdf' } })
+  fireEvent.change(screen.getByLabelText('开始日期'), { target: { value: '2026-11-03' } })
+  fireEvent.change(screen.getByLabelText('结束日期'), { target: { value: '2026-11-04' } })
+  fireEvent.change(screen.getByLabelText('搜索资料库文件名'), { target: { value: '项目' } })
+
+  expect(screen.getByRole('button', { name: '查看 项目笔记.PDF' })).toBeInTheDocument()
+  expect(screen.getByText('显示 1 / 4 项')).toBeInTheDocument()
+  fireEvent.change(screen.getByLabelText('结束日期'), { target: { value: '2026-11-02' } })
+  expect(screen.getByRole('alert')).toHaveTextContent('结束日期不能早于开始日期')
+  expect(screen.getByRole('button', { name: '清除筛选' })).toBeInTheDocument()
+  fireEvent.click(screen.getAllByRole('button', { name: '清除筛选' })[0])
+  expect(screen.getByLabelText('主分类')).toHaveValue('all')
+  expect(screen.queryByLabelText('子分类')).not.toBeInTheDocument()
+  expect(screen.getByLabelText('扩展名')).toHaveValue('all')
+  expect(screen.getByLabelText('开始日期')).toHaveValue('')
+  expect(screen.getByLabelText('结束日期')).toHaveValue('')
+  expect(screen.getByLabelText('搜索资料库文件名')).toHaveValue('')
+})
+
 it('opens previews only by entry ID and restores focus, scroll and keyboard boundaries when closing', async () => {
   const { requests } = setup()
   document.body.style.overflow = 'auto'

@@ -37,7 +37,7 @@ it('lets a newcomer start hands-on practice immediately without marking the unre
   }
   expect(pictures.size).toBe(6)
   for (let index = 0; index < 5; index++) fireEvent.click(screen.getByRole('button', { name: '上一步' }))
-  fireEvent.click(screen.getByRole('button', { name: '直接动手练习' }))
+  fireEvent.click(screen.getByRole('button', { name: '开始安全练习' }))
   expect(onPractice).toHaveBeenCalledOnce()
   expect(onClose).toHaveBeenCalledOnce()
   expect(onComplete).not.toHaveBeenCalled()
